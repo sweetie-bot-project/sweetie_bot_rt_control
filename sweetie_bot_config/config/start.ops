@@ -1,0 +1,37 @@
+import ("sweetie_bot_resource_control");
+import ("sweetie_bot_gait_walking_3_plus_1");
+
+displayComponentTypes();
+
+loadComponent("resource_control", "ResourceControl");
+loadComponent("gait_walking_3_plus_1", "GaitWalking3Plus1");
+
+connect( "resource_control.resourceRequestPort", 
+  "gait_walking_3_plus_1.resourceRequestPort", 
+  ConnPolicy() 
+  );
+
+connect( "resource_control.resourceReplyPort", 
+  "gait_walking_3_plus_1.resourceReplyPort", 
+  ConnPolicy() 
+  );
+
+connect( "resource_control.resourceReleasedPort", 
+  "gait_walking_3_plus_1.resourceReleasedPort", 
+  ConnPolicy() 
+  );
+
+connect( "resource_control.resourceDemandReleasePort", 
+  "gait_walking_3_plus_1.resourceDemandReleasePort", 
+  ConnPolicy() 
+  );
+
+resource_control.configure();
+gait_walking_3_plus_1.configure();
+
+resource_control.setPeriod(1.0);
+gait_walking_3_plus_1.setPeriod(0.5);
+
+resource_control.start();
+gait_walking_3_plus_1.start();
+
