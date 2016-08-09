@@ -1,1 +1,6 @@
+# VIM swp
 *.swp
+
+# Orocos 
+.tb_history
+orocos.log
