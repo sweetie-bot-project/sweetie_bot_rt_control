@@ -6,16 +6,12 @@ Urdf_need::Urdf_need(std::string const& name) : TaskContext(name),
 						inJointState("input_joint_state"){
   std::cout << "Urdf_need constructed !" <<std::endl;
   this->ports()->addEventPort( inJointState ).doc( "Input port for JointState data" );
+  robot_model_req = getProvider<RobotModel>("robot_model"); //попытается загрузить нужный сервис, если он отсутсвует.
 }
 
 bool Urdf_need::configureHook(){
   std::cout << "Urdf_need configured !" <<std::endl;
-  robot_model_req = getProvider<RobotModel>("robot_model_service"); //попытается загрузить нужный сервис, если он отсутсвует.
-//  bool rez;
-//  if(!robot_model_req) return false;
-//    rez = robot_model_req->configure();
-  return robot_model_req != 0 and robot_model_req->configure();
-  //return true;
+  return robot_model_req->configure();
 }
 
 bool Urdf_need::startHook(){
@@ -25,7 +21,6 @@ bool Urdf_need::startHook(){
 
 void Urdf_need::updateHook(){
   std::cout << "Urdf_need executes updateHook !" <<std::endl;
-  //getProvider<RobotModel>("robot_model_service")->configure();
   sensor_msgs::JointState input_joint_state;
   JntArray position;
   JntArray speed;

@@ -19,23 +19,21 @@ using namespace std;
 class RobotModelService : public Service {
 private:
   std::string robot_description_;
-  const std::string urdf_param_name_ = "robot_description";
   KDL::Tree tree_;
   map<string,Chain *> chains_;
   map<string,vector<string> > joints_;
   TaskContext* owner_;
 public:
     RobotModelService(TaskContext* owner) 
-        : Service("robot_model_service", owner),
+        : Service("robot_model", owner),
           owner_( owner) 
     {
 	this->addOperation("getOwnerName", &RobotModelService::getOwnerName, this).doc("Returns the name of the owner of this object.");
-	this->provides()->addOperation("configure", &RobotModelService::configure, this, OwnThread).doc("Configires service: read parameters, construct kdl tree.");
-	this->provides()->addOperation("listChains", &RobotModelService::listChains, this, ClientThread).doc("Lists loaded chains");
-	this->provides()->addOperation("extractChain", &RobotModelService::extractChain, this, ClientThread).doc("Extracts chain parameters from joint state");
-	this->provides()->addOperation("packChain", &RobotModelService::packChain, this, ClientThread).doc("Put chain parameters to joint state");
-	owner->addProperty(urdf_param_name_, robot_description_);
-	this->provides()->addProperty(urdf_param_name_, robot_description_); // not working :(
+	this->addOperation("configure", &RobotModelService::configure, this, OwnThread).doc("Configires service: read parameters, construct kdl tree.");
+	this->addOperation("listChains", &RobotModelService::listChains, this, ClientThread).doc("Lists loaded chains");
+	this->addOperation("extractChain", &RobotModelService::extractChain, this, ClientThread).doc("Extracts chain parameters from joint state");
+	this->addOperation("packChain", &RobotModelService::packChain, this, ClientThread).doc("Put chain parameters to joint state");
+	this->addProperty("robot_description", robot_description_);
     }
 
     ~RobotModelService()
@@ -54,23 +52,6 @@ public:
 	if(isConfigured()){
 	  std::cout << "RobotModelService already configured !" <<std::endl;
 	  return true;
-	}
-
-	// Get the rosparam service requester
-	boost::shared_ptr<rtt_rosparam::ROSParam> rosparam =
-	  owner_->getProvider<rtt_rosparam::ROSParam>("rosparam");
-
-	// Get the parameters
-	if(!rosparam) {
-	  std::cout << "RobotModelService can't get rosparam service requester !" <<std::endl;
-	  return false;
-	}
-
-	// Get the ROS parameter "/robot_description"
-	if(!rosparam->getAbsolute( urdf_param_name_ ))
-	{
-	  std::cout << "RobotModelService can't get " << urdf_param_name_ << " parameter !" <<std::endl;
-          return false;
 	}
 
 	if (!kdl_parser::treeFromString(robot_description_, tree_)){
@@ -156,10 +137,9 @@ public:
 	  velocity.resize( joints.size() );
 	  effort.resize(   joints.size() );
 
-	  for(auto& joint: joints)
+	  for (unsigned j_index=0; j_index<joints.size(); j_index++)
 	  {
-		auto j_index = &joint - &joints[0]; // joint index
-		auto it = std::find(joint_state.name.begin(), joint_state.name.end(), joint);
+		auto it = std::find(joint_state.name.begin(), joint_state.name.end(), joints[j_index]);
 		if (it == joint_state.name.end())
 		{
 		  // joint not found
@@ -167,7 +147,7 @@ public:
 		}
 		else
 		{
-		  auto js_index = std::distance(joint_state.name.begin(), it); // joint_state index
+		  auto js_index = distance(joint_state.name.begin(), it); // joint_state index
 		  position(j_index) = joint_state.position[js_index];
 		  velocity(j_index) = joint_state.velocity[js_index];
 		    effort(j_index) = joint_state.effort[js_index];
@@ -191,10 +171,9 @@ public:
               ( position.rows() != velocity.rows() ) || 
               ( position.rows() != effort.rows() ) ) return false;
 
-	  for(auto& joint: joints)
+	  for (unsigned j_index=0; j_index<joints.size(); j_index++)
 	  {
-		auto j_index = &joint - &joints[0]; // joint index
-		joint_state.name.push_back( joint );
+		joint_state.name.push_back( joints[j_index] );
 		joint_state.position.push_back( position(j_index) );
 		joint_state.velocity.push_back( velocity(j_index) );
 		  joint_state.effort.push_back( effort(j_index) );
@@ -210,4 +189,4 @@ public:
     }
 };
 
-ORO_SERVICE_NAMED_PLUGIN(RobotModelService, "robot_model_service")
+ORO_SERVICE_NAMED_PLUGIN(RobotModelService, "robot_model")

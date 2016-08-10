@@ -23,7 +23,7 @@ class RobotModel : public ServiceRequester { // внешний интерфей�
         OperationCaller<bool(const string&, JntArray&, JntArray&, JntArray&, sensor_msgs::JointState&)> packChain;
 
         RobotModel(TaskContext * owner) :
-            ServiceRequester("robot_model_service_requester", owner),
+            ServiceRequester("robot_model_requester", owner),
             configure("configure"),
             listChains("listChains"),
 	    extractChain("extractChain"),

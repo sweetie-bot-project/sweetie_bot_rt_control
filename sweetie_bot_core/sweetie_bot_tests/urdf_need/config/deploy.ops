@@ -17,9 +17,8 @@ loadService("urdf_need","marshalling"); # Поддержка исполнени�
 stream("urdf_need.input_joint_state", ros.topic("joint_state"))
 
 # Загружаем параметры из xml файла.
-# Данная операция *создаст* несуществующие, есть ряд других модификаций с иным поведением.
 urdf_need.marshalling.loadProperties(ros.find("sweetie_bot_config") + "/config/chains.cpf");
-
+urdf_need.rosparam.getParam("/", "robot_model")
 
 urdf_need.configure();
 
