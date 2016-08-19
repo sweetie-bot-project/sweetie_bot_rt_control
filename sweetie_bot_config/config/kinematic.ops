@@ -1,0 +1,30 @@
+# Загрузка поддержки взаимодействия с ROS
+import("rtt_ros");
+ros.import("rtt_sensor_msgs")
+ros.import("rtt_sweetie_bot_kinematics_msgs")
+
+ros.import("rtt_rospack");  # Разрешение путей ROS: операци ros.find(<package name>)
+ros.import("rtt_rosparam");
+
+require("print");
+import("sweetie_bot_kinematics");
+import("sweetie_bot_robot_model");
+
+loadComponent("sweetie_bot_kinematics", "Sweetie_bot_kinematics");
+loadService("sweetie_bot_kinematics","rosparam");
+loadService("sweetie_bot_kinematics","marshalling"); # Поддержка исполнения скриптов и загрузки xml/cpf файлов
+
+## Create connections
+stream("sweetie_bot_kinematics.input_joint_state", ros.topic("input_joint_state"))
+stream("sweetie_bot_kinematics.input_limbs_cartesian", ros.topic("input_limbs_cartesian"))
+
+# Загружаем параметры из xml файла.
+sweetie_bot_kinematics.marshalling.loadProperties(ros.find("sweetie_bot_config") + "/config/chains.cpf");
+sweetie_bot_kinematics.rosparam.getParam("/", "robot_model")
+
+sweetie_bot_kinematics.configure();
+
+#sweetie_bot_kinematics.rosparam.getAll();
+#sweetie_bot_kinematics.rosparam.getAbsolute("robot_description");
+
+sweetie_bot_kinematics.start();
