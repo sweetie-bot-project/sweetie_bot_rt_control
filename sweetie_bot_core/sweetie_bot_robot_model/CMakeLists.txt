@@ -30,7 +30,7 @@ endif()
 # documentation.
 include( ${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake )
 
-include_directories(include ${catkin_INCLUDE_DIRS} ${Eigen_INCLUDE_DIRS})
+include_directories(include ${catkin_INCLUDE_DIRS})
 
 # Rest of the configuration is in src/
 add_subdirectory( src )
@@ -40,3 +40,11 @@ add_subdirectory( src )
 # that it can pick up all above settings.
 #
 orocos_generate_package()
+
+orocos_install_headers(DIRECTORY include/${PROJECT_NAME})
+
+orocos_generate_package(
+  INCLUDE_DIRS include
+  DEPENDS rtt_ros
+)
+
