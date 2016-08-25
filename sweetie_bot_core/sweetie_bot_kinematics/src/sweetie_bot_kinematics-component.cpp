@@ -91,13 +91,7 @@ void Sweetie_bot_kinematics::updateHook(){
 	auto it = find(input_limbs_cartesian.name.begin(), input_limbs_cartesian.name.end(), name);
 	if(it == input_limbs_cartesian.name.end()) continue;
 	int limb = std::distance(input_limbs_cartesian.name.begin(), it);
-/*
-	KDL::Twist tolerances;
-	tolerances=KDL::Twist::Zero();
-	tolerances.rot.x(std::numeric_limits<float>::max());
-	tolerances.rot.y(std::numeric_limits<float>::max());
-	tolerances.rot.z(std::numeric_limits<float>::max());
-*/
+
 	KDL::Frame desired_end_effector_pose;
 	tf::poseMsgToKDL( input_limbs_cartesian.pose[limb], desired_end_effector_pose );
 	KDL::JntArray return_joints_positions, zero_joints_speed, zero_joints_effort;
