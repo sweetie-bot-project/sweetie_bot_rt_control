@@ -24,12 +24,8 @@ bool Sweetie_bot_kinematics::configureHook(){
   chain_names_ = robot_model_request_->listChains();
   for(auto &name: chain_names_) {
     KDL::Chain * chain = new KDL::Chain();
-    robot_model_request_->getChain(name, *chain);
-    chains_.insert({name, chain});
+    if(!robot_model_request_->getChain(name, *chain)) return false;
     int nj = chain->getNrOfSegments();
-
-    ChainFkSolverPos_recursive * fksolver = new ChainFkSolverPos_recursive(*chain);
-    fk_solvers_.insert({name, fksolver});
 
     KDL::JntArray * joint_seed = new KDL::JntArray(nj);
     KDL::JntArray lower_joint_limits(nj);
@@ -39,12 +35,11 @@ bool Sweetie_bot_kinematics::configureHook(){
 	upper_joint_limits(i) =  1.57;
 	(*joint_seed)(i) = 0;
     }
-    cout << lower_joint_limits.data << endl;
-    cout << upper_joint_limits.data << endl;
-    cout << joint_seed->data << endl << endl;
-    joint_seed_[name] = joint_seed;
-    TRAC_IK::TRAC_IK * ik_solver = new TRAC_IK::TRAC_IK(*chain, lower_joint_limits, upper_joint_limits, 0.025, 1e-5, TRAC_IK::Speed);
-    ik_solvers_.insert({ name, ik_solver });
+
+    limb_[name].chain     = std::make_shared<Chain>(*chain);
+    limb_[name].fk_solver = std::make_shared<ChainFkSolverPos_recursive>(*chain);
+    limb_[name].ik_solver = std::make_shared<TRAC_IK::TRAC_IK>(*chain, lower_joint_limits, upper_joint_limits, 0.025, 1e-5, TRAC_IK::Speed);
+    limb_[name].seed      = std::make_shared<JntArray>(*joint_seed);
   }
 
   return true;
@@ -70,8 +65,8 @@ void Sweetie_bot_kinematics::updateHook(){
 	geometry_msgs::Pose result_pose;
 
 	JntArray position, velocity, effort;
-	robot_model_request_->copyChain(name, input_joint_state, position, velocity, effort);
-	int kinematics_status = fk_solvers_[name]->JntToCart( position, result_frame );
+	if(!robot_model_request_->copyChain(name, input_joint_state, position, velocity, effort)) return;
+	int kinematics_status = limb_[name].fk_solver->JntToCart( position, result_frame );
 	if(kinematics_status >= 0) {
 	  tf::poseKDLToMsg(result_frame, result_pose);
 	  output_limbs_cartesian.name.push_back( name );
@@ -90,12 +85,12 @@ void Sweetie_bot_kinematics::updateHook(){
     for(auto &name: chain_names_) {
 	auto it = find(input_limbs_cartesian.name.begin(), input_limbs_cartesian.name.end(), name);
 	if(it == input_limbs_cartesian.name.end()) continue;
-	int limb = std::distance(input_limbs_cartesian.name.begin(), it);
+	int limb_num = std::distance(input_limbs_cartesian.name.begin(), it);
 
 	KDL::Frame desired_end_effector_pose;
-	tf::poseMsgToKDL( input_limbs_cartesian.pose[limb], desired_end_effector_pose );
+	tf::poseMsgToKDL( input_limbs_cartesian.pose[limb_num], desired_end_effector_pose );
 	KDL::JntArray return_joints_positions, zero_joints_speed, zero_joints_effort;
-	int kinematics_status = ik_solvers_[name]->CartToJnt(*joint_seed_[name], desired_end_effector_pose, return_joints_positions); //, tolerances);
+	int kinematics_status = limb_[name].ik_solver->CartToJnt(*limb_[name].seed, desired_end_effector_pose, return_joints_positions); //, tolerances);
 	if(kinematics_status >= 0) {
 		robot_model_request_->packChain( name, return_joints_positions, zero_joints_speed, zero_joints_effort, output_joint_state);
 	}
