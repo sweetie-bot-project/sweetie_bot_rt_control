@@ -17,6 +17,9 @@ loadService("sweetie_bot_kinematics","marshalling"); # Поддержка исп
 ## Create connections
 stream("sweetie_bot_kinematics.input_joint_state", ros.topic("input_joint_state"))
 stream("sweetie_bot_kinematics.input_limbs_cartesian", ros.topic("input_limbs_cartesian"))
+stream("sweetie_bot_kinematics.output_joint_state", ros.topic("output_joint_state"))
+stream("sweetie_bot_kinematics.output_limbs_cartesian", ros.topic("output_limbs_cartesian"))
+
 
 # Загружаем параметры из xml файла.
 sweetie_bot_kinematics.marshalling.loadProperties(ros.find("sweetie_bot_config") + "/config/chains.cpf");

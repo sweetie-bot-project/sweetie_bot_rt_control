@@ -30,13 +30,13 @@ class Sweetie_bot_kinematics : public RTT::TaskContext{
 	shared_ptr<JntArray> seed;
     };
 
-    boost::shared_ptr<RobotModel> robot_model_request_;
-    boost::shared_ptr<RobotModelInterface> robot_model_if_;
+    boost::shared_ptr<RobotModel> robot_model_;
+    boost::shared_ptr<RobotModelInterface> robot_model_interface_;
 
-    InputPort<sensor_msgs::JointState> input_joint_state_;
-    OutputPort<sensor_msgs::JointState> output_joint_state_;
-    InputPort<sweetie_bot_kinematics_msgs::CartesianState> input_limbs_cartesian_;
-    OutputPort<sweetie_bot_kinematics_msgs::CartesianState> output_limbs_cartesian_;
+    InputPort<sensor_msgs::JointState> input_port_joint_state_;
+    OutputPort<sensor_msgs::JointState> output_port_joint_state_;
+    InputPort<sweetie_bot_kinematics_msgs::CartesianState> input_port_limbs_cartesian_;
+    OutputPort<sweetie_bot_kinematics_msgs::CartesianState> output_port_limbs_cartesian_;
     vector<string> chain_names_;
     unordered_map<string,LimbData> limb_;
     //unordered_map<string,Chain*> chains_;
