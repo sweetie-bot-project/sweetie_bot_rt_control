@@ -16,15 +16,17 @@ Sweetie_bot_kinematics::Sweetie_bot_kinematics(std::string const& name) : TaskCo
 
   //this->addOperation("", &RobotModelService::configure, this, OwnThread).doc("Configires service: read parameters, construct kdl tree.");
   robot_model_request_ = getProvider<RobotModel>("robot_model"); //попытается загрузить нужный сервис, если он отсутсвует.
+  robot_model_if_ = boost::dynamic_pointer_cast<RobotModelInterface>(this->provides()->getService("robot_model"));
 }
 
 bool Sweetie_bot_kinematics::configureHook(){
   cout << "Sweetie_bot_kinematics configured !!" <<endl;
+  if((nullptr == robot_model_request_) or (nullptr == robot_model_if_)) return false;
   if(!robot_model_request_->configure()) return false;
   chain_names_ = robot_model_request_->listChains();
   for(auto &name: chain_names_) {
-    KDL::Chain * chain = new KDL::Chain();
-    if(!robot_model_request_->getChain(name, *chain)) return false;
+    Chain * chain = robot_model_if_->getChain(name);
+    if(nullptr == chain) return false;
     int nj = chain->getNrOfSegments();
 
     KDL::JntArray * joint_seed = new KDL::JntArray(nj);
@@ -65,7 +67,7 @@ void Sweetie_bot_kinematics::updateHook(){
 	geometry_msgs::Pose result_pose;
 
 	JntArray position, velocity, effort;
-	if(!robot_model_request_->copyChain(name, input_joint_state, position, velocity, effort)) return;
+	if(!robot_model_request_->extractChain(name, input_joint_state, position, velocity, effort)) return;
 	int kinematics_status = limb_[name].fk_solver->JntToCart( position, result_frame );
 	if(kinematics_status >= 0) {
 	  tf::poseKDLToMsg(result_frame, result_pose);

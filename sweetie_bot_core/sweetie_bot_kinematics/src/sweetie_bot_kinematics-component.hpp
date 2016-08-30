@@ -31,6 +31,8 @@ class Sweetie_bot_kinematics : public RTT::TaskContext{
     };
 
     boost::shared_ptr<RobotModel> robot_model_request_;
+    boost::shared_ptr<RobotModelInterface> robot_model_if_;
+
     InputPort<sensor_msgs::JointState> input_joint_state_;
     OutputPort<sensor_msgs::JointState> output_joint_state_;
     InputPort<sweetie_bot_kinematics_msgs::CartesianState> input_limbs_cartesian_;
