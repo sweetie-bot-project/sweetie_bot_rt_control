@@ -1,0 +1,6 @@
+<launch>
+  <param name="robot_description" textfile="$(find sweetie_bot_description_proto2)/robots/sweetie_bot_description_proto2.URDF" />
+
+  <node name="core" pkg="rtt_ros" type="deployer" args="-s $(find sweetie_bot_config)/config/agregator.ops -linfo" output="screen">
+  </node>
+</launch>
