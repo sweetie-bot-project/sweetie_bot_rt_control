@@ -21,7 +21,6 @@ Sweetie_bot_kinematics::Sweetie_bot_kinematics(std::string const& name) : TaskCo
 }
 
 bool Sweetie_bot_kinematics::configureHook(){
-  cout << "Sweetie_bot_kinematics configured !!" <<endl;
   if((nullptr == robot_model_) or (nullptr == robot_model_interface_)) return false;
   if(!robot_model_->configure()) return false;
   chain_names_ = robot_model_->listChains();
@@ -45,6 +44,7 @@ bool Sweetie_bot_kinematics::configureHook(){
     limb_[name].seed      = std::make_shared<JntArray>(*joint_seed);
   }
 
+  cout << "Sweetie_bot_kinematics configured !!" <<endl;
   return true;
 }
 
@@ -90,7 +90,7 @@ void Sweetie_bot_kinematics::updateHook(){
     for(auto &name: chain_names_) {
 	auto it = find(input_limbs_cartesian.name.begin(), input_limbs_cartesian.name.end(), name);
 	if(it == input_limbs_cartesian.name.end()) continue;
-	int limb_num = std::distance(input_limbs_cartesian.name.begin(), it);
+	int limb_num = distance(input_limbs_cartesian.name.begin(), it);
 
 	KDL::Frame desired_end_effector_pose;
 	tf::poseMsgToKDL( input_limbs_cartesian.pose[limb_num], desired_end_effector_pose );

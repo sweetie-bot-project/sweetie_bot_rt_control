@@ -26,8 +26,4 @@ sweetie_bot_kinematics.marshalling.loadProperties(ros.find("sweetie_bot_config")
 sweetie_bot_kinematics.rosparam.getParam("/", "robot_model")
 
 sweetie_bot_kinematics.configure();
-
-#sweetie_bot_kinematics.rosparam.getAll();
-#sweetie_bot_kinematics.rosparam.getAbsolute("robot_description");
-
 sweetie_bot_kinematics.start();
