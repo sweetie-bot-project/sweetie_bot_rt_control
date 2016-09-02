@@ -8,13 +8,18 @@ using namespace RTT;
 ServoInvLead::ServoInvLead(std::string const& name) : 
 	TaskContext(name)
 {
-	this->addEventPort(joints_port)
-		.doc("Desired joints state.");
-	this->addPort(goals_port)
+	this->addEventPort("joints_sorted", joints_port)
+		.doc("Desired joints state. Order of joints should not change. ");
+	this->addPort("goals", goals_port)
 		.doc("Position controlled servos goals."); 
+	this->addPort("sync_step", sync_port)
+		.doc("Timer event indicating beginig of next control cycle."); 
 
+	this->addProperty("period", period)
+		.doc("Control cycle duration (seconds).")
+		.set(0.023);
 	this->addProperty("lead", lead)
-		.doc("Servo goal position lead in seconds. Goal position is equal desired position plus desired velocity multiplied by lead.")
+		.doc("Goal position lead in seconds. Goal position is equal desired position plus desired velocity multiplied by lead.")
 		.set(0.0115);
 }
 
@@ -24,11 +29,17 @@ bool ServoInvLead::startHook()
 	
 	joints_port.getDataSample(joints);
 
+	position_perv.clear();
+	position_perv.reserve(joints.name.size());
+
 	goals.name.resize(joints.name.size());
 	goals.target_pos.resize(joints.name.size());
-	goals.playtime.assign(joints.name.size(), lead);
+	goals.playtime.assign(joints.name.size(), period + lead);
 
 	goals_port.setDataSample(goals);
+
+	RTT::os::Timer::TimerId timer_id;
+	sync_port.readNewest(timer_id);
 
 	log(Info) << "ServoInvLead started!" << endlog();
 	return true;
@@ -36,6 +47,13 @@ bool ServoInvLead::startHook()
 
 void ServoInvLead::updateHook()
 {
+	RTT::os::Timer::TimerId timer_id;
+
+	if (sync_port.read(timer_id) == NewData) {
+		// Renew state variables.
+		// At end of control period desired position of servo must be equal to reference position.
+		position_perv = joints.position;
+	}
 	if (joints_port.read(joints, false) == NewData) {
 		unsigned int njoints = joints.name.size();
 
@@ -46,12 +64,19 @@ void ServoInvLead::updateHook()
 		}
 		
 		goals.name = joints.name;
-		goals.target_pos.resize(njoints);
-		for(unsigned int i = 0; i < njoints; i++) {
-			goals.target_pos[i] = joints.position[i] + joints.velocity[i] * this->lead;
+
+		if (position_perv.size() == njoints) {
+			// take defined lead
+			goals.target_pos.resize(njoints);
+			for(unsigned int i = 0; i < njoints; i++) {
+				goals.target_pos[i] = joints.position[i] + (joints.position[i] - position_perv[i]) * lead / period;
+			}
+			goals.playtime.assign(njoints, period + lead);
 		}
-		if (goals.playtime.size() != njoints) {
-			goals.playtime.assign(njoints, lead);
+		else {
+			// message size has changed, fallback to direct assigment
+			goals.target_pos = joints.position;
+			goals.playtime.assign(njoints, period);
 		}
 
 		goals_port.write(goals);
