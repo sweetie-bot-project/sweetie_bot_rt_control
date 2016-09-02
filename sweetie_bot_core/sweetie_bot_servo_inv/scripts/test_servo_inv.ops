@@ -1,0 +1,99 @@
+# TEST SERVO_INV_LEAD and PLAYER_JOINT_STATE
+# Read trajectory from file and repeat it using servos
+# 
+# ref_servos12_sine.in (reference trajectory)
+#
+# Results are dumped to files: 
+#
+# state.out (herkulex srvos state)
+# goal.out (servo_inv output)
+# ref.out (reference trajectory)
+import("rtt_ros");
+ros.import("rtt_rospack");
+ros.import("rtt_sensor_msgs");
+
+import("sweetie_bot_servo_inv");
+# PATHS
+
+var string herk_script_path = ros.find("sweetie_bot_hardware_herkulex") + "/scripts/";
+var string servo_inv_script_path = ros.find("sweetie_bot_servo_inv") + "/scripts/";
+
+# LOAD HERKULEX_* SUBSYSTEM
+
+runScript(herk_script_path + "herkulex_sched_conf.ops");
+
+# SETUP HERKULEX_* REPORTING
+
+runScript(herk_script_path + "herkulex_sched_reporting.ops");
+
+# LOAD SERVO_INV
+
+# Servo rajectore generator invertion component.
+loadComponent("servo_inv","ServoInvLead");
+servo_inv.period = 0.023; # Important! Period is equal to timer configuration.
+servo_inv.lead = 0.023; # Lead is equal to one period duration.
+
+# Simple trajectory player
+loadComponent("file_player","PlayerJointState");
+file_player.file_name = servo_inv_script_path + "ref_servos12_sine.in";
+file_player.joint_names = strings("servo1","servo2");
+
+# SETUP COMPONENT CONNECTIONS
+
+# sync pulses for both components
+connect("herk_timer.timer_1", "file_player.sync", ConnPolicy());
+connect("herk_timer.timer_1", "servo_inv.sync_step", ConnPolicy());
+
+# data flow
+# file_player -> servo_inv -> herk_sched
+connect("file_player.joints", "servo_inv.joints_sorted", ConnPolicy());
+connect("servo_inv.goals", "herk_sched.goals", ConnPolicy());
+
+# CONFIGURE
+
+file_player.configure
+servo_inv.start
+
+// turn off trapez profile generator
+herk_array.setRegisterRAM("servo1", "acceleration_ratio", 0); 
+herk_array.setRegisterRAM("servo2", "acceleration_ratio", 0);
+
+# SETUP REPORTING
+# To work properly reporters should have data samples on reporting ports.
+
+# reference position
+loadComponent("reporter_ref", "OCL::FileReporting");
+reporter_ref.WriteHeader = 0;
+reporter_ref.ReportFile = "ref.out";
+addPeer("reporter_ref", "file_player");
+reporter_ref.reportPort("file_player", "joints");
+
+# servo goals
+loadComponent("reporter_goal", "OCL::FileReporting");
+reporter_goal.WriteHeader = 0;
+reporter_goal.ReportFile = "goal.out";
+addPeer("reporter_goal", "servo_inv");
+reporter_goal.reportPort("servo_inv", "goals");
+
+# BEGIN TEST
+
+# reporters 
+reporter_goal.start
+reporter_ref.start
+reporter_herk_state.start
+
+# activate herkulex_sched
+herk_sched.start
+
+# trajectory generator
+file_player.start
+
+# wait 10 seconds
+herk_timer.wait(2, 12); 
+
+# stop 
+file_player.stop
+reporter_goal.stop
+reporter_ref.stop
+reporter_herk_state.stop
+
