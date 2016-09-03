@@ -11,7 +11,7 @@ using namespace RTT;
 PlayerJointState::PlayerJointState(std::string const& name) : 
 	TaskContext(name, PreOperational)
 {
-	this->addPort("joints", joints_port)
+	this->addPort("out_joints_fixed", joints_port)
 		.doc("Trajectory read from file.");
 	this->addEventPort("sync", sync_port)
 		.doc("Timer sync port.");

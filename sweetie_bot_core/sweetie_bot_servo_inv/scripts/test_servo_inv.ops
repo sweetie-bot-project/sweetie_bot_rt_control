@@ -46,8 +46,8 @@ connect("herk_timer.timer_1", "servo_inv.sync_step", ConnPolicy());
 
 # data flow
 # file_player -> servo_inv -> herk_sched
-connect("file_player.joints", "servo_inv.joints_sorted", ConnPolicy());
-connect("servo_inv.goals", "herk_sched.goals", ConnPolicy());
+connect("file_player.out_joints_fixed", "servo_inv.in_joints_fixed", ConnPolicy());
+connect("servo_inv.out_goals", "herk_sched.in_goals", ConnPolicy());
 
 # CONFIGURE
 
@@ -66,14 +66,14 @@ loadComponent("reporter_ref", "OCL::FileReporting");
 reporter_ref.WriteHeader = 0;
 reporter_ref.ReportFile = "ref.out";
 addPeer("reporter_ref", "file_player");
-reporter_ref.reportPort("file_player", "joints");
+reporter_ref.reportPort("file_player", "out_joints_fixed");
 
 # servo goals
 loadComponent("reporter_goal", "OCL::FileReporting");
 reporter_goal.WriteHeader = 0;
 reporter_goal.ReportFile = "goal.out";
 addPeer("reporter_goal", "servo_inv");
-reporter_goal.reportPort("servo_inv", "goals");
+reporter_goal.reportPort("servo_inv", "out_goals");
 
 # BEGIN TEST
 

@@ -8,9 +8,9 @@ using namespace RTT;
 ServoInvLead::ServoInvLead(std::string const& name) : 
 	TaskContext(name)
 {
-	this->addEventPort("joints_sorted", joints_port)
+	this->addEventPort("in_joints_fixed", joints_port)
 		.doc("Desired joints state. Order of joints should not change. ");
-	this->addPort("goals", goals_port)
+	this->addPort("out_goals", goals_port)
 		.doc("Position controlled servos goals."); 
 	this->addPort("sync_step", sync_port)
 		.doc("Timer event indicating beginig of next control cycle."); 
