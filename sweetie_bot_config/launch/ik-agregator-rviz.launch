@@ -9,7 +9,7 @@
   <node name="core" pkg="rtt_ros" type="deployer" args="-s $(find sweetie_bot_config)/config/ik-agregator.ops -linfo" output="screen" />
 
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
-    <rosparam param="source_list">["/output_joint_state"]</rosparam>
+    <rosparam param="source_list">["/agregator/output_joint_state"]</rosparam>
   </node>
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find sweetie_bot_description_proto2)/urdf.rviz" required="true" />

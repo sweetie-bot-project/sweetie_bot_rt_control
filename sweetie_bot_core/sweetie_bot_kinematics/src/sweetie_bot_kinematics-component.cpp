@@ -5,15 +5,15 @@
 
 
 Sweetie_bot_kinematics::Sweetie_bot_kinematics(std::string const& name) : TaskContext(name),
-									  input_port_joint_state_("input_joint_state"),
-									  input_port_limbs_cartesian_("input_limbs_cartesian"),
-									  output_port_joint_state_("output_joint_state"),
-									  output_port_limbs_cartesian_("output_limbs_cartesian"){
+									  input_port_joints_("in_joints_sorted"),
+									  input_port_limbs_("in_limbs"),
+									  output_port_joints_("out_joints"),
+									  output_port_limbs_("out_limbs"){
   std::cout << "Sweetie_bot_kinematics constructed !" <<std::endl;
-  this->ports()->addEventPort( input_port_joint_state_ ).doc( "Input port for JointState data" );
-  this->ports()->addEventPort( input_port_limbs_cartesian_ ).doc( "Input port for CartesianState data" );
-  this->ports()->addPort( output_port_joint_state_ ).doc( "Output port for JointState data" );
-  this->ports()->addPort( output_port_limbs_cartesian_ ).doc( "Output port for CartesianState data" );
+  this->ports()->addEventPort( input_port_joints_ ).doc( "Input port for JointState data" );
+  this->ports()->addEventPort( input_port_limbs_ ).doc( "Input port for LimbState data" );
+  this->ports()->addPort( output_port_joints_ ).doc( "Output port for JointState data" );
+  this->ports()->addPort( output_port_limbs_ ).doc( "Output port for LimbState data" );
 
   //this->addOperation("", &RobotModelService::configure, this, OwnThread).doc("Configires service: read parameters, construct kdl tree.");
   robot_model_ = getProvider<RobotModel>("robot_model"); //попытается загрузить нужный сервис, если он отсутсвует.
@@ -58,10 +58,10 @@ void Sweetie_bot_kinematics::updateHook(){
   cout << "Sweetie_bot_kinematics executes updateHook !" <<endl;
   sensor_msgs::JointState input_joint_state;
   sensor_msgs::JointState output_joint_state;
-  sweetie_bot_kinematics_msgs::CartesianState input_limbs_cartesian;
-  sweetie_bot_kinematics_msgs::CartesianState output_limbs_cartesian;
+  sweetie_bot_kinematics_msgs::LimbState input_limb_state;
+  sweetie_bot_kinematics_msgs::LimbState output_limb_state;
 
-  if( input_port_joint_state_.read(input_joint_state) == NewData ){
+  if( input_port_joints_.read(input_joint_state) == NewData ){
     for(auto &name: chain_names_) {
 
 	KDL::Frame result_frame;
@@ -72,9 +72,9 @@ void Sweetie_bot_kinematics::updateHook(){
 	int kinematics_status = limb_[name].fk_solver->JntToCart( position, result_frame );
 	if(kinematics_status >= 0) {
 	  tf::poseKDLToMsg(result_frame, result_pose);
-	  output_limbs_cartesian.name.push_back( name );
-	  output_limbs_cartesian.pose.push_back( result_pose );
-	  // TODO: output_limbs_cartesian.speed.push_back(?)
+	  output_limb_state.name.push_back( name );
+	  output_limb_state.pose.push_back( result_pose );
+	  // TODO: output_limb_state.speed.push_back(?)
 	}
 	else
 	{
@@ -82,18 +82,18 @@ void Sweetie_bot_kinematics::updateHook(){
 	  return;
 	}
     }
-    cout << output_limbs_cartesian << endl;
-    output_port_limbs_cartesian_.write(output_limbs_cartesian);
+    cout << output_limb_state << endl;
+    output_port_limbs_.write(output_limb_state);
   }
 
-  if( input_port_limbs_cartesian_.read(input_limbs_cartesian) == NewData ){
+  if( input_port_limbs_.read(input_limb_state) == NewData ){
     for(auto &name: chain_names_) {
-	auto it = find(input_limbs_cartesian.name.begin(), input_limbs_cartesian.name.end(), name);
-	if(it == input_limbs_cartesian.name.end()) continue;
-	int limb_num = distance(input_limbs_cartesian.name.begin(), it);
+	auto it = find(input_limb_state.name.begin(), input_limb_state.name.end(), name);
+	if(it == input_limb_state.name.end()) continue;
+	int limb_num = distance(input_limb_state.name.begin(), it);
 
 	KDL::Frame desired_end_effector_pose;
-	tf::poseMsgToKDL( input_limbs_cartesian.pose[limb_num], desired_end_effector_pose );
+	tf::poseMsgToKDL( input_limb_state.pose[limb_num], desired_end_effector_pose );
 	KDL::JntArray return_joints_positions, zero_joints_speed, zero_joints_effort;
 	int kinematics_status = limb_[name].ik_solver->CartToJnt(*limb_[name].seed, desired_end_effector_pose, return_joints_positions); //, tolerances);
 	if(kinematics_status >= 0) {
@@ -106,7 +106,7 @@ void Sweetie_bot_kinematics::updateHook(){
         }
     }
     cout << output_joint_state << endl;
-    output_port_joint_state_.write(output_joint_state);
+    output_port_joints_.write(output_joint_state);
   }
 }
 

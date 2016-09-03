@@ -19,5 +19,5 @@ pose: [
 # z: 0.0299998
 echo "<<<" "$VARIABLE" "\n<<<"
 echo ">>>"
-rostopic pub /input_limbs_cartesian sweetie_bot_kinematics_msgs/CartesianState --once "$VARIABLE"
+rostopic pub /kinematics/input_limb_state sweetie_bot_kinematics_msgs/LimbState --once "$VARIABLE"
 echo ">>>"

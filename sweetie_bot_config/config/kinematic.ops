@@ -12,13 +12,13 @@ import("sweetie_bot_robot_model");
 
 loadComponent("sweetie_bot_kinematics", "Sweetie_bot_kinematics");
 loadService("sweetie_bot_kinematics","rosparam");
-loadService("sweetie_bot_kinematics","marshalling"); # Поддержка исполнения скриптов и загрузки xml/cpf файлов
+loadService("sweetie_bot_kinematics","marshalling"); # Поддержка исполнения скрип:тов и загрузки xml/cpf файлов
 
 ## Create connections
-stream("sweetie_bot_kinematics.input_joint_state", ros.topic("input_joint_state"))
-stream("sweetie_bot_kinematics.input_limbs_cartesian", ros.topic("input_limbs_cartesian"))
-stream("sweetie_bot_kinematics.output_joint_state", ros.topic("output_joint_state"))
-stream("sweetie_bot_kinematics.output_limbs_cartesian", ros.topic("output_limbs_cartesian"))
+stream("sweetie_bot_kinematics.in_joints_sorted", ros.topic("/kinematics/input_joint_state"))
+stream("sweetie_bot_kinematics.in_limbs", ros.topic("/kinematics/input_limb_state"))
+stream("sweetie_bot_kinematics.out_joints", ros.topic("/kinematics/output_joint_state"))
+stream("sweetie_bot_kinematics.out_limbs", ros.topic("/kinematics/output_limb_state"))
 
 
 # Загружаем параметры из xml файла.

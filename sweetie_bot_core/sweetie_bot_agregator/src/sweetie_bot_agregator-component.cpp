@@ -3,8 +3,8 @@
 #include <iostream>
 
 Sweetie_bot_agregator::Sweetie_bot_agregator(std::string const& name) : TaskContext(name),
-                                                                          input_port_joint_state_("input_joint_state"),
-                                                                          output_port_joint_state_("output_joint_state")
+                                                                          input_port_joint_state_("in_joints"),
+                                                                          output_port_joint_state_("out_joints_sorted")
 {
 
   std::cout << "Sweetie_bot_agregator constructed !" <<std::endl;

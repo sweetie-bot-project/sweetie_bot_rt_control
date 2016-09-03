@@ -13,7 +13,7 @@
 #include <trac_ik/trac_ik.hpp>
 
 #include <sweetie_bot_robot_model/sweetie_bot_robot_model-requester.hpp>
-#include <sweetie_bot_kinematics_msgs/typekit/CartesianState.h>
+#include <sweetie_bot_kinematics_msgs/typekit/LimbState.h>
 
 using namespace std;
 using namespace RTT;
@@ -33,10 +33,10 @@ class Sweetie_bot_kinematics : public RTT::TaskContext{
     boost::shared_ptr<RobotModel> robot_model_;
     boost::shared_ptr<RobotModelInterface> robot_model_interface_;
 
-    InputPort<sensor_msgs::JointState> input_port_joint_state_;
-    OutputPort<sensor_msgs::JointState> output_port_joint_state_;
-    InputPort<sweetie_bot_kinematics_msgs::CartesianState> input_port_limbs_cartesian_;
-    OutputPort<sweetie_bot_kinematics_msgs::CartesianState> output_port_limbs_cartesian_;
+    InputPort<sensor_msgs::JointState> input_port_joints_;
+    OutputPort<sensor_msgs::JointState> output_port_joints_;
+    InputPort<sweetie_bot_kinematics_msgs::LimbState> input_port_limbs_;
+    OutputPort<sweetie_bot_kinematics_msgs::LimbState> output_port_limbs_;
     vector<string> chain_names_;
     unordered_map<string,LimbData> limb_;
     //unordered_map<string,Chain*> chains_;
