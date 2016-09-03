@@ -10,8 +10,6 @@
 #include <sweetie_bot_robot_model/sweetie_bot_robot_model-requester.hpp>
 
 #include <kdl_parser/kdl_parser.hpp>
-//#include <sensor_msgs/JointState.h>
-//#include <kdl/jntarray.hpp>
 
 #include <Eigen/Dense>
 
@@ -28,7 +26,6 @@ private:
   std::string robot_description_;
   KDL::Tree tree_;
   unordered_map<string,Chain*> chains_;
-  //unordered_map<string,unordered_map<string,char>> chain_joints_;
   unordered_map<string,pair<char, char>> chain_pos_;
   vector<string> chains_names_;
   vector<string> joints_names_;
@@ -42,8 +39,6 @@ public:
 	this->addOperation("configure", &RobotModelService::configure, this, OwnThread).doc("Configires service: read parameters, construct kdl tree.");
 	this->addOperation("listChains", &RobotModelService::listChains, this, ClientThread).doc("Lists loaded chains");
 	this->addOperation("listJoints", &RobotModelService::listJoints, this, ClientThread).doc("Lists joints in chain");
-	//this->addOperation("getChain", &RobotModelService::getChain, this, ClientThread).doc("Get chain");
-	//this->addOperation("mapChain", &RobotModelService::mapChain, this, ClientThread).doc("Extracts (map) chain parameters from joint state");
 	this->addOperation("extractChain", &RobotModelService::extractChain, this, ClientThread).doc("Extracts (copy) chain parameters from joint state");
 	this->addOperation("packChain", &RobotModelService::packChain, this, ClientThread).doc("Put chain parameters to joint state");
 	this->addProperty("robot_description", robot_description_);
@@ -83,6 +78,9 @@ public:
     void cleanup()
     {
 	std::cout << "RobotModelService cleanup !" <<std::endl;
+	for(auto &chain: chains_){
+	  free(chain.second);
+	}
 	robot_description_ = "";
 	tree_ = KDL::Tree();
     }
