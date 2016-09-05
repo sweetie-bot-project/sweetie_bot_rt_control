@@ -18,13 +18,12 @@
 using namespace std;
 using namespace RTT;
 using namespace KDL;
-//using namespace TRAC_IK;
-//using namespace Logger;
 
 class Sweetie_bot_kinematics : public RTT::TaskContext{
     struct LimbData
     {
 	shared_ptr<Chain> chain;
+	shared_ptr<vector<string>> joints;
 	shared_ptr<ChainFkSolverPos_recursive> fk_solver;
 	shared_ptr<TRAC_IK::TRAC_IK> ik_solver;
 	shared_ptr<JntArray> seed;
@@ -33,16 +32,15 @@ class Sweetie_bot_kinematics : public RTT::TaskContext{
     boost::shared_ptr<RobotModel> robot_model_;
     boost::shared_ptr<RobotModelInterface> robot_model_interface_;
 
+    InputPort<sensor_msgs::JointState> input_port_joints_seed_;
     InputPort<sensor_msgs::JointState> input_port_joints_;
     OutputPort<sensor_msgs::JointState> output_port_joints_;
     InputPort<sweetie_bot_kinematics_msgs::LimbState> input_port_limbs_;
     OutputPort<sweetie_bot_kinematics_msgs::LimbState> output_port_limbs_;
+
     vector<string> chain_names_;
+    vector<string> joint_names_;
     unordered_map<string,LimbData> limb_;
-    //unordered_map<string,Chain*> chains_;
-    //unordered_map<string,ChainFkSolverPos_recursive*> fk_solvers_;
-    //unordered_map<string,TRAC_IK::TRAC_IK*> ik_solvers_;
-    //unordered_map<string,JntArray*> joint_seed_;
   public:
     Sweetie_bot_kinematics(std::string const& name);
     bool configureHook();

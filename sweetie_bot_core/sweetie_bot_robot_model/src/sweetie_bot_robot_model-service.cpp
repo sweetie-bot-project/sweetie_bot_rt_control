@@ -27,8 +27,8 @@ private:
   KDL::Tree tree_;
   unordered_map<string,Chain*> chains_;
   unordered_map<string,pair<char, char>> chain_pos_;
-  vector<string> chains_names_;
-  vector<string> joints_names_;
+  vector<string> chain_names_;
+  vector<string> joint_names_;
   TaskContext* owner_;
 public:
     RobotModelService(TaskContext* owner) 
@@ -39,6 +39,7 @@ public:
 	this->addOperation("configure", &RobotModelService::configure, this, OwnThread).doc("Configires service: read parameters, construct kdl tree.");
 	this->addOperation("listChains", &RobotModelService::listChains, this, ClientThread).doc("Lists loaded chains");
 	this->addOperation("listJoints", &RobotModelService::listJoints, this, ClientThread).doc("Lists joints in chain");
+	this->addOperation("listAllJoints", &RobotModelService::listAllJoints, this, ClientThread).doc("Lists all joints in all chains");
 	this->addOperation("extractChain", &RobotModelService::extractChain, this, ClientThread).doc("Extracts (copy) chain parameters from joint state");
 	this->addOperation("packChain", &RobotModelService::packChain, this, ClientThread).doc("Put chain parameters to joint state");
 	this->addProperty("robot_description", robot_description_);
@@ -112,18 +113,16 @@ public:
 		KDL::Chain * chain = new KDL::Chain();
 		if(!tree_.getChain( first_link, last_link, *chain )) return false;
 
-		chains_names_.push_back(chain_bag.getName());
+		chain_names_.push_back(chain_bag.getName());
 		chains_.insert( make_pair( chain_bag.getName(), chain ));
 		chain_pos_[ chain_bag.getName() ] = { joint_num, chain->getNrOfSegments() };
 
-	  	//cout << chain->getNrOfSegments() << endl;
 		// fill up joints list for each chain
 		for(int j = 0; j < chain->getNrOfSegments(); j++){
 		  string joint_name = chain->getSegment(j).getJoint().getName();
 		  std::cout << "      joint(" << (int)joint_num << ")=" << joint_name << std::endl;
-		  //chain_joints_[ chain_bag.getName() ].insert( make_pair( joint_name, joint_num++) );
 		  joint_num++;
-		  joints_names_.push_back(joint_name);
+		  joint_names_.push_back(joint_name);
 		}
 
 	}
@@ -133,18 +132,23 @@ public:
     vector<string> listJoints(const string& name)
     {
 	Chain chain;
-	vector<string> joints_names;
+	vector<string> joint_names;
 	if(getChainB(name, chain)) {
 	  for(int j = 0; j < chain.getNrOfSegments(); j++){
-	    joints_names.push_back( chain.getSegment(j).getJoint().getName() );
+	    joint_names.push_back( chain.getSegment(j).getJoint().getName() );
 	  }
  	}
-	return joints_names;
+	return joint_names;
+    }
+
+    vector<string> listAllJoints()
+    {
+	return joint_names_;
     }
 
     vector<string> listChains()
     {
-	return chains_names_;
+	return chain_names_;
     }
 
     Chain * getChain(const string& name)
@@ -176,7 +180,7 @@ public:
 
     bool mapChain(const string& name, sensor_msgs::JointState& joint_state, JntArray& position, JntArray& velocity, JntArray& effort)
     {
-        if(!equal( joints_names_.begin(), joints_names_.end(), joint_state.name.begin() )) return false;
+        if(!equal( joint_names_.begin(), joint_names_.end(), joint_state.name.begin() )) return false;
 	char chain_begin, chain_size;
 	tie(chain_begin, chain_size) = chain_pos_.at(name);
 	if(joint_state.name.size() == joint_state.position.size() ) {
@@ -196,7 +200,7 @@ public:
 
     bool extractChain(const string& name, const sensor_msgs::JointState& joint_state, JntArray& position, JntArray& velocity, JntArray& effort)
     {
-        if(!equal( joints_names_.begin(), joints_names_.end(), joint_state.name.begin() )) return false;
+        if(!equal( joint_names_.begin(), joint_names_.end(), joint_state.name.begin() )) return false;
 	char chain_begin, chain_size;
 	tie(chain_begin, chain_size) = chain_pos_.at(name);
 	if(joint_state.name.size() == joint_state.position.size() ) {

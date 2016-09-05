@@ -41,7 +41,7 @@ class RobotModel : public ServiceRequester {
         OperationCaller<bool()> configure;
         OperationCaller<vector<string>()> listChains;
         OperationCaller<vector<string>(const string&)> listJoints;
-        //OperationCaller<bool(const string&, Chain&)> getChainO;
+        OperationCaller<vector<string>()> listAllJoints;
         OperationCaller<bool(const string&, const sensor_msgs::JointState&, JntArray&, JntArray&, JntArray&)> extractChain;
         OperationCaller<bool(const string&, JntArray&, JntArray&, JntArray&, sensor_msgs::JointState&)> packChain;
 
@@ -50,12 +50,14 @@ class RobotModel : public ServiceRequester {
             configure("configure"),
             listChains("listChains"),
             listJoints("listJoints"),
+            listAllJoints("listAllJoints"),
 	    extractChain("extractChain"),
 	    packChain("packChain")
         {
             addOperationCaller(configure);
             addOperationCaller(listChains);
             addOperationCaller(listJoints);
+            addOperationCaller(listAllJoints);
             addOperationCaller(extractChain);
             addOperationCaller(packChain);
         }

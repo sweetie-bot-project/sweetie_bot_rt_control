@@ -5,11 +5,13 @@
 
 
 Sweetie_bot_kinematics::Sweetie_bot_kinematics(std::string const& name) : TaskContext(name),
+									  input_port_joints_seed_("in_joints_seed_sorted"),
 									  input_port_joints_("in_joints_sorted"),
 									  input_port_limbs_("in_limbs"),
 									  output_port_joints_("out_joints"),
 									  output_port_limbs_("out_limbs"){
   std::cout << "Sweetie_bot_kinematics constructed !" <<std::endl;
+  this->ports()->addEventPort( input_port_joints_seed_ ).doc( "Input port for initial pose (JointState)" );
   this->ports()->addEventPort( input_port_joints_ ).doc( "Input port for JointState data" );
   this->ports()->addEventPort( input_port_limbs_ ).doc( "Input port for LimbState data" );
   this->ports()->addPort( output_port_joints_ ).doc( "Output port for JointState data" );
@@ -24,8 +26,10 @@ bool Sweetie_bot_kinematics::configureHook(){
   if((nullptr == robot_model_) or (nullptr == robot_model_interface_)) return false;
   if(!robot_model_->configure()) return false;
   chain_names_ = robot_model_->listChains();
+  joint_names_ = robot_model_->listAllJoints();
   for(auto &name: chain_names_) {
     Chain * chain = robot_model_interface_->getChain(name);
+    vector<string> joints = robot_model_->listJoints(name);
     if(nullptr == chain) return false;
     int nj = chain->getNrOfSegments();
 
@@ -39,6 +43,7 @@ bool Sweetie_bot_kinematics::configureHook(){
     }
 
     limb_[name].chain     = std::make_shared<Chain>(*chain);
+    limb_[name].joints    = std::make_shared<vector<string>>(joints);
     limb_[name].fk_solver = std::make_shared<ChainFkSolverPos_recursive>(*chain);
     limb_[name].ik_solver = std::make_shared<TRAC_IK::TRAC_IK>(*chain, lower_joint_limits, upper_joint_limits, 0.025, 1e-5, TRAC_IK::Speed);
     limb_[name].seed      = std::make_shared<JntArray>(*joint_seed);
@@ -56,11 +61,26 @@ bool Sweetie_bot_kinematics::startHook(){
 void Sweetie_bot_kinematics::updateHook(){
   //std::cout << "Sweetie_bot_kinematics executes updateHook !" <<std::endl;
   cout << "Sweetie_bot_kinematics executes updateHook !" <<endl;
+  sensor_msgs::JointState input_joint_seed;
   sensor_msgs::JointState input_joint_state;
   sensor_msgs::JointState output_joint_state;
   sweetie_bot_kinematics_msgs::LimbState input_limb_state;
   sweetie_bot_kinematics_msgs::LimbState output_limb_state;
 
+  // Init seed
+  if( input_port_joints_seed_.read(input_joint_seed) == NewData){
+    if(input_joint_seed.name.size() == input_joint_seed.position.size())
+    {
+      for(auto &name: chain_names_)
+      {
+        JntArray position, velocity, effort;
+        if(!robot_model_->extractChain(name, input_joint_seed, position, velocity, effort)) return;
+	*limb_[name].seed = position;
+      }
+    }
+  }
+
+  // DK
   if( input_port_joints_.read(input_joint_state) == NewData ){
     for(auto &name: chain_names_) {
 
@@ -86,6 +106,7 @@ void Sweetie_bot_kinematics::updateHook(){
     output_port_limbs_.write(output_limb_state);
   }
 
+  // IK
   if( input_port_limbs_.read(input_limb_state) == NewData ){
     for(auto &name: chain_names_) {
 	auto it = find(input_limb_state.name.begin(), input_limb_state.name.end(), name);
@@ -108,6 +129,7 @@ void Sweetie_bot_kinematics::updateHook(){
     cout << output_joint_state << endl;
     output_port_joints_.write(output_joint_state);
   }
+
 }
 
 void Sweetie_bot_kinematics::stopHook() {
