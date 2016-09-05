@@ -1,6 +1,6 @@
-# VIM swp
-*.swp
+# Common tmp files
+*~
 
-# Orocos 
-.tb_history
-orocos.log
+# Vim tmp files
+*.sw?
+.vimprj
