@@ -89,7 +89,6 @@ public:
     bool readChains()
     {
         Property<PropertyBag> chains_bag = owner_->properties()->find("chains");
-	std::cout << "readChains"<< std::endl;
         if ( !chains_bag.ready() ) return false;
 
 	Property<std::string> first_link, last_link;
@@ -221,22 +220,23 @@ public:
     bool packChain(const string& name, JntArray& position, JntArray& velocity, JntArray& effort, sensor_msgs::JointState& joint_state)
     {
 	Chain chain;
-        if(!getChainB(name, chain)) return false;
+	if(!equal( joint_names_.begin(), joint_names_.end(), joint_state.name.begin() )) return false;
+        //if(!getChainB(name, chain)) return false;
 
-	for(int j = 0; j < chain.getNrOfSegments(); j++)
-	  joint_state.name.push_back( chain.getSegment(j).getJoint().getName() );
+	char chain_begin, chain_size;
+	tie(chain_begin, chain_size) = chain_pos_.at(name);
 
-	if( position.rows() > 0 ) {
-	  if( chain.getNrOfSegments() != position.rows() ) return false;
-	  joint_state.position.insert( joint_state.position.end(), &position.data[0], &position.data[0]+position.data.size() );
+	//for(int j = 0; j < chain.getNrOfSegments(); j++)
+	//  joint_state.name.push_back( chain.getSegment(j).getJoint().getName() );
+
+	if(( position.rows() > 0 ) and ( position.rows() == chain_size )) {
+	  std::copy_n( &position.data[0], chain_size, joint_state.position.begin()+chain_begin );
 	}
-	if( velocity.rows() > 0 ) {
-	  if( chain.getNrOfSegments() != velocity.rows() ) return false;
-	  joint_state.velocity.insert( joint_state.velocity.end(), &velocity.data[0], &velocity.data[0]+velocity.data.size() );
+	if(( velocity.rows() > 0 ) and ( velocity.rows() == chain_size )) {
+	  std::copy_n( &velocity.data[0], chain_size, joint_state.velocity.begin()+chain_begin );
 	}
-	if( effort.rows() > 0 ) {
-	  if( chain.getNrOfSegments() != effort.rows() ) return false;
-	  joint_state.effort.insert( joint_state.effort.end(), &effort.data[0], &effort.data[0]+effort.data.size() );
+	if(( effort.rows() > 0 ) and ( effort.rows() == chain_size )) {
+	  std::copy_n( &effort.data[0],   chain_size, joint_state.effort.begin()+chain_begin );
 	}
 	return true;
     }

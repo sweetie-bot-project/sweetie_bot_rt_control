@@ -14,6 +14,7 @@ class Sweetie_bot_agregator : public RTT::TaskContext{
     InputPort<sensor_msgs::JointState> input_port_joint_state_;
     OutputPort<sensor_msgs::JointState> output_port_joint_state_;
 
+    sensor_msgs::JointState input_joint_state_;
     sensor_msgs::JointState output_joint_state_;
 
     vector<string> chain_names_;

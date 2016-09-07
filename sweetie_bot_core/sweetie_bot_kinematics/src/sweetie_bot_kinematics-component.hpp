@@ -38,6 +38,12 @@ class Sweetie_bot_kinematics : public RTT::TaskContext{
     InputPort<sweetie_bot_kinematics_msgs::LimbState> input_port_limbs_;
     OutputPort<sweetie_bot_kinematics_msgs::LimbState> output_port_limbs_;
 
+    sensor_msgs::JointState input_joint_seed_;
+    sensor_msgs::JointState input_joint_state_;
+    sensor_msgs::JointState output_joint_state_;
+    sweetie_bot_kinematics_msgs::LimbState input_limb_state_;
+    sweetie_bot_kinematics_msgs::LimbState output_limb_state_;
+
     vector<string> chain_names_;
     vector<string> joint_names_;
     unordered_map<string,LimbData> limb_;
