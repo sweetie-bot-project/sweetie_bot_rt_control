@@ -1,5 +1,0 @@
-<launch>
-  <node name="walking_resources" pkg="rtt_ros" type="deployer"
-    args="-s $(find sweetie_bot_config)/config/start.ops -linfo" output="screen"/>
-
-</launch>
