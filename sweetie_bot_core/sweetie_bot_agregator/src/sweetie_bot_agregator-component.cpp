@@ -2,19 +2,19 @@
 #include <rtt/Component.hpp>
 #include <iostream>
 
-Sweetie_bot_agregator::Sweetie_bot_agregator(std::string const& name) : TaskContext(name),
+SweetieBotAgregator::SweetieBotAgregator(std::string const& name) : TaskContext(name),
                                                                           input_port_joint_state_("in_joints"),
                                                                           output_port_joint_state_("out_joints_sorted")
 {
 
-  std::cout << "Sweetie_bot_agregator constructed !" <<std::endl;
+  std::cout << "SweetieBotAgregator constructed !" <<std::endl;
   this->ports()->addEventPort( input_port_joint_state_ ).doc( "Input port for JointState data" );
   this->ports()->addPort( output_port_joint_state_ ).doc( "Output port for JointState data" );
   robot_model_ = getProvider<RobotModel>("robot_model"); //попытается загрузить нужный сервис, если он отсутсвует.
   robot_model_interface_ = boost::dynamic_pointer_cast<RobotModelInterface>(this->provides()->getService("robot_model"));
 }
 
-bool Sweetie_bot_agregator::configureHook(){
+bool SweetieBotAgregator::configureHook(){
   if((nullptr == robot_model_) or (nullptr == robot_model_interface_)) return false;
   if(!robot_model_->configure()) return false;
   chain_names_ = robot_model_->listChains();
@@ -26,17 +26,17 @@ bool Sweetie_bot_agregator::configureHook(){
   output_joint_state_.position.assign(joint_names_.size(), 0.0);
   output_joint_state_.velocity.assign(joint_names_.size(), 0.0);
   output_joint_state_.effort.assign(joint_names_.size(), 0.0);
-  std::cout << "Sweetie_bot_agregator configured !" <<std::endl;
+  std::cout << "SweetieBotAgregator configured !" <<std::endl;
   return true;
 }
 
-bool Sweetie_bot_agregator::startHook(){
-  std::cout << "Sweetie_bot_agregator started !" <<std::endl;
+bool SweetieBotAgregator::startHook(){
+  std::cout << "SweetieBotAgregator started !" <<std::endl;
   return true;
 }
 
-void Sweetie_bot_agregator::updateHook(){
-  std::cout << "Sweetie_bot_agregator executes updateHook !" <<std::endl;
+void SweetieBotAgregator::updateHook(){
+  std::cout << "SweetieBotAgregator executes updateHook !" <<std::endl;
 
   if( input_port_joint_state_.read(input_joint_state_) == NewData ){
     for(int i=0; i<joint_names_.size(); i++){
@@ -55,12 +55,12 @@ void Sweetie_bot_agregator::updateHook(){
   }
 }
 
-void Sweetie_bot_agregator::stopHook() {
-  std::cout << "Sweetie_bot_agregator executes stopping !" <<std::endl;
+void SweetieBotAgregator::stopHook() {
+  std::cout << "SweetieBotAgregator executes stopping !" <<std::endl;
 }
 
-void Sweetie_bot_agregator::cleanupHook() {
-  std::cout << "Sweetie_bot_agregator cleaning up !" <<std::endl;
+void SweetieBotAgregator::cleanupHook() {
+  std::cout << "SweetieBotAgregator cleaning up !" <<std::endl;
 }
 
 /*
@@ -68,11 +68,11 @@ void Sweetie_bot_agregator::cleanupHook() {
  * in one library *and* you may *not* link this library
  * with another component library. Use
  * ORO_CREATE_COMPONENT_TYPE()
- * ORO_LIST_COMPONENT_TYPE(Sweetie_bot_agregator)
+ * ORO_LIST_COMPONENT_TYPE(SweetieBotAgregator)
  * In case you want to link with another library that
  * already contains components.
  *
  * If you have put your component class
  * in a namespace, don't forget to add it here too:
  */
-ORO_CREATE_COMPONENT(Sweetie_bot_agregator)
+ORO_CREATE_COMPONENT(SweetieBotAgregator)

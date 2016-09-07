@@ -11,7 +11,7 @@ import("sweetie_bot_robot_model");
 import("sweetie_bot_agregator");
 import("sweetie_bot_kinematics");
 
-loadComponent("sweetie_bot_agregator", "Sweetie_bot_agregator");
+loadComponent("sweetie_bot_agregator", "SweetieBotAgregator");
 loadService("sweetie_bot_agregator","rosparam");
 loadService("sweetie_bot_agregator","marshalling"); # Поддержка исполнения скриптов и загрузки xml/cpf файлов
 
@@ -23,7 +23,7 @@ stream("sweetie_bot_agregator.out_joints_sorted", ros.topic("/agregator/output_j
 sweetie_bot_agregator.marshalling.loadProperties(ros.find("sweetie_bot_config") + "/config/chains.cpf");
 sweetie_bot_agregator.rosparam.getParam("/", "robot_model")
 
-loadComponent("sweetie_bot_kinematics", "Sweetie_bot_kinematics");
+loadComponent("sweetie_bot_kinematics", "SweetieBotKinematics");
 loadService("sweetie_bot_kinematics","rosparam");
 loadService("sweetie_bot_kinematics","marshalling"); # Поддержка исполнения скриптов и загрузки xml/cpf файлов
 

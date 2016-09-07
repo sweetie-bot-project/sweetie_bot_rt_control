@@ -19,7 +19,7 @@ using namespace std;
 using namespace RTT;
 using namespace KDL;
 
-class Sweetie_bot_kinematics : public RTT::TaskContext{
+class SweetieBotKinematics : public RTT::TaskContext{
     struct LimbData
     {
 	shared_ptr<Chain> chain;
@@ -48,7 +48,7 @@ class Sweetie_bot_kinematics : public RTT::TaskContext{
     vector<string> joint_names_;
     unordered_map<string,LimbData> limb_;
   public:
-    Sweetie_bot_kinematics(std::string const& name);
+    SweetieBotKinematics(std::string const& name);
     bool configureHook();
     bool startHook();
     void updateHook();

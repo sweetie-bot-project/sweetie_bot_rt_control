@@ -10,7 +10,7 @@ require("print");
 import("sweetie_bot_kinematics");
 import("sweetie_bot_robot_model");
 
-loadComponent("sweetie_bot_kinematics", "Sweetie_bot_kinematics");
+loadComponent("sweetie_bot_kinematics", "SweetieBotKinematics");
 loadService("sweetie_bot_kinematics","rosparam");
 loadService("sweetie_bot_kinematics","marshalling"); # Поддержка исполнения скрип:тов и загрузки xml/cpf файлов
 

@@ -9,7 +9,7 @@ require("print");
 import("sweetie_bot_agregator");
 import("sweetie_bot_robot_model");
 
-loadComponent("sweetie_bot_agregator", "Sweetie_bot_agregator");
+loadComponent("sweetie_bot_agregator", "SweetieBotAgregator");
 loadService("sweetie_bot_agregator","rosparam");
 loadService("sweetie_bot_agregator","marshalling"); # Поддержка исполнения скриптов и загрузки xml/cpf файлов
 
