@@ -15,7 +15,7 @@
 #
 orocos_service(sweetie_bot_robot_model-service sweetie_bot_robot_model-service.cpp) # ...only one service per library !
 target_link_libraries(sweetie_bot_robot_model-service ${orocos_kdl_LIBRARIES} ${kdl_parser_LIBRARIES})
-orocos_install_headers( inclide/sweetie_bot_robot_model/sweetie_bot_robot_model-requester.hpp )
+orocos_install_headers( include/sweetie_bot_robot_model/sweetie_bot_robot_model-requester.hpp )
 
 #
 # You may add multiple orocos_service statements.
