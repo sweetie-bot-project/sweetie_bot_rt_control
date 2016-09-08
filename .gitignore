@@ -1,1 +1,6 @@
-*.swp
+# Common tmp files
+*~
+
+# Vim tmp files
+*.sw?
+.vimprj
