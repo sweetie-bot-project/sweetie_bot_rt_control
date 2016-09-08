@@ -8,7 +8,11 @@ cmake_minimum_required(VERSION 2.6.3)
 # This creates a standard cmake project. You may extend this file with
 # any cmake macro you see fit.
 #
-project(sweetie_bot_gait_walking_3_plus_1)
+project(sweetie_bot_resource_control_service)
+
+find_package(catkin REQUIRED COMPONENTS
+	 sweetie_bot_resource_control_msgs
+)
 
 # Use 'source orocos_toolchain/env.sh' if the command below fails:
 find_package(OROCOS-RTT QUIET)
@@ -16,15 +20,11 @@ if (NOT OROCOS-RTT_FOUND)
   message (FATAL_ERROR "\nCould not find Orocos. Please use the shell command\n 'source orocos_toolchain/env.sh' and then run cmake again.")
 endif()
 
-find_package(catkin REQUIRED COMPONENTS
-  sweetie_bot_resource_control_msgs
-  sweetie_bot_resource_control_service
-)
-
 # Defines the orocos_* cmake macros. See that file for additional
 # documentation.
 include( ${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake )
-include_directories(include ${catkin_INCLUDE_DIRS})
+
+include_directories(include)
 
 # Rest of the configuration is in src/
 add_subdirectory( src )
@@ -33,4 +33,6 @@ add_subdirectory( src )
 # Generates and installs our package. Must be the last statement such
 # that it can pick up all above settings.
 #
-orocos_generate_package()
+orocos_generate_package(
+  INCLUDE_DIRS include
+  )

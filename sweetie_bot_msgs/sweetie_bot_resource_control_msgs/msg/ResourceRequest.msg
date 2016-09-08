@@ -1,9 +1,12 @@
+# name of the requester
+string requester_name
+
 # names of the requested resources
 string[] resources
 
-# ID of the requester
-int32 user_id
 
-# priority of giving the corresponding resource to this requester
+# priorities of giving the corresponding resource (pending) to this requester
+# and holding it after acquiring (operational)
 # range is [0:1]
-float32[] priorities
+float32[] pri_pending
+float32[] pri_operational

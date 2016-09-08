@@ -10,7 +10,7 @@
 # Creates a component library libsweetie_bot_gait_walking_3_plus_1-<target>.so
 # and installs in the directory lib/orocos/sweetie_bot_gait_walking_3_plus_1/
 #
-orocos_component(sweetie_bot_gait_walking_3_plus_1 sweetie_bot_gait_walking_3_plus_1-component.hpp sweetie_bot_gait_walking_3_plus_1-component.cpp) # ...you may add multiple source files
+orocos_component(sweetie_bot_gait_walking_3_plus_1 sweetie_bot_gait_walking_3_plus_1-component.cpp) # ...you may add multiple source files
 #
 # You may add multiple orocos_component statements.
 

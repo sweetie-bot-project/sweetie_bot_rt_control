@@ -61,8 +61,11 @@ bool ResourceControl::startHook()
 
 void ResourceControl::processResourceRequest(ResourceRequest& resourceRequestMsg)
 {
+  // TODO: redo with new messages
+  
   // NOTE: temporary solution
   // give resources that were demanded unless they are unavailable
+  /*
   ResourceReply resourceReplyMsg;
   resourceReplyMsg.user_id = resourceRequestMsg.user_id; // reply to the requester
 
@@ -108,6 +111,7 @@ void ResourceControl::processResourceRequest(ResourceRequest& resourceRequestMsg
   }
 
   resourceReplyPort.write(resourceReplyMsg);
+	 */
 
   // TODO: decide how and what resources to reallocate
 

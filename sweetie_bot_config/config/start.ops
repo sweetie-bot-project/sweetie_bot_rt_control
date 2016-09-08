@@ -1,4 +1,5 @@
 import ("sweetie_bot_resource_control");
+import ("sweetie_bot_resource_control_service");
 import ("sweetie_bot_gait_walking_3_plus_1");
 
 displayComponentTypes();
@@ -32,6 +33,6 @@ gait_walking_3_plus_1.configure();
 resource_control.setPeriod(1.0);
 gait_walking_3_plus_1.setPeriod(0.5);
 
-resource_control.start();
-gait_walking_3_plus_1.start();
+# resource_control.start();
+# gait_walking_3_plus_1.start();
 

@@ -49,6 +49,8 @@ add_message_files(
   ResourceReleased.msg
   ResourceReply.msg
   ResourceDemandRelease.msg
+  ResourceAssignment.msg
+  ResourceRequesterState.msg
 )
 
 ## Generate services in the 'srv' folder
