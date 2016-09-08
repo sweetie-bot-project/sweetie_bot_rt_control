@@ -1,4 +1,5 @@
-#include "sweetie_bot_resource_control-component.hpp"
+#include "sweetie_bot_resource_control/sweetie_bot_resource_control-component.hpp"
+
 #include <rtt/Component.hpp>
 #include <rtt/Logger.hpp>
 
@@ -9,26 +10,27 @@ using RTT::Logger;
 
 ResourceControl::ResourceControl(std::string const& name) : TaskContext(name)
 {
-  Logger::log(Logger::Info) << "ResourceControl constructed !" <<Logger::endl;
+  Logger::log(Logger::Info) << "ResourceControl constructed !" << Logger::endl;
 
-  this->ports()->addPort("resourceReplyPort", resourceReplyPort)
-	 .doc("Resource manager will reply to requesters using this port to notify them, whether"
-		  " the requested resource was allocated to them, or they were refused.");
+  this->ports()->addPort("resource_assignment", resourceAssignmentPort)
+	 .doc("Publishes a list of all resources and their current owners.");
 
-  this->ports()->addPort("resourceDemandReleasePort", resourceDemandReleasePort)
-	 .doc("Resource manager demands components to release resources they were previously"
-		 " given using this port.");
-
-  this->ports()->addEventPort("resourceRequestPort", resourceRequestPort)
+  this->ports()->addEventPort("resource_request", resourceRequestPort)
 	 .doc("Resource manager receives requests for resource allocation via this port.");
 
-  this->ports()->addEventPort("resourceReleasedPort", resourceReleasedPort)
-	 .doc("Resource manager is notified that a resource was released by a component"
-		 " via this port.");
+  this->ports()->addEventPort("resource_requester_state", resourceRequesterStatePort)
+	 .doc("Resource manager is notified that a component is active or has deactivated "
+	 	  "and released all its resources.");
 
+  this->addOperation("assignAllResourcesTo", &ResourceControl::assignAllResourcesTo, this, RTT::OwnThread)
+  	 .doc("Assign all resources to the component 'name' or to no one when the name equals \"none\"");
+ 
   initResources();
 }
 
+/* Gets a list of resources and maps them to "none" to indicate that they are there but
+ * free.
+ */
 void ResourceControl::initResources()
 {
   // TODO: make grouping resources possible
@@ -41,7 +43,7 @@ void ResourceControl::initResources()
   std::vector<std::string> resources(tmp, tmp+sizeof(tmp) / sizeof(tmp[0]));
   for(std::vector<std::string>::iterator name = resources.begin(); name != resources.end(); name++)
   {
-	 this->resourceOwners[*name] = 0; // add a free resource
+	 this->resourceOwners[*name] = "none"; // add a free resource
 	 Logger::log(Logger::Info) << "Resource initialized: " << *name << Logger::endl;
   }
 }
@@ -59,59 +61,74 @@ bool ResourceControl::startHook()
   return true;
 }
 
+/* Reallocates resources when a component asks for them.
+ *
+ * Current implementation gives the required resources to the last requester and
+ * ignores priorities.
+ *
+ * @param resourceRequestMsg ResourceRequest Message, that contains the requester's
+ * name, a list of resources requested and their priorities for the component.
+ */
 void ResourceControl::processResourceRequest(ResourceRequest& resourceRequestMsg)
 {
-  // TODO: redo with new messages
+  // a flag that indicates if any changes to resources' owners were made
+  bool isOwnersChanged = false;  
   
-  // NOTE: temporary solution
-  // give resources that were demanded unless they are unavailable
-  /*
-  ResourceReply resourceReplyMsg;
-  resourceReplyMsg.user_id = resourceRequestMsg.user_id; // reply to the requester
-
-  for (std::vector<std::string>::iterator requestedIt = resourceRequestMsg.resources.begin();
-  		requestedIt != resourceRequestMsg.resources.end();
-  		++requestedIt)
+  for (int i = 0; i < resourceRequestMsg.resources.size(); i++)
   {
-	 std::map<std::string, int>::iterator ownedIt = resourceOwners.find(*requestedIt);
+ 	 // check if the resource actually exists
+ 	 std::map<std::string, std::string>::iterator ownedIt = resourceOwners.find(resourceRequestMsg.resources[i]);
 	 if (ownedIt != resourceOwners.end())
 	 {
 		// there is such resource
-		if (resourceOwners[*requestedIt] == resourceRequestMsg.user_id)
+		if (resourceOwners[resourceRequestMsg.resources[i]] == resourceRequestMsg.requester_name)
 		{
 		  // the requester already owns this resource (should be a warning or an error
 		  // since this is a strange case)
-		  resourceReplyMsg.resources.push_back(*requestedIt);
-		  resourceOwners[*requestedIt] = resourceReplyMsg.user_id;
-
-		  Logger::log(Logger::Info) << "Resource [" << *requestedIt<< "] already owned by [" 
-		  	 << resourceRequestMsg.user_id << "]" << Logger::endl;
+		  
+		  Logger::log(Logger::Warning) << "Resource [" << resourceRequestMsg.resources[i] << "] already owned by [" 
+		  	 << resourceRequestMsg.requester_name << "]" << Logger::endl;
 		} 
-		else if (resourceOwners[*requestedIt] == 0)
+		else if (resourceOwners[resourceRequestMsg.resources[i]] == "none")
 		{
 		  // the resource is free and will be given to the requester
-		  resourceReplyMsg.resources.push_back(*requestedIt);
-		  resourceOwners[*requestedIt] = resourceReplyMsg.user_id;
+		  isOwnersChanged = true;
 
-		  Logger::log(Logger::Info) << "Resource [" << *requestedIt<< "] given to ["
-		  	 << resourceRequestMsg.user_id << "]" << Logger::endl;
+		  Logger::log(Logger::Info) << "Resource [" << resourceRequestMsg.resources[i] << "] given to ["
+		  	 << resourceRequestMsg.requester_name << "]" << Logger::endl;
 		} 
 		else 
 		{
-		  // the resource is not available
-		  Logger::log(Logger::Info) << "Resource [" << *requestedIt<< "] is not available and owned by ["
-		  	 << resourceOwners[*requestedIt] << "]" << Logger::endl;
+		  // the resource is already owned by someone else 
+		  // NOTE: it will still be given in this implementation
+		  isOwnersChanged = true;
+
+		  Logger::log(Logger::Info) << "Resource [" << resourceRequestMsg.resources[i] << "] is already owned by ["
+		  	 << resourceOwners[resourceRequestMsg.resources[i]] << "] but will be reallocated" << Logger::endl;
 		}
 	 } 
 	 else 
 	 {
 		// there is no such resource
-		Logger::log(Logger::Info) << "Resource does not exist: " << *requestedIt<< Logger::endl;
+		Logger::log(Logger::Info) << "Resource does not exist: " << resourceRequestMsg.resources[i] << Logger::endl;
 	 }
+	 
+	 // allocate resource
+  	 resourceOwners[resourceRequestMsg.resources[i]] = resourceRequestMsg.requester_name;
   }
 
-  resourceReplyPort.write(resourceReplyMsg);
-	 */
+  ResourceAssignment resourceAssignmentMsg;
+  // republish a new list of resources (if any changes to the list were made
+  if (isOwnersChanged)
+  {
+	 for (std::map<std::string, std::string>::iterator it = resourceOwners.begin();
+  		  it != resourceOwners.end(); ++it)
+  	 {
+		resourceAssignmentMsg.resources.push_back(it->first);
+		resourceAssignmentMsg.owners.push_back(it->second);
+  	 }
+	 resourceAssignmentPort.write(resourceAssignmentMsg);
+  }
 
   // TODO: decide how and what resources to reallocate
 
@@ -120,33 +137,45 @@ void ResourceControl::processResourceRequest(ResourceRequest& resourceRequestMsg
   // TODO: give resources that are not owned yet
 }
 
-/* Process resource released message.
+/* Process resource requester state report.
  *
- * @param resourceReleasedMsg ResourceReleased The message with a list of released resources.
+ * Reallocate resources if needed (usually, just free the resources of a deactivated component).
+ *
+ * @param resourceRequesterStateMsg ResourceRequesterState Message that notifies the arbitrator about 
+ * a component's change of state.
  */
-void ResourceControl::processResourceReleased(ResourceReleased& resourceReleasedMsg)
+void ResourceControl::processResourceRequesterState(ResourceRequesterState& resourceRequesterStateMsg)
 {
-  // NOTE: the message does not contain the id of the releaser, so that information can not
-  // be checked against the arbitrator's existing table of resources allocated
+  // if the component has not been deactivated, no actions needed
+  if (resourceRequesterStateMsg.is_operational)
+  	 return;
 
-  for (std::vector<std::string>::iterator releasedIt = resourceReleasedMsg.resources.begin();
-  		releasedIt != resourceReleasedMsg.resources.end();
-  		++releasedIt)
+  // free resources of a deactivated component
+  for (std::map<std::string, std::string>::iterator it = resourceOwners.begin();
+  		it != resourceOwners.end(); ++it)
   {
-  	 // check if such resource really exists
-	 std::map<std::string, int>::iterator resourceIt = resourceOwners.find(*releasedIt);
-	 if (resourceIt == resourceOwners.end())
+	 if (it->first == resourceRequesterStateMsg.requester_name)
 	 {
-		// no such resource
-		Logger::log(Logger::Info) << "Resource released does not exist" << Logger::endl;
-	 }
-	 else 
-	 {
-		resourceIt->second = 0; // mark resource as released
+		Logger::log(Logger::Info) << "Resource released (component deactivation): " 
+		  << it->first << Logger::endl;
+
+		it->second = "none";
 	 }
   }
 
   // TODO: check whether any resource requests can be satisfied (resources were released)
+}
+
+/* Assign all resources to the component 'name' or to no one
+ * when the name equals "none".
+ */
+void ResourceControl::assignAllResourcesTo(std::string name)
+{
+  for(std::map<std::string, std::string>::iterator it = resourceOwners.begin();
+  		it != resourceOwners.end(); ++it)
+  {
+	 it->second = name;
+  }
 }
 
 void ResourceControl::updateHook()
@@ -164,12 +193,12 @@ void ResourceControl::updateHook()
 		break;
   }
 
-  ResourceReleased resourceReleasedMsg;
-  switch (resourceReleasedPort.read(resourceReleasedMsg))
+  ResourceRequesterState resourceRequesterStateMsg;
+  switch (resourceRequesterStatePort.read(resourceRequesterStateMsg))
   {
 	 case RTT::NewData:
-		Logger::log(Logger::Info) << "Resource was released" << Logger::endl;
-		processResourceReleased(resourceReleasedMsg);
+		Logger::log(Logger::Info) << "Component is reporting state" << Logger::endl;
+		processResourceRequesterState(resourceRequesterStateMsg);
 		break;
   }
 }

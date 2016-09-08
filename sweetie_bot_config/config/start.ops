@@ -7,23 +7,18 @@ displayComponentTypes();
 loadComponent("resource_control", "ResourceControl");
 loadComponent("gait_walking_3_plus_1", "GaitWalking3Plus1");
 
-connect( "resource_control.resourceRequestPort", 
-  "gait_walking_3_plus_1.resourceRequestPort", 
+connect( "resource_control.resource_request", 
+  "gait_walking_3_plus_1.resource_client.resource_request", 
   ConnPolicy() 
   );
 
-connect( "resource_control.resourceReplyPort", 
-  "gait_walking_3_plus_1.resourceReplyPort", 
+connect( "resource_control.resource_assignment", 
+  "gait_walking_3_plus_1.resource_client.resource_assignment", 
   ConnPolicy() 
   );
 
-connect( "resource_control.resourceReleasedPort", 
-  "gait_walking_3_plus_1.resourceReleasedPort", 
-  ConnPolicy() 
-  );
-
-connect( "resource_control.resourceDemandReleasePort", 
-  "gait_walking_3_plus_1.resourceDemandReleasePort", 
+connect( "resource_control.resource_requester_state", 
+  "gait_walking_3_plus_1.resource_client.resource_requester_state", 
   ConnPolicy() 
   );
 
@@ -33,6 +28,6 @@ gait_walking_3_plus_1.configure();
 resource_control.setPeriod(1.0);
 gait_walking_3_plus_1.setPeriod(0.5);
 
-# resource_control.start();
-# gait_walking_3_plus_1.start();
+resource_control.start();
+gait_walking_3_plus_1.start();
 

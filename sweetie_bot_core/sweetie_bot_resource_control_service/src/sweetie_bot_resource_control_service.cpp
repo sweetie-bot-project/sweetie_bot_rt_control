@@ -37,19 +37,32 @@ class ResourceClientService : public ResourceClientInterface,
 	 // a list of resources that this user was given control of
 	 std::map<std::string, bool> resourcesControlled;
 
+	 /* Detects if the requested resources were allocated to this component and replies
+	  * with an activation message if they were, with a deactivation message otherwise.
+	  *
+	  * @param msg ResourceAssignment Message from the resource arbitrator the contains 
+	  * all resources and indicates who they were given to.
+	  */
 	 void processResourceAssignment(ResourceAssignment &msg)
 	 {
 	 	bool isResourcesAcquired = true;
 
+		// NOTE: the algorithm assumes that the requested resource actually exists and 
+		// is listed in msg.resources and checks if it is NOT assigned to this component. 
+		// It will bug out (fail to notice) that it wasn't given a resource that just doesn't
+		// exist. 
+		// On a side note, the alorithm here is probably slower than it should be.
 		for (std::map<std::string, double>::iterator it = resourcesRequired.begin();
 			 it != resourcesRequired.end(); ++it)
 		{
-		  std::vector<std::string>::iterator res_it = std::find(msg.resources.begin(), msg.resources.end(), it->first);
-		  if ( res_it == msg.resources.end() )
+		  for (int i = 0; i < msg.resources.size(); i++)
 		  {
-		  	 // resource not controlled
-			 isResourcesAcquired = false;
-			 break;
+		  	 if ( (msg.resources[i] == it->first) && (msg.owners[i] != name_) )
+		  	 {
+		  	 	// resource not controlled
+			 	isResourcesAcquired = false;
+			 	break;
+		  	 }
 		  }
 		}
 
@@ -69,7 +82,7 @@ class ResourceClientService : public ResourceClientInterface,
         : Service("resource_client", owner) 
     {
 		this->addPort("resource_request", resourceRequestPort);
-		this->addPort("resource_requester_status", resourceRequesterStatePort);
+		this->addPort("resource_requester_state", resourceRequesterStatePort);
 
 		this->addEventPort("resource_assignment", resourceAssignmentPort);
 
