@@ -84,7 +84,7 @@ bool SweetieBotKinematics::startHook(){
 }
 
 void SweetieBotKinematics::updateHook(){
-  cout << "SweetieBotKinematics executes updateHook !" <<endl;
+  //cout << "SweetieBotKinematics executes updateHook !" <<endl;
 
   // Init seed
   if( input_port_joints_seed_.read(input_joint_seed_) == NewData){
@@ -125,7 +125,7 @@ void SweetieBotKinematics::updateHook(){
 	  return;
 	}
     }
-    cout << output_limb_state_ << endl;
+    //cout << output_limb_state_ << endl;
     output_port_limbs_.write(output_limb_state_);
   }
 
@@ -153,7 +153,7 @@ void SweetieBotKinematics::updateHook(){
 	  return;
         }
     }
-    cout << output_joint_state_ << endl;
+    //cout << output_joint_state_ << endl;
     output_port_joints_.write(output_joint_state_);
   }
 

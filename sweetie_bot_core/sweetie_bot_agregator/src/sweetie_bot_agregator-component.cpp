@@ -20,7 +20,7 @@ bool SweetieBotAgregator::configureHook(){
   chain_names_ = robot_model_->listChains();
   for(auto &name: chain_names_){
     vector<string> joints = robot_model_->listJoints(name);
-    joint_names_.insert( joint_names_.end(), &joints[0], &joints[0]+joints.size() );
+    joint_names_.insert( joint_names_.end(), joints.begin(), joints.end() );
   }
   output_joint_state_.name = joint_names_;
   output_joint_state_.position.assign(joint_names_.size(), 0.0);
@@ -36,7 +36,7 @@ bool SweetieBotAgregator::startHook(){
 }
 
 void SweetieBotAgregator::updateHook(){
-  std::cout << "SweetieBotAgregator executes updateHook !" <<std::endl;
+  //std::cout << "SweetieBotAgregator executes updateHook !" <<std::endl;
 
   if( input_port_joint_state_.read(input_joint_state_) == NewData ){
     for(int i=0; i<joint_names_.size(); i++){
@@ -50,7 +50,7 @@ void SweetieBotAgregator::updateHook(){
 	if(input_joint_state_.effort.size() == input_joint_state_.name.size())
 	  output_joint_state_.effort[i] = input_joint_state_.effort[j];
     }
-    cout << output_joint_state_ << endl;
+    //cout << output_joint_state_ << endl;
     output_port_joint_state_.write(output_joint_state_);
   }
 }
