@@ -1,13 +1,13 @@
-#ifndef OROCOS_SWEETIE_BOT_GAIT_WALKING_3_PLUS_1_COMPONENT_HPP
-#define OROCOS_SWEETIE_BOT_GAIT_WALKING_3_PLUS_1_COMPONENT_HPP
+#ifndef OROCOS_SWEETIE_BOT_RESOURCE_CLIENT_USAGE_EXAMPLE_COMPONENT_HPP
+#define OROCOS_SWEETIE_BOT_RESOURCE_CLIENT_USAGE_EXAMPLE_COMPONENT_HPP
 
 #include <rtt/RTT.hpp>
 
-#include <sweetie_bot_resource_control_service/sweetie_bot_resource_control_service.hpp>
+#include <sweetie_bot_resource_control/sweetie_bot_resource_control_service.hpp>
 
 #include <string>
 
-class GaitWalking3Plus1 : public RTT::TaskContext
+class ResourceClientExample : public RTT::TaskContext
 {
   protected:
 	 // maps a resource that is absolutely essential to the component
@@ -16,21 +16,27 @@ class GaitWalking3Plus1 : public RTT::TaskContext
 	 std::map<std::string, double> resourcesRequiredPrimary;
 
 	 // the same as resourcesRequiredPrimary, but the resources here
-	 // are secondary to the component and it can function wihthout them
+	 // are secondary to the component and it can function without them
 	 // (but it would still like to get ahold of them)
 	 std::map<std::string, double> resourcesRequiredAuxiliary;
 
 	 boost::shared_ptr<ResourceClient> resource_client;
 	 
 	 void initResources();
-	 void calculateMovement();
+	 void doUsefulStuff();
+
+	 bool isActive;
 
   public:
-    GaitWalking3Plus1(std::string const& name);
+    ResourceClientExample(std::string const& name);
     bool configureHook();
     bool startHook();
     void updateHook();
     void stopHook();
     void cleanupHook();
+
+    bool activate();
+
+    bool resourceChangedHook();
 };
 #endif

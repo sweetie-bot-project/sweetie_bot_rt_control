@@ -8,9 +8,9 @@
 
 using RTT::Logger;
 
-ResourceControl::ResourceControl(std::string const& name) : TaskContext(name)
+ResourceArbiter::ResourceArbiter(std::string const& name) : TaskContext(name)
 {
-  Logger::log(Logger::Info) << "ResourceControl constructed !" << Logger::endl;
+  Logger::log(Logger::Info) << "ResourceArbiter constructed !" << Logger::endl;
 
   this->ports()->addPort("resource_assignment", resourceAssignmentPort)
 	 .doc("Publishes a list of all resources and their current owners.");
@@ -22,7 +22,7 @@ ResourceControl::ResourceControl(std::string const& name) : TaskContext(name)
 	 .doc("Resource manager is notified that a component is active or has deactivated "
 	 	  "and released all its resources.");
 
-  this->addOperation("assignAllResourcesTo", &ResourceControl::assignAllResourcesTo, this, RTT::OwnThread)
+  this->addOperation("assignAllResourcesTo", &ResourceArbiter::assignAllResourcesTo, this, RTT::OwnThread)
   	 .doc("Assign all resources to the component 'name' or to no one when the name equals \"none\"");
  
   initResources();
@@ -31,7 +31,7 @@ ResourceControl::ResourceControl(std::string const& name) : TaskContext(name)
 /* Gets a list of resources and maps them to "none" to indicate that they are there but
  * free.
  */
-void ResourceControl::initResources()
+void ResourceArbiter::initResources()
 {
   // TODO: make grouping resources possible
   // e.g. requesting "leg1" resource and converting that automatically 
@@ -48,16 +48,16 @@ void ResourceControl::initResources()
   }
 }
 
-bool ResourceControl::configureHook()
+bool ResourceArbiter::configureHook()
 {
-  Logger::log(Logger::Info) << "ResourceControl configured !" <<Logger::endl;
+  Logger::log(Logger::Info) << "ResourceArbiter configured !" <<Logger::endl;
 
   return true;
 }
 
-bool ResourceControl::startHook()
+bool ResourceArbiter::startHook()
 {
-  Logger::log(Logger::Info) << "ResourceControl started !" <<Logger::endl;
+  Logger::log(Logger::Info) << "ResourceArbiter started !" <<Logger::endl;
   return true;
 }
 
@@ -69,7 +69,7 @@ bool ResourceControl::startHook()
  * @param resourceRequestMsg ResourceRequest Message, that contains the requester's
  * name, a list of resources requested and their priorities for the component.
  */
-void ResourceControl::processResourceRequest(ResourceRequest& resourceRequestMsg)
+void ResourceArbiter::processResourceRequest(ResourceRequest& resourceRequestMsg)
 {
   // a flag that indicates if any changes to resources' owners were made
   bool isOwnersChanged = false;  
@@ -77,7 +77,7 @@ void ResourceControl::processResourceRequest(ResourceRequest& resourceRequestMsg
   for (int i = 0; i < resourceRequestMsg.resources.size(); i++)
   {
  	 // check if the resource actually exists
- 	 std::map<std::string, std::string>::iterator ownedIt = resourceOwners.find(resourceRequestMsg.resources[i]);
+ 	 ResourceToOwnerMap::iterator ownedIt = resourceOwners.find(resourceRequestMsg.resources[i]);
 	 if (ownedIt != resourceOwners.end())
 	 {
 		// there is such resource
@@ -110,7 +110,7 @@ void ResourceControl::processResourceRequest(ResourceRequest& resourceRequestMsg
 	 else 
 	 {
 		// there is no such resource
-		Logger::log(Logger::Info) << "Resource does not exist: " << resourceRequestMsg.resources[i] << Logger::endl;
+		Logger::log(Logger::Error) << "Resource does not exist: " << resourceRequestMsg.resources[i] << Logger::endl;
 	 }
 	 
 	 // allocate resource
@@ -121,7 +121,7 @@ void ResourceControl::processResourceRequest(ResourceRequest& resourceRequestMsg
   // republish a new list of resources (if any changes to the list were made
   if (isOwnersChanged)
   {
-	 for (std::map<std::string, std::string>::iterator it = resourceOwners.begin();
+	 for (ResourceToOwnerMap::iterator it = resourceOwners.begin();
   		  it != resourceOwners.end(); ++it)
   	 {
 		resourceAssignmentMsg.resources.push_back(it->first);
@@ -144,14 +144,14 @@ void ResourceControl::processResourceRequest(ResourceRequest& resourceRequestMsg
  * @param resourceRequesterStateMsg ResourceRequesterState Message that notifies the arbitrator about 
  * a component's change of state.
  */
-void ResourceControl::processResourceRequesterState(ResourceRequesterState& resourceRequesterStateMsg)
+void ResourceArbiter::processResourceRequesterState(ResourceRequesterState& resourceRequesterStateMsg)
 {
   // if the component has not been deactivated, no actions needed
   if (resourceRequesterStateMsg.is_operational)
   	 return;
 
   // free resources of a deactivated component
-  for (std::map<std::string, std::string>::iterator it = resourceOwners.begin();
+  for (ResourceToOwnerMap::iterator it = resourceOwners.begin();
   		it != resourceOwners.end(); ++it)
   {
 	 if (it->first == resourceRequesterStateMsg.requester_name)
@@ -169,18 +169,18 @@ void ResourceControl::processResourceRequesterState(ResourceRequesterState& reso
 /* Assign all resources to the component 'name' or to no one
  * when the name equals "none".
  */
-void ResourceControl::assignAllResourcesTo(std::string name)
+void ResourceArbiter::assignAllResourcesTo(std::string name)
 {
-  for(std::map<std::string, std::string>::iterator it = resourceOwners.begin();
+  for(ResourceToOwnerMap::iterator it = resourceOwners.begin();
   		it != resourceOwners.end(); ++it)
   {
 	 it->second = name;
   }
 }
 
-void ResourceControl::updateHook()
+void ResourceArbiter::updateHook()
 {
-  Logger::log(Logger::Info) << "ResourceControl executes updateHook !" <<Logger::endl;
+  Logger::log(Logger::Info) << "ResourceArbiter executes updateHook !" <<Logger::endl;
 
   // process ports
   
@@ -203,14 +203,14 @@ void ResourceControl::updateHook()
   }
 }
 
-void ResourceControl::stopHook() 
+void ResourceArbiter::stopHook() 
 {
-  Logger::log(Logger::Info) << "ResourceControl executes stopping !" <<Logger::endl;
+  Logger::log(Logger::Info) << "ResourceArbiter executes stopping !" <<Logger::endl;
 }
 
-void ResourceControl::cleanupHook() 
+void ResourceArbiter::cleanupHook() 
 {
-  Logger::log(Logger::Info) << "ResourceControl cleaning up !" <<Logger::endl;
+  Logger::log(Logger::Info) << "ResourceArbiter cleaning up !" <<Logger::endl;
 }
 
 /*
@@ -218,11 +218,11 @@ void ResourceControl::cleanupHook()
  * in one library *and* you may *not* link this library
  * with another component library. Use
  * ORO_CREATE_COMPONENT_TYPE()
- * ORO_LIST_COMPONENT_TYPE(ResourceControl)
+ * ORO_LIST_COMPONENT_TYPE(ResourceArbiter)
  * In case you want to link with another library that
  * already contains components.
  *
  * If you have put your component class
  * in a namespace, don't forget to add it here too:
  */
-ORO_CREATE_COMPONENT(ResourceControl)
+ORO_CREATE_COMPONENT(ResourceArbiter)

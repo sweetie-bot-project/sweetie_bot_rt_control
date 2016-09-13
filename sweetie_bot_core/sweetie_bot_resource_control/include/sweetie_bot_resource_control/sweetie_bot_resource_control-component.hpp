@@ -13,7 +13,9 @@ using sweetie_bot_resource_control_msgs::ResourceRequest;
 using sweetie_bot_resource_control_msgs::ResourceRequesterState;
 using sweetie_bot_resource_control_msgs::ResourceAssignment;
 
-class ResourceControl : public RTT::TaskContext
+typedef std::map<std::string, std::string> ResourceToOwnerMap;
+
+class ResourceArbiter : public RTT::TaskContext
 {
   protected:
 	 RTT::InputPort<ResourceRequest> resourceRequestPort;
@@ -25,7 +27,7 @@ class ResourceControl : public RTT::TaskContext
 	  * key is a resource, value is the owner; "none" string is a 'free' resource.
 	  * If there is no such resource at all, then the key does not exist.
 	 */ 
-	 std::map<std::string, std::string> resourceOwners; 
+	 ResourceToOwnerMap resourceOwners; 
 
 	 // TODO: priorities, queue of requesters, partial allocation and reallocation, etc.
 
@@ -34,7 +36,7 @@ class ResourceControl : public RTT::TaskContext
 	 void processResourceRequesterState(ResourceRequesterState& resourceRequesterStateMsg);
 
   public:
-    ResourceControl(std::string const& name);
+    ResourceArbiter(std::string const& name);
     bool configureHook();
     bool startHook();
     void updateHook();

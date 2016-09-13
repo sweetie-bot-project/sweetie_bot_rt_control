@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 2.6.3)
 # This creates a standard cmake project. You may extend this file with
 # any cmake macro you see fit.
 #
-project(sweetie_bot_gait_walking_3_plus_1)
+project(sweetie_bot_resource_client_usage_example)
 
 # Use 'source orocos_toolchain/env.sh' if the command below fails:
 find_package(OROCOS-RTT QUIET)
@@ -18,7 +18,7 @@ endif()
 
 find_package(catkin REQUIRED COMPONENTS
   sweetie_bot_resource_control_msgs
-  sweetie_bot_resource_control_service
+  sweetie_bot_resource_control
 )
 
 # Defines the orocos_* cmake macros. See that file for additional

@@ -1,0 +1,5 @@
+<launch>
+  <node name="walking_resources" pkg="rtt_ros" type="deployer"
+    args="-s $(find sweetie_bot_config)/config/arbiter_test.ops --" output="screen"/>
+
+</launch>

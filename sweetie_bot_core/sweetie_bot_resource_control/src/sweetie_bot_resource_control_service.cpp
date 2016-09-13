@@ -1,16 +1,19 @@
 #include <rtt/RTT.hpp>
 #include <rtt/Service.hpp>
 #include <rtt/plugin/ServicePlugin.hpp>
+#include <rtt/Logger.hpp>
 
 #include <sweetie_bot_resource_control_msgs/ResourceRequest.h>
 #include <sweetie_bot_resource_control_msgs/ResourceRequesterState.h>
 #include <sweetie_bot_resource_control_msgs/ResourceAssignment.h>
 
-#include <sweetie_bot_resource_control_service/sweetie_bot_resource_control_service.hpp>
+#include <sweetie_bot_resource_control/sweetie_bot_resource_control_service.hpp>
 
 #include <algorithm>
 
 using namespace RTT;
+using RTT::Logger;
+
 using namespace std;
 
 using namespace sweetie_bot_resource_control_msgs;
@@ -29,13 +32,36 @@ class ResourceClientService : public ResourceClientInterface,
 
 	 std::string name_;
 
-	 // maps a resource that is absolutely essential to the component
-	 // to a priority in range [0:1] that indicates how important this
-	 // resource is to this user among all possible other users
+	 /* Is true when the controller can function. Usually depends on allocated resources.
+	  *
+	  */
+	 bool isOperational;
+
+	 /* Setter of isOperational.
+	  */
+  	 void setIsOperational(bool value)
+  	 {
+		isOperational = value;
+
+		Logger::log(Logger::Info) << name_ << " status changed to: " << value << Logger::endl;
+	 }
+
+	 /* Maps a resource that is absolutely essential to the component
+	  * to a priority in range [0:1] that indicates how important this
+	  * resource is to this user among all possible other users
+	  */
 	 std::map<std::string, double> resourcesRequired;
 
-	 // a list of resources that this user was given control of
+	 /* a list of resources that this user was given control of
+	  */
 	 std::map<std::string, bool> resourcesControlled;
+
+	 /* Hook that is provided by the controller that is using this plugin to determine
+	  * whether it can work with the given resources. 
+	  *
+	  * @return bool True when the controller is active (can function), false otherwise.
+	  */
+	 bool (*resourceChangedHook)();
 
 	 /* Detects if the requested resources were allocated to this component and replies
 	  * with an activation message if they were, with a deactivation message otherwise.
@@ -45,64 +71,85 @@ class ResourceClientService : public ResourceClientInterface,
 	  */
 	 void processResourceAssignment(ResourceAssignment &msg)
 	 {
-	 	bool isResourcesAcquired = true;
+	 	bool resourceFound = false;
 
-		// NOTE: the algorithm assumes that the requested resource actually exists and 
-		// is listed in msg.resources and checks if it is NOT assigned to this component. 
-		// It will bug out (fail to notice) that it wasn't given a resource that just doesn't
-		// exist. 
-		// On a side note, the alorithm here is probably slower than it should be.
 		for (std::map<std::string, double>::iterator it = resourcesRequired.begin();
 			 it != resourcesRequired.end(); ++it)
 		{
+		  resourceFound = false;
+		  // try to find the resource among the allocated
 		  for (int i = 0; i < msg.resources.size(); i++)
 		  {
-		  	 if ( (msg.resources[i] == it->first) && (msg.owners[i] != name_) )
+		  	 if (msg.resources[i] == it->first)
 		  	 {
-		  	 	// resource not controlled
-			 	isResourcesAcquired = false;
-			 	break;
+		  	 	resourceFound = true;
+
+		  	 	if (msg.owners[i] == name_)
+		  	 	{
+				  it->second = true;
+				  Logger::log(Logger::Info) << name_ << " acquired resource "
+				  	 << it->first << Logger::endl;
+				}
+
+				// resource was found and is either ours, or not. proceed to the next one
+				break;
 		  	 }
 		  }
+
+		  if (!resourceFound)
+		  	 Logger::log(Logger::Warning) << "Resource " << it->first << " does not exist"
+		  	 	<< Logger::endl;
 		}
 
+		// ask the controller if it can function with these resources
+		if (resourceChangedHook != NULL)
+		  isOperational = resourceChangedHook();
+	 	else
+		  Logger::log(Logger::Error) << "resourceChangedHook() is null" << Logger::endl;
+
+		// announce state
 		ResourceRequesterState resourceRequesterStateMsg;
 		resourceRequesterStateMsg.requester_name = name_;
 
-		if (isResourcesAcquired)
-		  resourceRequesterStateMsg.is_operational = true;
-		else
-		  resourceRequesterStateMsg.is_operational = false;
+		resourceRequesterStateMsg.is_operational = isOperational;
 
 		resourceRequesterStatePort.write(resourceRequesterStateMsg);
 	 }
 
+
   public:
     ResourceClientService(TaskContext* owner) 
-        : Service("resource_client", owner) 
+        : Service("resource_client", owner),
+        isOperational(false)
     {
 		this->addPort("resource_request", resourceRequestPort);
 		this->addPort("resource_requester_state", resourceRequesterStatePort);
 
 		this->addEventPort("resource_assignment", resourceAssignmentPort);
 
-		this->addOperation("getOwnerName", &ResourceClientService::getOwnerName, this)
-		  .doc("Returns the name of the owner of this object.");
-
 		this->addOperation("requestResources", &ResourceClientService::requestResources, this);
 		this->addOperation("stopOperational", &ResourceClientService::stopOperational, this);
-		this->addOperation("isOperational", &ResourceClientService::isOperational, this);
+		this->addOperation("getIsOperational", &ResourceClientService::getIsOperational, this);
 		this->addOperation("hasResource", &ResourceClientService::hasResource, this);
 
 		name_ = getOwner()->getName();
     }
 
-	 std::string getOwnerName() 
-    {
-		// getOwner() returns the TaskContext pointer we got in
-		// the constructor:
-		return getOwner()->getName();
-    }
+    // Properties' getters and setters
+
+	 /* Getter of isOperational.
+	  */
+  	 bool getIsOperational()
+  	 {
+  	 	return isOperational;
+  	 }
+
+	 //--------------------
+	 
+	 void setResourceChangeHook(bool (*resourceChangedHook_)())
+	 {
+	 	this->resourceChangedHook = resourceChangedHook_;
+	 }
 
   	 bool requestResources(std::map<std::string, double> resourcesPriorities)
   	 {
@@ -127,26 +174,12 @@ class ResourceClientService : public ResourceClientInterface,
   	 {
   	 	ResourceRequesterState msg;
 
+  	 	isOperational = false;
+
   	 	msg.requester_name = name_;
   	 	msg.is_operational = false;
 
   	 	resourceRequesterStatePort.write(msg);
-
-		return true;
-  	 }
-
-  	 bool isOperational()
-  	 {
-  	 	for (std::map<std::string, double>::iterator it = resourcesRequired.begin();
-  	 		 it != resourcesRequired.end(); ++it)
-  	 	{
-		  if ( (resourcesControlled.find(it->first) == resourcesControlled.end())
-		  	 || (resourcesControlled[it->first] == false) )
-		  {
-			 // one of the required resources is not controlled, thus the component is inactive
-			 return false;
-		  }
-  	 	}
 
 		return true;
   	 }

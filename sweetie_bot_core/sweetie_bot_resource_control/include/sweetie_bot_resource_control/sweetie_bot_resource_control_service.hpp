@@ -14,7 +14,7 @@ class ResourceClientInterface
   public:
   	 virtual bool requestResources(std::map<std::string, double>) = 0;
   	 virtual bool stopOperational() = 0;
-  	 virtual bool isOperational() = 0;
+  	 virtual bool getIsOperational() = 0;
   	 virtual bool hasResource(std::string res) = 0;
 };
 
