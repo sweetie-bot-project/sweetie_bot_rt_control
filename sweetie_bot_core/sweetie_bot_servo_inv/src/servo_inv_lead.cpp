@@ -4,10 +4,22 @@
 #include "servo_inv_lead.hpp"
 
 using namespace RTT;
+using sweetie_bot::Logger;
+
+namespace sweetie_bot 
+{
 
 ServoInvLead::ServoInvLead(std::string const& name) : 
-	TaskContext(name)
+	TaskContext(name),
+	log("sweetie.core.servo_inv")
 {
+	if (!log.ready()) {
+		RTT::Logger::In in("ServoInvLead");
+		RTT::log(RTT::Error) << "Logger is not ready!" << endlog();
+		this->fatal();
+		return;
+	}
+			
 	this->addEventPort("in_joints_fixed", joints_port)
 		.doc("Desired joints state. Order of joints should not change. ");
 	this->addPort("out_goals", goals_port)
@@ -25,8 +37,6 @@ ServoInvLead::ServoInvLead(std::string const& name) :
 
 bool ServoInvLead::startHook()
 {
-	Logger::In in("ServoInvLead");
-	
 	joints_port.getDataSample(joints);
 
 	position_perv.clear();
@@ -41,7 +51,7 @@ bool ServoInvLead::startHook()
 	RTT::os::Timer::TimerId timer_id;
 	sync_port.readNewest(timer_id);
 
-	log(Info) << "ServoInvLead started!" << endlog();
+	log(INFO) << "ServoInvLead started!" << endlog();
 	return true;
 }
 
@@ -58,8 +68,7 @@ void ServoInvLead::updateHook()
 		unsigned int njoints = joints.name.size();
 
 		if (njoints != joints.position.size() || njoints != joints.velocity.size()) {
-			Logger::In in("ServoInvLead");
-			log(Warning) << "goal message has incorrect structure." << endlog();
+			log(WARN) << "goal message has incorrect structure." << endlog();
 			return;
 		}
 		
@@ -86,8 +95,9 @@ void ServoInvLead::updateHook()
 
 
 void ServoInvLead::stopHook() {
-	Logger::In in("ServoInvLead");
-	log(Info) << "ServoInvLead stopped!" << endlog();
+	log(INFO) << "ServoInvLead stopped!" << endlog();
+}
+
 }
 
 /*
@@ -102,4 +112,4 @@ void ServoInvLead::stopHook() {
  * If you have put your component class
  * in a namespace, don't forget to add it here too:
  */
-ORO_CREATE_COMPONENT(ServoInvLead)
+ORO_CREATE_COMPONENT(sweetie_bot::ServoInvLead)

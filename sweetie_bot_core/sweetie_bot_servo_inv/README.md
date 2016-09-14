@@ -1,7 +1,9 @@
 Packge `sweetie_bot_servo_inv`: servo invertion components
 ----------------------------------------------------------
 
-Contains components which translate reference trajectory represented by `sensor_msg::JointState` 
+
+This package is part of [Sweetie Bot project](sweetiebot.net). 
+Package contains components which translate reference trajectory represented by `sensor_msg::JointState` 
 to position controlled servo commands `sweetie_bot_hardware_herkulex_msg::ServoGoal`.
 
 ### `PlayerJointState`: simple `JointState` trajectory player
@@ -27,7 +29,10 @@ one sample is published on output port. The tick source can be external
 2. `ServoGoal` is set to current reference position with lead (usually one or two discretization periods), so servo `r{desired_posion}` 
     register value is equal to reference position with delay. 
 
-Test script replay stored in `ref_servos12_sine.in`. It needs `sweetie_bot_hardware_herkulex` infrasructure fo running.
+#### Usage 
+
+Following script replays trajectory stored in `ref_servos12_sine.in`. 
+It relies on `sweetie_bot_hardware_herkulex` infrasructure to transmit commands to servos.
 
 	deployer -s `rospack find sweetie_bot_servo_inv`/scripts/test_servo_inv.ops
 

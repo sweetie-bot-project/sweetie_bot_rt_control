@@ -7,10 +7,22 @@
 #include "player_joint_state.hpp"
 
 using namespace RTT;
+using sweetie_bot::Logger;
+
+namespace sweetie_bot 
+{
 
 PlayerJointState::PlayerJointState(std::string const& name) : 
-	TaskContext(name, PreOperational)
+	TaskContext(name, PreOperational),
+	log("sweetie.core.servo_inv")
 {
+	if (!log.ready()) {
+		RTT::Logger::In in("PlayerJointState");
+		RTT::log(RTT::Error) << "Logger is not ready!" << RTT::endlog();
+		this->fatal();
+		return;
+	}
+	
 	this->addPort("out_joints_fixed", joints_port)
 		.doc("Trajectory read from file.");
 	this->addEventPort("sync", sync_port)
@@ -33,8 +45,6 @@ PlayerJointState::PlayerJointState(std::string const& name) :
 
 bool PlayerJointState::configureHook()
 {
-	Logger::In in("PlayerJointState");
-
 	sample_dim = joint_names.size(); 
 
 	std::ifstream file(file_name);
@@ -64,12 +74,12 @@ bool PlayerJointState::configureHook()
 		}
 
 		if (ss.fail())  {
-			log(Error) << "Unable parse line " << sample_index << "." << endlog();
+			log(ERROR) << "Unable parse line " << sample_index << "." << endlog();
 			return false;
 		}
 	}
 	if (file.fail() && !file.eof()) {
-		log(Error) << "Error reading line " << sample_index << " at " << file_name << ": " << std::error_code(errno, std::system_category()).message() << endlog();
+		log(ERROR) << "ERROR reading line " << sample_index << " at " << file_name << ": " << std::error_code(errno, std::system_category()).message() << endlog();
 		return false;
 	}
 
@@ -82,21 +92,19 @@ bool PlayerJointState::configureHook()
 
 	joints.name = joint_names;
 
-	log(Info) << "PlayerJointState configured!" << endlog();
+	log(INFO) << "PlayerJointState configured!" << endlog();
 	return true;
 }
 
 
 bool PlayerJointState::startHook()
 {
-	Logger::In in("PlayerJointState");
-	
 	sample_index = 0;
 
 	RTT::os::Timer::TimerId timer_id;
 	sync_port.readNewest(timer_id);
 
-	log(Info) << "PlayerJointState started!" << endlog();
+	log(INFO) << "PlayerJointState started!" << endlog();
 	return true;
 }
 
@@ -127,8 +135,9 @@ void PlayerJointState::updateHook()
 
 
 void PlayerJointState::stopHook() {
-	Logger::In in("PlayerJointState");
-	log(Info) << "PlayerJointState stopped!" << endlog();
+	log(INFO) << "PlayerJointState stopped!" << endlog();
+}
+
 }
 
 /*
@@ -143,4 +152,4 @@ void PlayerJointState::stopHook() {
  * If you have put your component class
  * in a namespace, don't forget to add it here too:
  */
-ORO_CREATE_COMPONENT(PlayerJointState)
+ORO_CREATE_COMPONENT(sweetie_bot::PlayerJointState)

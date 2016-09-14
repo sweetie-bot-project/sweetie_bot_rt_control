@@ -13,10 +13,15 @@ ros.import("rtt_rospack");
 ros.import("rtt_sensor_msgs");
 
 import("sweetie_bot_servo_inv");
+
 # PATHS
 
 var string herk_script_path = ros.find("sweetie_bot_hardware_herkulex") + "/scripts/";
 var string servo_inv_script_path = ros.find("sweetie_bot_servo_inv") + "/scripts/";
+var string LOGGER_SCRIPTS = ros.find("sweetie_bot_logger") + "/scripts/"
+
+# LOAD LOGGER
+runScript(LOGGER_SCRIPTS + "logger_conf.ops");
 
 # LOAD HERKULEX_* SUBSYSTEM
 
@@ -29,12 +34,12 @@ runScript(herk_script_path + "herkulex_sched_reporting.ops");
 # LOAD SERVO_INV
 
 # Servo rajectore generator invertion component.
-loadComponent("servo_inv","ServoInvLead");
+loadComponent("servo_inv","sweetie_bot::ServoInvLead");
 servo_inv.period = 0.023; # Important! Period is equal to timer configuration.
 servo_inv.lead = 0.023; # Lead is equal to one period duration.
 
 # Simple trajectory player
-loadComponent("file_player","PlayerJointState");
+loadComponent("file_player","sweetie_bot::PlayerJointState");
 file_player.file_name = servo_inv_script_path + "ref_servos12_sine.in";
 file_player.joint_names = strings("servo1","servo2");
 

@@ -18,13 +18,16 @@ if (NOT OROCOS-RTT_FOUND)
   message (FATAL_ERROR "\nCould not find Orocos. Please use the shell command\n 'source orocos_toolchain/env.sh' and then run cmake again.")
 endif()
 
+# Devel include support
+find_package(catkin REQUIRED sweetie_bot_logger)
+include_directories(include ${catkin_INCLUDE_DIRS})
+
 # Defines the orocos_* cmake macros. See that file for additional
 # documentation.
 include( ${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake )
 
 # Rest of the configuration is in src/
 add_subdirectory( src )
-
 #
 # Generates and installs our package. Must be the last statement such
 # that it can pick up all above settings.
