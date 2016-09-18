@@ -18,6 +18,16 @@ class ResourceClientInterface
   	 virtual bool hasResource(std::string res) = 0;
 };
 
+class ResourceClientInterface2
+{
+  public:
+  	 virtual void requestResources(const std::vector<std::string>& resource_list) = 0;
+  	 virtual void stopOperational() = 0;
+  	 virtual bool isOperational() = 0;
+  	 virtual bool hasResource(const std::string& resource) = 0;
+  	 virtual bool hasResources(const std::vector<std::string>& resource_list) = 0;
+};
+
 
 class ResourceClient: public RTT::ServiceRequester
 {
@@ -25,14 +35,16 @@ class ResourceClient: public RTT::ServiceRequester
   	 OperationCaller< bool(std::map<std::string, double>) > requestResources;
   	 OperationCaller< bool() > stopOperational;
   	 OperationCaller< bool() > isOperational;
-  	 OperationCaller< bool(std::string) > hasResource;
+  	 OperationCaller< bool(const std::string&) > hasResource;
+  	 OperationCaller< bool(const std::vector<std::string>&) > hasResources;
 
   	 ResourceClient(TaskContext *owner) :
   	 	ServiceRequester("resource_client_requester", owner),
   	 	requestResources("requestResources"),
   	 	stopOperational("stopOperational"),
   	 	isOperational("isOperational"),
-  	 	hasResource("hasResource")
+  	 	hasResource("hasResource"),
+  	 	hasResources("hasResources")
   	 {
 		addOperationCaller(requestResources);
 		addOperationCaller(stopOperational);
