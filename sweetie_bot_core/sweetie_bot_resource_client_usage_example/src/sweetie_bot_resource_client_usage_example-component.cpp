@@ -1,8 +1,8 @@
+#include "sweetie_bot_resource_client_usage_example-component.hpp"
 
 #include <rtt/Component.hpp>
 #include <rtt/Logger.hpp>
 
-#include <sweetie_bot_resource_client_usage_example/sweetie_bot_resource_client_usage_example-component.hpp>
 #include <sweetie_bot_resource_control/sweetie_bot_resource_control_service.hpp>
 
 #include <iostream>

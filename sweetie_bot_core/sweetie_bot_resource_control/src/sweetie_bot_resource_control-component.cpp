@@ -1,4 +1,4 @@
-#include "sweetie_bot_resource_control/sweetie_bot_resource_control-component.hpp"
+#include "sweetie_bot_resource_control-component.hpp"
 
 #include <rtt/Component.hpp>
 #include <rtt/Logger.hpp>
