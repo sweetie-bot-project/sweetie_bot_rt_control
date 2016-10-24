@@ -12,7 +12,7 @@
 #
 orocos_component(sweetie_bot_resource_control sweetie_bot_resource_control-component.cpp) # ...you may add multiple source files
 
-orocos_service(sweetie_bot_resource_control_service sweetie_bot_resource_control_service.cpp) # only one service per library!
+#orocos_service(sweetie_bot_resource_control_service sweetie_bot_resource_control_service.cpp) # only one service per library!
 orocos_service(resource_client_dummy_service resource_client_dummy-service.cpp) # only one service per library!
 
 #

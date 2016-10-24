@@ -10,7 +10,9 @@
 # Creates a component library libsweetie_bot_resource_client_usage_example-<target>.so
 # and installs in the directory lib/orocos/sweetie_bot_resource_client_usage_example/
 #
-orocos_component(sweetie_bot_resource_client_usage_example sweetie_bot_resource_client_usage_example-component.cpp) # ...you may add multiple source files
+# orocos_component(sweetie_bot_resource_client_usage_example sweetie_bot_resource_client_usage_example-component.cpp) # ...you may add multiple source files
+orocos_component(sweetie_bot_actionclient_example actionclient-component-example.cpp) # ...you may add multiple source files
+# orocos_component(controller_actionlib_template controller_actionlib_template-component.cpp) # ...you may add multiple source files
 # orocos_component(controller_actionlib_template controller_actionlib_template-component.cpp) # ...you may add multiple source files
 #
 # You may add multiple orocos_component statements.

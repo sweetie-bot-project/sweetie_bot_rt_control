@@ -1,0 +1,24 @@
+import ("sweetie_bot_resource_control");
+import ("sweetie_bot_resource_client_usage_example");
+
+import("rtt_ros");
+ros.import("rtt_actionlib");
+ros.import("rtt_sweetie_bot_resource_control_msgs");
+
+displayComponentTypes();
+
+#loadComponent("resource_control", "ResourceArbiter");
+loadComponent("sweetie_bot_actionclient_example", "ControllerActionlibTemplate");
+
+loadService("sweetie_bot_actionclient_example", "actionlib");
+sweetie_bot_actionclient_example.actionlib.connect("/somenamespace/myaction");
+
+#resource_control.configure();
+sweetie_bot_actionclient_example.configure();
+
+#resource_control.setPeriod(1.0);
+sweetie_bot_actionclient_example.setPeriod(0.5);
+
+#resource_control.start();
+#sweetie_bot_actionclient_example.start();
+

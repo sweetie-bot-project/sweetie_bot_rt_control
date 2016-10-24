@@ -13,6 +13,8 @@
 
   <depend>rtt</depend>
   <depend>orogen</depend>
+  <depend>rtt_actionlib</depend>
+  <depend>actionlib</depend>
   <depend>sweetie_bot_resource_control_msgs</depend>
   <depend>sweetie_bot_resource_control</depend>
 

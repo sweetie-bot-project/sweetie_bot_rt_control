@@ -32,8 +32,8 @@ class ResourceClientInterface2
 class ResourceClient: public RTT::ServiceRequester
 {
   public:
-  	 OperationCaller< bool(std::map<std::string, double>) > requestResources;
-  	 OperationCaller< bool() > stopOperational;
+  	 OperationCaller< void(const std::vector<std::string>&) > requestResources;
+  	 OperationCaller< void() > stopOperational;
   	 OperationCaller< bool() > isOperational;
   	 OperationCaller< bool(const std::string&) > hasResource;
   	 OperationCaller< bool(const std::vector<std::string>&) > hasResources;
@@ -50,6 +50,7 @@ class ResourceClient: public RTT::ServiceRequester
 		addOperationCaller(stopOperational);
 		addOperationCaller(isOperational);
 		addOperationCaller(hasResource);
+        addOperationCaller(hasResources);
   	 }
 };
 

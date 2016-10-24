@@ -1,0 +1,11 @@
+# Linear and rotational speed goal
+geometry_msgs/Vector3 linear
+geometry_msgs/Vector3 angular
+---
+# Result: how much time robot was moving
+duration time_moving
+---
+# Feedback: current time in motion and speed
+duration time_moving
+geometry_msgs/Vector3 linear
+geometry_msgs/Vector3 angular
