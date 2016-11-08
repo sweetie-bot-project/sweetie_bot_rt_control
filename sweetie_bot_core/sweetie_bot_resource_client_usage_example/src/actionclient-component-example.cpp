@@ -155,6 +155,9 @@ void ControllerActionlibTemplate::cancelCallback(GoalHandle gh)
 				goal.setCanceled();
 				log(Info) << getName() << ": action_server: pending goal is canceled by client request." << endlog();
 				break;
+
+            default:
+                log(Warning) << ": action_server: cancel callback received strange stuff." << endlog();
 		}
 	}
 	else {
