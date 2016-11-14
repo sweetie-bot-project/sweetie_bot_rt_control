@@ -126,6 +126,8 @@ void sweetie_bot::Kinematics::updateHook(){
 	  return;
 	}
     }
+    // Set message timestamp
+    output_limb_state_.header.stamp = ros::Time(((double)RTT::os::TimeService::Instance()->getNSecs())*1E-9);
     //cout << output_limb_state_ << endl;
     output_port_limbs_.write(output_limb_state_);
   }
@@ -154,6 +156,8 @@ void sweetie_bot::Kinematics::updateHook(){
 	  return;
         }
     }
+    // Set message timestamp
+    output_joint_state_.header.stamp = ros::Time(((double)RTT::os::TimeService::Instance()->getNSecs())*1E-9);
     //cout << output_joint_state_ << endl;
     output_port_joints_.write(output_joint_state_);
   }

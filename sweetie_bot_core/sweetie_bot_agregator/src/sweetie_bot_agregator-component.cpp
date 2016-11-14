@@ -52,6 +52,8 @@ void Agregator::updateHook(){
 	if(input_joint_state_.effort.size() == input_joint_state_.name.size())
 	  output_joint_state_.effort[i] = input_joint_state_.effort[j];
     }
+    // Set message timestamp
+    output_joint_state_.header.stamp = ros::Time(((double)RTT::os::TimeService::Instance()->getNSecs())*1E-9);
     //cout << output_joint_state_ << endl;
     output_port_joint_state_.write(output_joint_state_);
   }
