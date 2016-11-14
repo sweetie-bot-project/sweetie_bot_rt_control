@@ -16,6 +16,8 @@ using namespace std;
 using namespace RTT;
 using namespace KDL;
 
+namespace sweetie_bot {
+
 class RobotModelInterface
 {
    public:
@@ -62,5 +64,7 @@ class RobotModel : public ServiceRequester {
             addOperationCaller(packChain);
         }
 };
+
+} // namespace sweetie_bot
 
 #endif

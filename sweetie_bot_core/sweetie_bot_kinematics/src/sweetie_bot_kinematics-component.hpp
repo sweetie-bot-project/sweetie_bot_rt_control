@@ -15,11 +15,14 @@
 #include <sweetie_bot_robot_model/sweetie_bot_robot_model-requester.hpp>
 #include <sweetie_bot_kinematics_msgs/typekit/LimbState.h>
 
+
 using namespace std;
 using namespace RTT;
 using namespace KDL;
 
-class SweetieBotKinematics : public RTT::TaskContext{
+namespace sweetie_bot {
+
+class Kinematics : public RTT::TaskContext{
     struct LimbData
     {
 	shared_ptr<Chain> chain;
@@ -48,11 +51,14 @@ class SweetieBotKinematics : public RTT::TaskContext{
     vector<string> joint_names_;
     unordered_map<string,LimbData> limb_;
   public:
-    SweetieBotKinematics(std::string const& name);
+    Kinematics(std::string const& name);
     bool configureHook();
     bool startHook();
     void updateHook();
     void stopHook();
     void cleanupHook();
 };
+
+} // namespace sweetie_bot
+
 #endif

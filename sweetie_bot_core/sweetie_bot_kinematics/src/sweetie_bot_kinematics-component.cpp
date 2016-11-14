@@ -3,14 +3,15 @@
 #include <iostream>
 #include <kdl_conversions/kdl_msg.h>
 
+namespace sweetie_bot {
 
-SweetieBotKinematics::SweetieBotKinematics(std::string const& name) : TaskContext(name),
+Kinematics::Kinematics(std::string const& name) : TaskContext(name),
 									  input_port_joints_seed_("in_joints_seed_sorted"),
 									  input_port_joints_("in_joints_sorted"),
 									  input_port_limbs_("in_limbs"),
 									  output_port_joints_("out_joints"),
 									  output_port_limbs_("out_limbs"){
-  std::cout << "SweetieBotKinematics constructed !" <<std::endl;
+  std::cout << "sweetie_bot::Kinematics constructed !" <<std::endl;
   this->ports()->addEventPort( input_port_joints_seed_ ).doc( "Input port for initial pose (JointState)" );
   this->ports()->addEventPort( input_port_joints_ ).doc( "Input port for JointState data" );
   this->ports()->addEventPort( input_port_limbs_ ).doc( "Input port for LimbState data" );
@@ -21,7 +22,7 @@ SweetieBotKinematics::SweetieBotKinematics(std::string const& name) : TaskContex
   robot_model_interface_ = boost::dynamic_pointer_cast<RobotModelInterface>(this->provides()->getService("robot_model"));
 }
 
-bool SweetieBotKinematics::configureHook(){
+bool sweetie_bot::Kinematics::configureHook(){
   if((nullptr == robot_model_) or (nullptr == robot_model_interface_)) return false;
   if(!robot_model_->configure()) return false;
   chain_names_ = robot_model_->listChains();
@@ -74,17 +75,17 @@ bool SweetieBotKinematics::configureHook(){
     output_port_limbs_.setDataSample(output_limb_state_);
   }
 
-  cout << "SweetieBotKinematics configured !" <<endl;
+  cout << "sweetie_bot::Kinematics configured !" <<endl;
   return true;
 }
 
-bool SweetieBotKinematics::startHook(){
-  std::cout << "SweetieBotKinematics started !" <<std::endl;
+bool sweetie_bot::Kinematics::startHook(){
+  std::cout << "sweetie_bot::Kinematics started !" <<std::endl;
   return true;
 }
 
-void SweetieBotKinematics::updateHook(){
-  //cout << "SweetieBotKinematics executes updateHook !" <<endl;
+void sweetie_bot::Kinematics::updateHook(){
+  //cout << "sweetie_bot::Kinematics executes updateHook !" <<endl;
 
   // Init seed
   if( input_port_joints_seed_.read(input_joint_seed_) == NewData){
@@ -159,24 +160,26 @@ void SweetieBotKinematics::updateHook(){
 
 }
 
-void SweetieBotKinematics::stopHook() {
-  std::cout << "SweetieBotKinematics executes stopping !" <<std::endl;
+void sweetie_bot::Kinematics::stopHook() {
+  std::cout << "sweetie_bot::Kinematics executes stopping !" <<std::endl;
 }
 
-void SweetieBotKinematics::cleanupHook() {
-  std::cout << "SweetieBotKinematics cleaning up !" <<std::endl;
+void sweetie_bot::Kinematics::cleanupHook() {
+  std::cout << "sweetie_bot::Kinematics cleaning up !" <<std::endl;
 }
+
+} // namespace sweetie_bot
 
 /*
  * Using this macro, only one component may live
  * in one library *and* you may *not* link this library
  * with another component library. Use
  * ORO_CREATE_COMPONENT_TYPE()
- * ORO_LIST_COMPONENT_TYPE(SweetieBotKinematics)
+ * ORO_LIST_COMPONENT_TYPE(sweetie_bot::Kinematics)
  * In case you want to link with another library that
  * already contains components.
  *
  * If you have put your component class
  * in a namespace, don't forget to add it here too:
  */
-ORO_CREATE_COMPONENT(SweetieBotKinematics)
+ORO_CREATE_COMPONENT(sweetie_bot::Kinematics)

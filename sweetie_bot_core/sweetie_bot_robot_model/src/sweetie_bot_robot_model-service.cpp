@@ -18,6 +18,8 @@ using namespace RTT;
 using namespace KDL;
 using namespace Eigen;
 
+namespace sweetie_bot {
+
 /**
  * Robot model service which can be loaded in a component.
  */
@@ -248,4 +250,6 @@ public:
     }
 };
 
-ORO_SERVICE_NAMED_PLUGIN(RobotModelService, "robot_model")
+} // namespace sweetie_bot
+
+ORO_SERVICE_NAMED_PLUGIN(sweetie_bot::RobotModelService, "robot_model")

@@ -6,7 +6,9 @@
 #include <kdl/chain.hpp>
 #include <sweetie_bot_robot_model/sweetie_bot_robot_model-requester.hpp>
 
-class SweetieBotAgregator : public RTT::TaskContext{
+namespace sweetie_bot {
+
+class Agregator : public RTT::TaskContext{
 
     boost::shared_ptr<RobotModel> robot_model_;
     boost::shared_ptr<RobotModelInterface> robot_model_interface_;
@@ -20,11 +22,13 @@ class SweetieBotAgregator : public RTT::TaskContext{
     vector<string> chain_names_;
     vector<string> joint_names_;
   public:
-    SweetieBotAgregator(std::string const& name);
+    Agregator(std::string const& name);
     bool configureHook();
     bool startHook();
     void updateHook();
     void stopHook();
     void cleanupHook();
 };
+
+} // namespace sweetie_bot
 #endif
