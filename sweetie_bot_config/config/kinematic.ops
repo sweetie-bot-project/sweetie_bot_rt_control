@@ -10,9 +10,13 @@ require("print");
 import("sweetie_bot_kinematics");
 import("sweetie_bot_robot_model");
 
-loadComponent("sweetie_bot_kinematics", "SweetieBotKinematics");
+loadComponent("sweetie_bot_kinematics", "sweetie_bot::Kinematics");
 loadService("sweetie_bot_kinematics","rosparam");
 loadService("sweetie_bot_kinematics","marshalling"); # Поддержка исполнения скрип:тов и загрузки xml/cpf файлов
+
+# Загружаем параметры из xml файла.
+sweetie_bot_kinematics.marshalling.loadProperties(ros.find("sweetie_bot_config") + "/config/chains.cpf");
+sweetie_bot_kinematics.rosparam.getParam("/", "robot_model")
 
 ## Create connections
 stream("sweetie_bot_kinematics.in_joints_seed_sorted", ros.topic("/kinematics/input_joint_seed"))
@@ -20,11 +24,6 @@ stream("sweetie_bot_kinematics.in_joints_sorted", ros.topic("/kinematics/input_j
 stream("sweetie_bot_kinematics.in_limbs", ros.topic("/kinematics/input_limb_state"))
 stream("sweetie_bot_kinematics.out_joints", ros.topic("/kinematics/output_joint_state"))
 stream("sweetie_bot_kinematics.out_limbs", ros.topic("/kinematics/output_limb_state"))
-
-
-# Загружаем параметры из xml файла.
-sweetie_bot_kinematics.marshalling.loadProperties(ros.find("sweetie_bot_config") + "/config/chains.cpf");
-sweetie_bot_kinematics.rosparam.getParam("/", "robot_model")
 
 sweetie_bot_kinematics.configure();
 sweetie_bot_kinematics.start();

@@ -9,13 +9,13 @@ require("print");
 import("sweetie_bot_agregator");
 import("sweetie_bot_robot_model");
 
-loadComponent("sweetie_bot_agregator", "SweetieBotAgregator");
+loadComponent("sweetie_bot_agregator", "sweetie_bot::Agregator");
 loadService("sweetie_bot_agregator","rosparam");
 loadService("sweetie_bot_agregator","marshalling"); # Поддержка исполнения скриптов и загрузки xml/cpf файлов
 
 ## Create connections
 stream("sweetie_bot_agregator.in_joints", ros.topic("/agregator/input_joint_state"))
-stream("sweetie_bot_agregator.out_joints", ros.topic("/agregator/output_joint_state"))
+stream("sweetie_bot_agregator.out_joints_sorted", ros.topic("/agregator/output_joint_state"))
 
 # Загружаем параметры из xml файла.
 sweetie_bot_agregator.marshalling.loadProperties(ros.find("sweetie_bot_config") + "/config/chains.cpf");

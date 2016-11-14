@@ -11,11 +11,11 @@ import("sweetie_bot_robot_model");
 import("sweetie_bot_agregator");
 import("sweetie_bot_kinematics");
 
-loadComponent("sweetie_bot_agregator", "SweetieBotAgregator");
+loadComponent("sweetie_bot_agregator", "sweetie_bot::Agregator");
 loadService("sweetie_bot_agregator","rosparam");
 loadService("sweetie_bot_agregator","marshalling"); # Поддержка исполнения скриптов и загрузки xml/cpf файлов
 
-## Create connections
+## Create ROS mapping
 stream("sweetie_bot_agregator.in_joints", ros.topic("/agregator/input_joint_state"))
 stream("sweetie_bot_agregator.out_joints_sorted", ros.topic("/agregator/output_joint_state"))
 
@@ -23,14 +23,15 @@ stream("sweetie_bot_agregator.out_joints_sorted", ros.topic("/agregator/output_j
 sweetie_bot_agregator.marshalling.loadProperties(ros.find("sweetie_bot_config") + "/config/chains.cpf");
 sweetie_bot_agregator.rosparam.getParam("/", "robot_model")
 
-loadComponent("sweetie_bot_kinematics", "SweetieBotKinematics");
+loadComponent("sweetie_bot_kinematics", "sweetie_bot::Kinematics");
 loadService("sweetie_bot_kinematics","rosparam");
 loadService("sweetie_bot_kinematics","marshalling"); # Поддержка исполнения скриптов и загрузки xml/cpf файлов
 
-## Create connections
+## Create ROS mapping
 stream("sweetie_bot_kinematics.in_limbs", ros.topic("/kinematics/input_limb_state"))
 stream("sweetie_bot_kinematics.out_joints", ros.topic("/kinematics/output_joint_state"))
 
+## Create connections
 connect( "sweetie_bot_kinematics.out_joints", "sweetie_bot_agregator.in_joints", ConnPolicy() )
 
 # Загружаем параметры из xml файла.
