@@ -9,7 +9,7 @@
 using namespace RTT;
 
 ControllerActionlibTemplate::ControllerActionlibTemplate(std::string const& name) : 
-	TaskContext(name, RTT::base::TaskCore::PreOperational)
+	TaskContext(name)
 {
     log(Info) << "Instantiating a ControllerActionlibTemplate object" << endlog();
 
@@ -17,6 +17,13 @@ ControllerActionlibTemplate::ControllerActionlibTemplate(std::string const& name
 	action_server.addPorts(this->provides());
 	action_server.registerGoalCallback(boost::bind(&ControllerActionlibTemplate::goalCallback, this, _1));
 	action_server.registerCancelCallback(boost::bind(&ControllerActionlibTemplate::cancelCallback, this, _1));
+}
+
+bool ControllerActionlibTemplate::dataOnPortHook( RTT::base::PortInterface* portInterface ) 
+{
+    //return this->isConfigured();
+    //return this->isRunning();
+    return true;
 }
 
 bool ControllerActionlibTemplate::resourceChangedHook()
@@ -94,6 +101,7 @@ bool ControllerActionlibTemplate::configureHook()
 
 	// Start action server.
 	action_server.start();
+	action_server.initialize();
 
 	log(Info) << getName() << " is configured !" << endlog();
 	return true;

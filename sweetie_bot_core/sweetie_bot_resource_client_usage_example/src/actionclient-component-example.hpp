@@ -28,6 +28,8 @@ class ControllerActionlibTemplate : public RTT::TaskContext
 		// ResourceClient interface
 		ResourceClientInterface2 * resource_client;
 
+        bool dataOnPortHook(RTT::base::PortInterface *portInterface);
+
 	public:
 		ControllerActionlibTemplate(std::string const& name);
 
