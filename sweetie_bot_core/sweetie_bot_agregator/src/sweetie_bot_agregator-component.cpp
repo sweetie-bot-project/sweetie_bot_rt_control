@@ -2,17 +2,22 @@
 #include <rtt/Component.hpp>
 #include <iostream>
 
+using namespace std;
+
 namespace sweetie_bot {
 
-Agregator::Agregator(std::string const& name) : TaskContext(name),
+Agregator::Agregator(string const& name) : TaskContext(name),
                                                                           input_port_joint_state_("in_joints"),
                                                                           output_port_joint_state_("out_joints_sorted")
 {
 
-  std::cout << "sweetie_bot::Agregator constructed !" <<std::endl;
-  this->ports()->addEventPort( input_port_joint_state_ ).doc( "Input port for JointState data" );
-  this->ports()->addPort( output_port_joint_state_ ).doc( "Output port for JointState data" );
-  robot_model_ = getProvider<RobotModel>("robot_model"); //попытается загрузить нужный сервис, если он отсутсвует.
+  cout << "sweetie_bot::Agregator constructed !" <<endl;
+  this->ports()->addEventPort( input_port_joint_state_ )
+   .doc( "Messages received on this port is used to update full robot pose buffered by component. Only present fields are updated." );
+  this->ports()->addPort( output_port_joint_state_ )
+   .doc( "Port publishes full robot pose buffered by component. It is sorted by kinematics chains." );
+
+  robot_model_ = getProvider<RobotModel>("robot_model"); // It tries to load the service if it is not loaded.
   robot_model_interface_ = boost::dynamic_pointer_cast<RobotModelInterface>(this->provides()->getService("robot_model"));
 }
 
@@ -28,17 +33,17 @@ bool Agregator::configureHook(){
   output_joint_state_.position.assign(joint_names_.size(), 0.0);
   output_joint_state_.velocity.assign(joint_names_.size(), 0.0);
   output_joint_state_.effort.assign(joint_names_.size(), 0.0);
-  std::cout << "sweetie_bot::Agregator configured !" <<std::endl;
+  cout << "sweetie_bot::Agregator configured !" <<endl;
   return true;
 }
 
 bool Agregator::startHook(){
-  std::cout << "sweetie_bot::Agregator started !" <<std::endl;
+  cout << "sweetie_bot::Agregator started !" <<endl;
   return true;
 }
 
 void Agregator::updateHook(){
-  //std::cout << "sweetie_bot::Agregator executes updateHook !" <<std::endl;
+  //cout << "sweetie_bot::Agregator executes updateHook !" <<endl;
 
   if( input_port_joint_state_.read(input_joint_state_) == NewData ){
     for(int i=0; i<joint_names_.size(); i++){
@@ -60,11 +65,11 @@ void Agregator::updateHook(){
 }
 
 void Agregator::stopHook() {
-  std::cout << "sweetie_bot::Agregator executes stopping !" <<std::endl;
+  cout << "sweetie_bot::Agregator executes stopping !" <<endl;
 }
 
 void Agregator::cleanupHook() {
-  std::cout << "sweetie_bot::Agregator cleaning up !" <<std::endl;
+  cout << "sweetie_bot::Agregator cleaning up !" <<endl;
 }
 
 } // namespace sweetie_bot

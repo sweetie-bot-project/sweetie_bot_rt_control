@@ -12,13 +12,18 @@ Kinematics::Kinematics(std::string const& name) : TaskContext(name),
 									  output_port_joints_("out_joints"),
 									  output_port_limbs_("out_limbs"){
   std::cout << "sweetie_bot::Kinematics constructed !" <<std::endl;
-  this->ports()->addEventPort( input_port_joints_seed_ ).doc( "Input port for initial pose (JointState)" );
-  this->ports()->addEventPort( input_port_joints_ ).doc( "Input port for JointState data" );
-  this->ports()->addEventPort( input_port_limbs_ ).doc( "Input port for LimbState data" );
-  this->ports()->addPort( output_port_joints_ ).doc( "Output port for JointState data" );
-  this->ports()->addPort( output_port_limbs_ ).doc( "Output port for LimbState data" );
+  this->ports()->addEventPort( input_port_joints_seed_ )
+   .doc( "Messages received on this port is used to update initial robot pose used for inverse kinematic calculation." );
+  this->ports()->addEventPort( input_port_joints_ )
+   .doc( "Messages received on this port is used as input data for forward kinematic calculation." );
+  this->ports()->addEventPort( input_port_limbs_ )
+   .doc( "Messages received on this port is used as input data for inverse kinematic calculation." );
+  this->ports()->addPort( output_port_joints_ )
+   .doc( "Inverse kinematic results data port" );
+  this->ports()->addPort( output_port_limbs_ )
+   .doc( "Forward kinematic results data port" );
 
-  robot_model_ = getProvider<RobotModel>("robot_model"); //попытается загрузить нужный сервис, если он отсутсвует.
+  robot_model_ = getProvider<RobotModel>("robot_model"); // It tries to load the service if it is not loaded.
   robot_model_interface_ = boost::dynamic_pointer_cast<RobotModelInterface>(this->provides()->getService("robot_model"));
 }
 

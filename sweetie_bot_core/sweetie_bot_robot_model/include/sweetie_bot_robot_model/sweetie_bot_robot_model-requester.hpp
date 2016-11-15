@@ -1,9 +1,6 @@
 #ifndef OROCOS_ROBOT_MODEL_REQUESTER_HPP
 #define OROCOS_ROBOT_MODEL_REQUESTER_HPP
 
-//#include <iostream>
-//#include <memory>
-
 #include <rtt/RTT.hpp>
 #include <rtt/plugin/PluginLoader.hpp>
 

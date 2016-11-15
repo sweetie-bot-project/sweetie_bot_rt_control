@@ -34,7 +34,7 @@ public:
           owner_( owner) 
     {
 	this->addOperation("getOwnerName", &RobotModelService::getOwnerName, this).doc("Returns the name of the owner of this object.");
-	this->addOperation("configure", &RobotModelService::configure, this, OwnThread).doc("Configires service: read parameters, construct kdl tree.");
+	this->addOperation("configure", &RobotModelService::configure, this, OwnThread).doc("Configures service: read parameters, construct kdl tree.");
 	this->addOperation("listChains", &RobotModelService::listChains, this, ClientThread).doc("Lists loaded chains");
 	this->addOperation("listJoints", &RobotModelService::listJoints, this, ClientThread).doc("Lists joints in chain");
 	this->addOperation("listAllJoints", &RobotModelService::listAllJoints, this, ClientThread).doc("Lists all joints in all chains");
