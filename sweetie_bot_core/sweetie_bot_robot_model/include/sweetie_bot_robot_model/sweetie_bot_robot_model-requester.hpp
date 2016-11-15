@@ -1,8 +1,8 @@
 #ifndef OROCOS_ROBOT_MODEL_REQUESTER_HPP
 #define OROCOS_ROBOT_MODEL_REQUESTER_HPP
 
-#include <iostream>
-#include <memory>
+//#include <iostream>
+//#include <memory>
 
 #include <rtt/RTT.hpp>
 #include <rtt/plugin/PluginLoader.hpp>
@@ -21,21 +21,7 @@ namespace sweetie_bot {
 class RobotModelInterface
 {
    public:
-	/*
-	virtual bool isConfigured() = 0;
-	virtual bool configure() = 0;
-	virtual void cleanup() = 0;
-	virtual bool readChains() = 0;
-	virtual vector<string> listJoints(const string& name) = 0;
-	virtual vector<string> listChains() = 0; */
 	virtual Chain * getChain(const string& name) = 0;
-	//virtual PropertyBag& getCahinProperties(const string& name) = 0;
-	/*
-	virtual bool getChainB(const string& name, KDL::Chain& chain) = 0;
-	virtual bool mapChain(const string& name, sensor_msgs::JointState& joint_state, JntArray& position, JntArray& velocity, JntArray& effort) = 0;
-	virtual bool extractChain(const string& name, const sensor_msgs::JointState& joint_state, JntArray& position, JntArray& velocity, JntArray& effort) = 0;
-	virtual bool packChain(const string& name, JntArray& position, JntArray& velocity, JntArray& effort, sensor_msgs::JointState& joint_state) = 0;
-	virtual string getOwnerName() = 0; */
 };
 
 class RobotModel : public ServiceRequester {
@@ -44,6 +30,7 @@ class RobotModel : public ServiceRequester {
         OperationCaller<vector<string>()> listChains;
         OperationCaller<vector<string>(const string&)> listJoints;
         OperationCaller<vector<string>()> listAllJoints;
+        OperationCaller<int(const string&)> getJointPos;
         OperationCaller<bool(const string&, const sensor_msgs::JointState&, JntArray&, JntArray&, JntArray&)> extractChain;
         OperationCaller<bool(const string&, JntArray&, JntArray&, JntArray&, sensor_msgs::JointState&)> packChain;
 
@@ -53,6 +40,7 @@ class RobotModel : public ServiceRequester {
             listChains("listChains"),
             listJoints("listJoints"),
             listAllJoints("listAllJoints"),
+            getJointPos("getJointPos"),
 	    extractChain("extractChain"),
 	    packChain("packChain")
         {
@@ -60,6 +48,7 @@ class RobotModel : public ServiceRequester {
             addOperationCaller(listChains);
             addOperationCaller(listJoints);
             addOperationCaller(listAllJoints);
+            addOperationCaller(getJointPos);
             addOperationCaller(extractChain);
             addOperationCaller(packChain);
         }

@@ -3,10 +3,6 @@
 #include <rtt/RTT.hpp>
 #include <rtt/plugin/ServicePlugin.hpp>
 
-#include "ros/ros.h"
-#include <ros/console.h>
-#include <rtt_rosparam/rosparam.h>
-
 #include <sweetie_bot_robot_model/sweetie_bot_robot_model-requester.hpp>
 
 #include <kdl_parser/kdl_parser.hpp>
@@ -42,6 +38,7 @@ public:
 	this->addOperation("listChains", &RobotModelService::listChains, this, ClientThread).doc("Lists loaded chains");
 	this->addOperation("listJoints", &RobotModelService::listJoints, this, ClientThread).doc("Lists joints in chain");
 	this->addOperation("listAllJoints", &RobotModelService::listAllJoints, this, ClientThread).doc("Lists all joints in all chains");
+	this->addOperation("getJointPos", &RobotModelService::getJointPos, this).doc("Returns position of the given joint name in sorted pose.");
 	this->addOperation("extractChain", &RobotModelService::extractChain, this, ClientThread).doc("Extracts (copy) chain parameters from joint state");
 	this->addOperation("packChain", &RobotModelService::packChain, this, ClientThread).doc("Put chain parameters to joint state");
 	this->addProperty("robot_description", robot_description_);
@@ -130,13 +127,18 @@ public:
 	return true;
     }
 
+    vector<string> listChains()
+    {
+	return chain_names_;
+    }
+
     vector<string> listJoints(const string& name)
     {
-	Chain chain;
 	vector<string> joint_names;
-	if(getChainB(name, chain)) {
-	  for(int j = 0; j < chain.getNrOfSegments(); j++){
-	    joint_names.push_back( chain.getSegment(j).getJoint().getName() );
+	Chain * chain = getChain(name);
+	if( chain != nullptr ) {
+	  for(int j = 0; j < chain->getNrOfSegments(); j++){
+	    joint_names.push_back( chain->getSegment(j).getJoint().getName() );
 	  }
  	}
 	return joint_names;
@@ -147,9 +149,10 @@ public:
 	return joint_names_;
     }
 
-    vector<string> listChains()
+    int getJointPos(const string& name)
     {
-	return chain_names_;
+	auto it = find(joint_names_.begin(), joint_names_.end(), name);
+	return (it == joint_names_.end()) ? -1 : distance(joint_names_.begin(), it);
     }
 
     Chain * getChain(const string& name)
@@ -162,20 +165,6 @@ public:
 	else { 
 	  // found
 	  return iterator->second;
-	}
-    }
-
-    bool getChainB(const string& name, KDL::Chain& chain)
-    {
-	auto iterator = chains_.find(name);
-	if ( iterator == chains_.end() ) {
-          // limb not found
-	  return false;
-	}
-	else { 
-	  // found
-	  chain = *iterator->second;
-	  return true;
 	}
     }
 
@@ -223,13 +212,9 @@ public:
     {
 	Chain chain;
 	if(!equal( joint_names_.begin(), joint_names_.end(), joint_state.name.begin() )) return false;
-        //if(!getChainB(name, chain)) return false;
 
 	char chain_begin, chain_size;
 	tie(chain_begin, chain_size) = chain_pos_.at(name);
-
-	//for(int j = 0; j < chain.getNrOfSegments(); j++)
-	//  joint_state.name.push_back( chain.getSegment(j).getJoint().getName() );
 
 	if(( position.rows() > 0 ) and ( position.rows() == chain_size )) {
 	  std::copy_n( &position.data[0], chain_size, joint_state.position.begin()+chain_begin );
