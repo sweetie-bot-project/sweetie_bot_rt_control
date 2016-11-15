@@ -138,10 +138,13 @@ void sweetie_bot::Kinematics::updateHook(){
     output_joint_state_.velocity.assign(joint_names_.size(), 0.0);
     output_joint_state_.effort.assign(joint_names_.size(), 0.0);
 
-    for(auto &name: chain_names_) {
-	auto it = find(input_limb_state_.name.begin(), input_limb_state_.name.end(), name);
-	if(it == input_limb_state_.name.end()) continue;
-	int limb_num = distance(input_limb_state_.name.begin(), it);
+    int limb_num = 0;
+    for(auto &name: input_limb_state_.name) {
+	auto it = find(chain_names_.begin(), chain_names_.end(), name);
+	if(it == chain_names_.end()) {
+	  cout << "! limb '" << name << "' doesn't exists! " <<endl;
+	  return;
+	}
 
 	KDL::Frame desired_end_effector_pose;
 	tf::poseMsgToKDL( input_limb_state_.pose[limb_num], desired_end_effector_pose );
@@ -155,6 +158,7 @@ void sweetie_bot::Kinematics::updateHook(){
           std::cout << "!kinematics_status=" << kinematics_status <<std::endl;
 	  return;
         }
+	limb_num++;
     }
     // Set message timestamp
     output_joint_state_.header.stamp = ros::Time(((double)RTT::os::TimeService::Instance()->getNSecs())*1E-9);
