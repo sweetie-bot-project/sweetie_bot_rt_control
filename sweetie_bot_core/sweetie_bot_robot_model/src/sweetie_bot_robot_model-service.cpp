@@ -42,6 +42,7 @@ public:
 	this->addOperation("extractChain", &RobotModelService::extractChain, this, ClientThread).doc("Extracts (copy) chain parameters from joint state");
 	this->addOperation("packChain", &RobotModelService::packChain, this, ClientThread).doc("Put chain parameters to joint state");
 	this->addProperty("robot_description", robot_description_);
+	this->provides()->doc("Robot model service plugin. Provides unifed access to kinematic chains and joint enumeration function");
     }
 
     ~RobotModelService()
