@@ -7,21 +7,20 @@
 # controlled by generated code of 'typegen'.
 #
 
-# Creates a component library libsweetie_bot_kinematics-<target>.so
+# Creates a component library libkinematics-<target>.so
 # and installs in the directory lib/orocos/sweetie_bot_kinematics/
 #
-orocos_component(sweetie_bot_kinematics sweetie_bot_kinematics-component.hpp sweetie_bot_kinematics-component.cpp) # ...you may add multiple source files
+orocos_component(kinematics kinematics-component.hpp kinematics-component.cpp) # ...you may add multiple source files
 #
 # You may add multiple orocos_component statements.
-#target_link_libraries(sweetie_bot_kinematics ${orocos_kdl_LIBRARIES} ${trac_ik_lib_LIBRARIES})
-target_link_libraries(sweetie_bot_kinematics ${catkin_LIBRARIES})
+target_link_libraries(kinematics ${catkin_LIBRARIES})
 
 #
 # Additional headers:
 #
 # Installs in the include/orocos/sweetie_bot_kinematics/ directory
 #
-orocos_install_headers(sweetie_bot_kinematics-component.hpp) # ...you may add multiple header files
+orocos_install_headers(kinematics-component.hpp) # ...you may add multiple header files
 #
 # You may add multiple orocos_install_headers statements.
 

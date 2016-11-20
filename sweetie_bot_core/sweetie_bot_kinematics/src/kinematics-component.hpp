@@ -12,7 +12,7 @@
 
 #include <trac_ik/trac_ik.hpp>
 
-#include <sweetie_bot_robot_model/sweetie_bot_robot_model-requester.hpp>
+#include <sweetie_bot_robot_model/robot_model-requester.hpp>
 #include <sweetie_bot_kinematics_msgs/typekit/LimbState.h>
 
 

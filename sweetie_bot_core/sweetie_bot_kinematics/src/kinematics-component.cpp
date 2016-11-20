@@ -1,4 +1,4 @@
-#include "sweetie_bot_kinematics-component.hpp"
+#include "kinematics-component.hpp"
 #include <rtt/Component.hpp>
 #include <iostream>
 #include <kdl_conversions/kdl_msg.h>

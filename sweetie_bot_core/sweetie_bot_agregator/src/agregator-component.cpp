@@ -1,4 +1,4 @@
-#include "sweetie_bot_agregator-component.hpp"
+#include "agregator-component.hpp"
 #include <rtt/Component.hpp>
 #include <iostream>
 

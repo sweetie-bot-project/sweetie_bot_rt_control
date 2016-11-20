@@ -7,20 +7,20 @@
 # controlled by generated code of 'typegen'.
 #
 
-# Creates a component library libsweetie_bot_agregator-<target>.so
+# Creates a component library libagregator-<target>.so
 # and installs in the directory lib/orocos/sweetie_bot_agregator/
 #
-orocos_component(sweetie_bot_agregator sweetie_bot_agregator-component.hpp sweetie_bot_agregator-component.cpp) # ...you may add multiple source files
+orocos_component(agregator agregator-component.hpp agregator-component.cpp) # ...you may add multiple source files
 #
 # You may add multiple orocos_component statements.
-target_link_libraries(sweetie_bot_agregator ${catkin_LIBRARIES})
+target_link_libraries(agregator ${catkin_LIBRARIES})
 
 #
 # Additional headers:
 #
 # Installs in the include/orocos/sweetie_bot_agregator/ directory
 #
-orocos_install_headers(sweetie_bot_agregator-component.hpp) # ...you may add multiple header files
+orocos_install_headers(agregator-component.hpp) # ...you may add multiple header files
 #
 # You may add multiple orocos_install_headers statements.
 
