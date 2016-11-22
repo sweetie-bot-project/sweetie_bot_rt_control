@@ -18,7 +18,7 @@ stream("sweetie_bot_agregator.in_joints", ros.topic("/agregator/input_joint_stat
 stream("sweetie_bot_agregator.out_joints_sorted", ros.topic("/agregator/output_joint_state"))
 
 # Загружаем параметры из xml файла.
-sweetie_bot_agregator.marshalling.loadProperties(ros.find("sweetie_bot_config") + "/config/chains.cpf");
+sweetie_bot_agregator.marshalling.loadProperties(ros.find("sweetie_bot_description_proto2") + "/robots/chains.cpf");
 sweetie_bot_agregator.rosparam.getParam("/", "robot_model")
 
 sweetie_bot_agregator.configure();

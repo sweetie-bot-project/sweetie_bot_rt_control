@@ -30,6 +30,7 @@
   <run_depend>orocos_kdl</run_depend>
   <run_depend>rtt_sensor_msgs</run_depend>
   <run_depend>sweetie_bot_robot_model</run_depend>
+  <run_depend>sweetie_bot_description_proto2</run_depend>
   <export>
   </export>
 </package>

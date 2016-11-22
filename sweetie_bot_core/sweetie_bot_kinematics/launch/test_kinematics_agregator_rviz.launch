@@ -2,11 +2,11 @@
 
   <arg name="model" />
   <arg name="gui" default="True" />
- 
-  <param name="robot_description" textfile="$(find sweetie_bot_description_proto2)/robots/sweetie_bot_description_proto2.URDF" />
+
+  <include file="$(find sweetie_bot_description_proto2)/launch/description.launch" />
   <param name="use_gui" value="$(arg gui)" />
 
-  <node name="core" pkg="rtt_ros" type="deployer" args="-s $(find sweetie_bot_config)/config/ik-agregator.ops -linfo" output="screen" />
+  <node name="core" pkg="rtt_ros" type="deployer" args="-s $(find sweetie_bot_kinematics)/scripts/test_kinematics_agregator.ops -linfo" output="screen" />
 
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
     <rosparam param="source_list">["/agregator/output_joint_state"]</rosparam>
