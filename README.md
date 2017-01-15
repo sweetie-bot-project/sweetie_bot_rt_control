@@ -3,7 +3,7 @@ that resembles Sweetie Bot from MLP fandom works (no, it won't be self aware
 any time soon). The project is being built using ROS.
 
 ```
-sudo apt-get install qt5-default ros-indigo-trac-ik ros-indigo-rtt-roscomm ros-indigo-rtt-rosparam ros-indigo-rtt-std-msgs ros-indigo-rtt-rosgraph-msgs ros-indigo-rtt-common-msgs ros-indigo-rtt-ros-integration
+sudo apt-get install qt5-default ros-indigo-trac-ik ros-indigo-rtt-std-msgs ros-indigo-rtt-rosgraph-msgs ros-indigo-rtt-common-msgs ros-indigo-rtt-ros-integration
 ```
 ```
 mkdir -p ~/ros/sw/src
