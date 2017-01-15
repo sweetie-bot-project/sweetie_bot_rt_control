@@ -2,14 +2,20 @@
 import("rtt_ros");
 ros.import("rtt_sensor_msgs")
 ros.import("rtt_sweetie_bot_kinematics_msgs")
-
 ros.import("rtt_rospack");  # Разрешение путей ROS: операци ros.find(<package name>)
 ros.import("rtt_rosparam");
+ros.import("sweetie_bot_logger");
 
 require("print");
 import("sweetie_bot_robot_model");
 import("sweetie_bot_agregator");
 import("sweetie_bot_kinematics");
+
+# Logger
+var string LOGGER_SCRIPTS = ros.find("sweetie_bot_logger") + "/scripts/";
+loadComponent("sweetie_bot_logger", "OCL::logging::LoggingService");
+loadService("sweetie_bot_logger","marshalling"); # Поддержка исполнения скрип:тов и загрузки xml/cpf файлов
+sweetie_bot_logger.marshalling.loadProperties(LOGGER_SCRIPTS + "log_ocl.cpf");
 
 loadComponent("sweetie_bot_agregator", "sweetie_bot::Agregator");
 loadService("sweetie_bot_agregator","rosparam");
