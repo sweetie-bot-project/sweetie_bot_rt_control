@@ -5,12 +5,16 @@
 
 namespace sweetie_bot {
 
+using sweetie_bot::Logger;
+
 Kinematics::Kinematics(std::string const& name) : TaskContext(name),
 									  input_port_joints_seed_("in_joints_seed_sorted"),
 									  input_port_joints_("in_joints_sorted"),
 									  input_port_limbs_("in_limbs"),
 									  output_port_joints_("out_joints"),
-									  output_port_limbs_("out_limbs"){
+									  output_port_limbs_("out_limbs"),
+									  log("sweetie.core.kinematics", 20){
+  this->log(INFO) << "This is subtle RTT::Logger..." << endlog();
   std::cout << "sweetie_bot::Kinematics constructed !" <<std::endl;
   this->ports()->addEventPort( input_port_joints_seed_ )
    .doc( "Messages received on this port is used to update initial robot pose used for inverse kinematic calculation." );
@@ -90,7 +94,8 @@ bool sweetie_bot::Kinematics::startHook(){
 }
 
 void sweetie_bot::Kinematics::updateHook(){
-  //cout << "sweetie_bot::Kinematics executes updateHook !" <<endl;
+  this->log(INFO) << "sweetie_bot::Kinematics executes updateHook !" << endlog();
+  RTT::log(Info) << "sweetie_bot::Kinematics executes updateHook !" << endlog();
 
   // Init seed
   if( input_port_joints_seed_.read(input_joint_seed_) == NewData){

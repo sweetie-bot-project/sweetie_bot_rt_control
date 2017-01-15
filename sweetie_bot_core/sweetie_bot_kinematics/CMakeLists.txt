@@ -20,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
   trac_ik_lib
   sensor_msgs
   sweetie_bot_kinematics_msgs
+  sweetie_bot_logger
   )
 
 # Use 'source orocos_toolchain/env.sh' if the command below fails:
@@ -41,5 +42,5 @@ add_subdirectory( src )
 # Generates and installs our package. Must be the last statement such
 # that it can pick up all above settings.
 #
-orocos_generate_package(DEPENDS sweetie_bot_robot_model)
+orocos_generate_package(DEPENDS sweetie_bot_robot_model sweetie_bot_logger)
 

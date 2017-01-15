@@ -15,6 +15,7 @@
 #include <sweetie_bot_robot_model/robot_model-requester.hpp>
 #include <sweetie_bot_kinematics_msgs/typekit/LimbState.h>
 
+#include <sweetie_bot_logger/logger.hpp>
 
 using namespace std;
 using namespace RTT;
@@ -50,6 +51,8 @@ class Kinematics : public RTT::TaskContext{
     vector<string> chain_names_;
     vector<string> joint_names_;
     unordered_map<string,LimbData> limb_;
+    // logging
+    sweetie_bot::LoggerRosout log;
   public:
     Kinematics(std::string const& name);
     bool configureHook();
