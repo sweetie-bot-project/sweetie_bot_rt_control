@@ -186,15 +186,22 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			ResourceRequest request_msg;
 
 			if (!request_port.connected()) {
-				log(WARN) << "[" << owner_name << "] ResourceService: request_port is not connected." << endlog();
+				log(ERROR) << "[" << owner_name << "] ResourceService: request_port is not connected." << endlog();
 				return false;
 			}
+			if (!assignment_port.connected()) {
+				log(ERROR) << "[" << owner_name << "] ResourceService: assignment_port is not connected." << endlog();
+				return false;
+			}
+
+			// clear incoming assigment_messages
+			assignment_port.readNewest(assignment_msg);
 
 			// send resource request
 			request_msg.requester_name = owner_name;
 			request_msg.resources = resources_requested;
 
-				request_port.write(request_msg);
+			request_port.write(request_msg);
 
 			// save resource list
 			resources.clear();
@@ -219,7 +226,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			is_operational = false;
 
 			if (!request_port.connected()) {
-				log(WARN) << "[" << owner_name << "] ResourceService: requester_status_port is not connected." << endlog();
+				log(ERROR) << "[" << owner_name << "] ResourceService: requester_status_port is not connected." << endlog();
 				return false;
 			}
 
