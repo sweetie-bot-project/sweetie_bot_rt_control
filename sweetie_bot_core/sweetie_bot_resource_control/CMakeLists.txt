@@ -10,9 +10,23 @@ cmake_minimum_required(VERSION 2.6.3)
 #
 project(sweetie_bot_resource_control)
 
-find_package(catkin REQUIRED COMPONENTS
-  sweetie_bot_resource_control_msgs
-)
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
+
+# Logger selection
+set(LOGGER_DEFAULT "" CACHE STRING "Default logger for all packages (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
+set(LOGGER_RESOURCE_CONTROL "" CACHE STRING "Logger for herkulex package (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
+
+if (LOGGER_RESOURCE_CONTROL)
+	add_definitions(-DSWEETIEBOT_LOGGER=${LOGGER_RESOURCE_CONTROL})
+elseif(LOGGER_DEFAULT)
+	add_definitions(-DSWEETIEBOT_LOGGER=${LOGGER_DEFAULT})
+else()
+	add_definitions(-DSWEETIEBOT_LOGGER=LoggerRTT)
+endif()
+
+# depends
+find_package(catkin REQUIRED COMPONENTS sweetie_bot_logger)
+include_directories(include ${catkin_INCLUDE_DIRS})
 
 # Use 'source orocos_toolchain/env.sh' if the command below fails:
 find_package(OROCOS-RTT QUIET)

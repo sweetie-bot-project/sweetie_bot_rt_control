@@ -1,21 +1,22 @@
 <package format="2">
   <name>sweetie_bot_resource_control</name>
   <version>1.0.0</version>
-  <description>This package contains the components of the sweetie_bot_resource_control package
-	 and a service plugin.
-  </description>
+  <description>SweetieBot robot resource arbiter package.  </description>
+
   <maintainer email="rovboma@gmail.com">Maxim Rovbo</maintainer>
 
   <license>BSD</license>
 
-  <url type="website"></url>
+  <url type="website">https://gitlab.com/sweetie-bot/sweetie_doc/wikis</url>
   <!-- <url type="bugtracker"></url> -->
 
   <author>Maxim Rovbo</author>
+  <author>disRecord</author>
 
   <depend>rtt</depend>
-  <depend>orogen</depend>
+  <depend>sweetie_bot_logger</depend>
   <depend>sweetie_bot_resource_control_msgs</depend>
+  <depend>rtt_sweetie_bot_resource_control_msgs</depend>
 
   <export>
 
