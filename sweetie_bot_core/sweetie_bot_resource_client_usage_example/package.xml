@@ -12,8 +12,9 @@
   <author>Maxim Rovbo</author>
 
   <depend>rtt</depend>
-  <depend>orogen</depend>
+  <depend>sweetie_bot_logger</depend>
   <depend>sweetie_bot_resource_control_msgs</depend>
+  <depend>rtt_sweetie_bot_resource_control_msgs</depend>
   <depend>sweetie_bot_resource_control</depend>
 
   <export>

@@ -4,11 +4,12 @@
 #
 cmake_minimum_required(VERSION 2.6.3)
 
-#
 # This creates a standard cmake project. You may extend this file with
 # any cmake macro you see fit.
 #
 project(sweetie_bot_resource_client_usage_example)
+
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
 
 # Use 'source orocos_toolchain/env.sh' if the command below fails:
 find_package(OROCOS-RTT QUIET)
@@ -16,10 +17,21 @@ if (NOT OROCOS-RTT_FOUND)
   message (FATAL_ERROR "\nCould not find Orocos. Please use the shell command\n 'source orocos_toolchain/env.sh' and then run cmake again.")
 endif()
 
-find_package(catkin REQUIRED COMPONENTS
-  sweetie_bot_resource_control_msgs
-  sweetie_bot_resource_control
-)
+# Logger selection
+set(LOGGER_DEFAULT "" CACHE STRING "Default logger for all packages (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
+set(LOGGER_RESOURCE_CLIENT_USAGE_EXAMPLE "" CACHE STRING "Logger for current package (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
+
+if (LOGGER_RESOURCE_CLIENT_USAGE_EXAMPLE)
+	add_definitions(-DSWEETIEBOT_LOGGER=${LOGGER_RESOURCE_CLIENT_USAGE_EXAMPLE})
+elseif(LOGGER_DEFAULT)
+	add_definitions(-DSWEETIEBOT_LOGGER=${LOGGER_DEFAULT})
+else()
+	add_definitions(-DSWEETIEBOT_LOGGER=LoggerRTT)
+endif()
+
+# depends
+find_package(catkin REQUIRED COMPONENTS sweetie_bot_logger)
+include_directories(include ${catkin_INCLUDE_DIRS})
 
 # Defines the orocos_* cmake macros. See that file for additional
 # documentation.
