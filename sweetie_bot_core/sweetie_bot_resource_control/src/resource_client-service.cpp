@@ -62,7 +62,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 		 *
 		 * @return bool True when the controller is active (can function), false otherwise.
 		 */
-		bool (*resourceChangedHook)();
+		boost::function<bool()> resourceChangedHook;
 
 		/**
 		 * Sets with assigned and requested resources.
@@ -102,10 +102,11 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 				for(ResourceSet::const_iterator i = resources.begin(); i != resources.end(); i++) if (i->second) log() << i->first << ", ";
 				log() << "]" << endlog();
 			}
-			// ask the controller if it can function with these resources
-			if (resourceChangedHook != NULL) {
+			// ask the controller if it is able function with these resources
+			if (resourceChangedHook) {
 				is_operational = resourceChangedHook();
 			}
+			// TODO OperationCaller interface
 			else {
 				// check if all requested resources presents
 				is_operational = true;
@@ -152,7 +153,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			arg("resources", "List of requested resources");
 		this->addOperation("stopOperational", &ResourceClientService::stopOperational, this).
 			doc("Exit operational state. Inform ResourceArbiter and release all resources.");
-		this->addOperation("getIsOperational", &ResourceClientService::isOperational, this).
+		this->addOperation("isOperational", &ResourceClientService::isOperational, this).
 			doc("Returns true if resource client is in operational state.");
 		this->addOperation("hasResource", &ResourceClientService::hasResource, this).
 			doc("Check is resource client owns a resource.").
@@ -178,7 +179,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			return is_operational;
 		}
 
-		void setResourceChangeHook(bool (*resourceChangedHook_)())
+		void setResourceChangeHook(boost::function<bool()> resourceChangedHook_)
 		{
 			this->resourceChangedHook = resourceChangedHook_;
 		}

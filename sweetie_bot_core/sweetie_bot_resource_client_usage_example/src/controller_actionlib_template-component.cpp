@@ -20,7 +20,7 @@ ControllerActionlibTemplate::ControllerActionlibTemplate(std::string const& name
 		doc("List of required resources.").
 		set(res);
 	// operations: provided
-	this->addOperation("resourceChangedHook", &ControllerTemplate::resourceChangedHook, this).
+	this->addOperation("resourceChangedHook", &ControllerActionlibTemplate::resourceChangedHook, this).
 		doc("Check if all necessary resources present and component ready to be set operational.");
 
 	// action server startup

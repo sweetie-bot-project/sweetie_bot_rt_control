@@ -28,7 +28,7 @@ class ResourceClientDummyService :
 	protected:
 		bool is_operational; 
 		std::set<std::string> owned_resources;
-		bool (*resourceChangedHook)();
+		boost::function <bool()> resourceChangedHook;
 		OperationCaller<bool()> resourceChangedHook_call;
 
 #ifdef SWEETIEBOT_LOGGER
@@ -56,7 +56,7 @@ class ResourceClientDummyService :
 
 		void step() {}
 
-	    virtual void setResourceChangeHook(bool (*resourceChangedHook_)()) {
+	    void setResourceChangeHook(boost::function <bool()> resourceChangedHook_) {
 			resourceChangedHook = resourceChangedHook_;
 		}
 };
