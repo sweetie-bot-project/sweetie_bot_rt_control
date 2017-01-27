@@ -44,6 +44,11 @@ class ResourceClientDummyService :
 			return is_operational;
 		}
 
+		int getState() {
+			if (is_operational) return ResourceClient::OPERATIONAL;
+			else return ResourceClient::NONOPERATIONAL;
+		}
+
 		bool requestResources(const std::vector<std::string>& resource_list);
 
 		bool stopOperational();
@@ -79,6 +84,8 @@ ResourceClientDummyService::ResourceClientDummyService(TaskContext* owner) :
 	// the external interface: OwnThread is necessary
 	this->addOperation("isOperational", &ResourceClientDummyService::isOperational, this, OwnThread)
 		.doc("Return true if controller is in operational state.");
+	this->addOperation("getState", &ResourceClientDummyService::getState, this).
+		doc("Returns state of ResourceClient: 0=NONOPERATIONAL, 1=PENDING, 2=OPERATIONAL.");
 	this->addOperation("hasResource", &ResourceClientDummyService::hasResource, this, OwnThread)
 		.doc("Check if controller owns resource.")
 		.arg("resource", "Resource name.");

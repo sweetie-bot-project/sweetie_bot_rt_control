@@ -52,9 +52,9 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 
 		// SERVICE STATE
 		/* 
-		 * Is true when the controller can function. Usually depends on allocated resources.
+		 * Resource client state: NONOPERATIONAL, PENDING, OPERATIONAL.
 		 */
-		bool is_operational;
+		ResourceClient::ResourceClientState state;
 
 		/* 
 		 * Hook that is provided by the controller that is using this plugin to determine
@@ -85,11 +85,14 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 		 */
 		void processResourceAssignment(ResourceAssignment &msg)
 		{
+			if (state == ResourceClient::NONOPERATIONAL) return;
+
 			if (msg.resources.size() != msg.owners.size()) {
 				log(ERROR) << "[" << owner_name << "] ResourceService: invalid ResourceAssignment message." << endlog();
 				return;
 			}
 
+			// modify lis of owned resources
 			resources.clear();
 			for(int i = 0; i < msg.resources.size(); i++) {
 				if (msg.owners[i] == owner_name) { 
@@ -103,6 +106,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 				log() << "]" << endlog();
 			}
 			// ask the controller if it is able function with these resources
+			bool is_operational;
 			if (resourceChangedHook) {
 				is_operational = resourceChangedHook();
 			}
@@ -121,12 +125,29 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 					}
 				}
 			}
-			log(INFO) << "[" << owner_name << "] ResourceService: ResourceAssignment processed, opertional = " << is_operational << endlog();
+			// determine state transition
+			if (is_operational) {
+				state = ResourceClient::OPERATIONAL;
+			}
+			else {
+				switch (state) {
+					case ResourceClient::OPERATIONAL:
+						state = ResourceClient::NONOPERATIONAL;
+						break;
+					case ResourceClient::PENDING:
+						if (std::find(msg.requesters.begin(), msg.requesters.end(), owner_name) != msg.requesters.end()) 
+							state = ResourceClient::NONOPERATIONAL; // resource request was processed by arbiter
+						//TODO transition PENDING -> NONOPERATIONAL after timeout
+						break;
+				}
+			}
+			// report state change
+			log(INFO) << "[" << owner_name << "] ResourceService: ResourceAssignment processed, state = " << state << endlog();
 
 			// announce state
 			ResourceRequesterState requester_state_msg;
 			requester_state_msg.requester_name = owner_name;
-			requester_state_msg.is_operational = is_operational;
+			requester_state_msg.state = state;
 			requester_state_port.write(requester_state_msg);
 		}
 
@@ -134,49 +155,54 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 	public:
 		ResourceClientService(TaskContext* owner) :
 			Service("resource_client", owner),
-			is_operational(false),
+			state(ResourceClient::NONOPERATIONAL),
 			log("sweetie.motion.resource_control")
-	{
-		doc("Client plugin for basic ResourceArbiter (without priorities).");
+		{
+			doc("Client plugin for basic ResourceArbiter (without priorities).");
 
-		// PORTS
-		this->addPort("out_resource_request", request_port).
-			doc("Send ResourceRequest to ResourceArbiter component.");
-		this->addPort("out_resource_requester_state", requester_state_port).
-			doc("Send information about client state cahnge to ResourceArbiter component.");
-		this->addEventPort("in_resource_assignment", assignment_port).
-			doc("Receive resource assignment changes from ResourceArbiter component.");
+			// PORTS
+			this->addPort("out_resource_request", request_port).
+				doc("Send ResourceRequest to ResourceArbiter component.");
+			this->addPort("out_resource_requester_state", requester_state_port).
+				doc("Send information about client state cahnge to ResourceArbiter component.");
+			this->addEventPort("in_resource_assignment", assignment_port).
+				doc("Receive resource assignment changes from ResourceArbiter component.");
 
-		// OPERATIONS
-		this->addOperation("requestResources", &ResourceClientService::requestResources, this).
-			doc("Request ResourceArbiter for given list of resources.").
-			arg("resources", "List of requested resources");
-		this->addOperation("stopOperational", &ResourceClientService::stopOperational, this).
-			doc("Exit operational state. Inform ResourceArbiter and release all resources.");
-		this->addOperation("isOperational", &ResourceClientService::isOperational, this).
-			doc("Returns true if resource client is in operational state.");
-		this->addOperation("hasResource", &ResourceClientService::hasResource, this).
-			doc("Check is resource client owns a resource.").
-			arg("resource", "Resource name.");
-		this->addOperation("hasResources", &ResourceClientService::hasResource, this).
-			doc("Check is resource client owns resources.").
-			arg("resources", "Resource name list.");
-		this->addOperation("step", &ResourceClientService::step, this).
-			doc("Process incomming resource assignment. Call this operation periodically.");
+			// OPERATIONS
+			this->addOperation("requestResources", &ResourceClientService::requestResources, this).
+				doc("Request ResourceArbiter for given list of resources.").
+				arg("resources", "List of requested resources");
+			this->addOperation("stopOperational", &ResourceClientService::stopOperational, this).
+				doc("Exit operational state. Inform ResourceArbiter and release all resources.");
+			this->addOperation("isOperational", &ResourceClientService::isOperational, this).
+				doc("Returns true if resource client is in operational state.");
+			this->addOperation("getState", &ResourceClientService::getState, this).
+				doc("Returns state of ResourceClient: 0=NONOPERATIONAL, 1=PENDING, 2=OPERATIONAL.");
+			this->addOperation("hasResource", &ResourceClientService::hasResource, this).
+				doc("Check is resource client owns a resource.").
+				arg("resource", "Resource name.");
+			this->addOperation("hasResources", &ResourceClientService::hasResource, this).
+				doc("Check is resource client owns resources.").
+				arg("resources", "Resource name list.");
+			this->addOperation("step", &ResourceClientService::step, this).
+				doc("Process incomming resource assignment. Call this operation periodically.");
 
-		if (getOwner()) {
-			owner_name = getOwner()->getName();
+			if (getOwner()) {
+				owner_name = getOwner()->getName();
+			}
+			log(INFO) << "[" << owner_name << "] ResourceService is loaded!" << endlog();
 		}
-		log(INFO) << "[" << owner_name << "] ResourceService is loaded!" << endlog();
-	}
 
 		// Properties' getters and setters
 
-		/* Getter of is_operational.
-		*/
 		bool isOperational()
 		{
-			return is_operational;
+			return state == ResourceClient::OPERATIONAL;
+		}
+
+		int getState()
+		{
+			return state;
 		}
 
 		void setResourceChangeHook(boost::function<bool()> resourceChangedHook_)
@@ -224,17 +250,16 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 
 		bool stopOperational()
 		{
-			ResourceRequesterState msg;
-
-			is_operational = false;
+			state = ResourceClient::NONOPERATIONAL;
 
 			if (!request_port.connected()) {
 				log(ERROR) << "[" << owner_name << "] ResourceService: requester_status_port is not connected." << endlog();
 				return false;
 			}
 
+			ResourceRequesterState msg;
 			msg.requester_name = owner_name;
-			msg.is_operational = false;
+			msg.state = state;
 			requester_state_port.write(msg);
 
 			log(INFO) << "[" << owner_name << "] ResourceService: exits opertional state.";

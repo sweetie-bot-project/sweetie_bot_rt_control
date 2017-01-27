@@ -10,6 +10,8 @@ namespace sweetie_bot {
 
 namespace motion {
 
+//const int ResourceArbiter::max_requests_per_cycle = 5; /**< Arbiter will process no more then 5 requests in updateHook. */
+
 ResourceArbiter::ResourceArbiter(std::string const& name) :
 	TaskContext(name, RTT::base::TaskCore::PreOperational),
 	log("sweetie.motion.resource_arbiter")
@@ -41,6 +43,7 @@ bool ResourceArbiter::configureHook()
 		resource_assigment.insert( ResourceToOwnerMap::value_type(*name, "none") ); // add a free resource
 	}
 	// allocates buffers
+	assigment_msg.requesters.reserve(max_requests_per_cycle);
 	assigment_msg.resources.reserve(resource_assigment.size());
 	assigment_msg.owners.reserve(resource_assigment.size());
 	request_msg.resources.reserve(resource_assigment.size());
@@ -66,11 +69,16 @@ bool ResourceArbiter::startHook()
  */
 void ResourceArbiter::processResourceRequest(ResourceRequest& resourceRequestMsg)
 {
-	if (log(DEBUG)) {
+	if (log(INFO)) {
 		log() << "Resource request: [" << resourceRequestMsg.requester_name << "] apply for [";
 		for(auto it = resourceRequestMsg.resources.begin(); it != resourceRequestMsg.resources.end(); it++) log() << *it << ", ";
 		log() << RTT::endlog();
 	}
+
+	// Use msg buffer to store name of controllers, which requests was processed.
+	assigment_msg.requesters.push_back(resourceRequestMsg.requester_name);
+
+	// Now process request and change resource assigment. Direct use of assigment_msg is inconvinent, so ResourceToOwnerMap is used.
 	for (int i = 0; i < resourceRequestMsg.resources.size(); i++) {
 		// check if the resource actually exists
 		ResourceToOwnerMap::iterator res_owner_pair = resource_assigment.find(resourceRequestMsg.resources[i]);
@@ -115,10 +123,10 @@ void ResourceArbiter::sendResourceAssigmentMsg() {
  */
 void ResourceArbiter::processResourceRequesterState(ResourceRequesterState& resourceRequesterStateMsg)
 {
-	log(DEBUG) << "Resource requester state change: [" << resourceRequesterStateMsg.requester_name  << 
-		"] is_operational = " << resourceRequesterStateMsg.is_operational << RTT::endlog();
+	log(INFO) << "Resource requester state change: [" << resourceRequesterStateMsg.requester_name  << 
+		"] state = " << resourceRequesterStateMsg.state << RTT::endlog();
 	// if the component has not been deactivated, no actions needed
-	if (resourceRequesterStateMsg.is_operational)
+	if (resourceRequesterStateMsg.state != ResourceRequesterState::NONOPERATIONAL)
 		return;
 
 	// free resources of a deactivated component
@@ -140,6 +148,7 @@ void ResourceArbiter::assignAllResourcesTo(std::string name)
 		it->second = name;
 	}
 	// inform clients
+	assigment_msg.requesters.clear(); 
 	sendResourceAssigmentMsg();
 }
 
@@ -147,17 +156,23 @@ void ResourceArbiter::updateHook()
 {
 	bool assigment_changed = false;
 
-	while (request_port.read(request_msg, false) == RTT::NewData) {
-		processResourceRequest(request_msg);
-		assigment_changed = true;
+	// Process up to max_requests_per_cycle ResourceRequests, store requesteres name
+	assigment_msg.requesters.clear();
+	for(int req_count = 0; req_count < max_requests_per_cycle; req_count++) {
+		if (request_port.read(request_msg, false) == RTT::NewData) {
+			processResourceRequest(request_msg);
+			assigment_changed = true;
+		}
+		else break;
 	}
 
+	// Process ResourceRequesterState.
 	while (requester_status_port.read(requester_state_msg) == RTT::NewData) {
 		processResourceRequesterState(requester_state_msg);
 		assigment_changed = true;
 	}
 
-	// inform clients
+	// Inform clients
 	if (assigment_changed) sendResourceAssigmentMsg();
 }
 

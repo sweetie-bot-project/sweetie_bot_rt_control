@@ -19,6 +19,7 @@ class ResourceClientInterface
   	 virtual bool requestResources(const std::vector<std::string>& resource_list) = 0;
   	 virtual bool stopOperational() = 0;
   	 virtual bool isOperational() = 0;
+  	 virtual int getState() = 0;
   	 virtual bool hasResource(const std::string& resource) = 0;
   	 virtual bool hasResources(const std::vector<std::string>& resource_list) = 0;
   	 virtual void step() = 0;
@@ -29,9 +30,17 @@ class ResourceClientInterface
 class ResourceClient: public RTT::ServiceRequester
 {
 	public:
+		enum ResourceClientState {
+			NONOPERATIONAL = 0, 
+			PENDING = 1, 
+			OPERATIONAL = 2,
+		};
+
+	public:
 		RTT::OperationCaller< bool(const std::vector<std::string>&) > requestResources;
 		RTT::OperationCaller< bool() > stopOperational;
 		RTT::OperationCaller< bool() > isOperational;
+		RTT::OperationCaller< int() > getState;
 		RTT::OperationCaller< bool(const std::string&) > hasResource;
 		RTT::OperationCaller< bool(const std::vector<std::string>&) > hasResources;
 		RTT::OperationCaller< void() > step;
@@ -41,6 +50,7 @@ class ResourceClient: public RTT::ServiceRequester
 			requestResources("requestResources"),
 			stopOperational("stopOperational"),
 			isOperational("isOperational"),
+			getState("getState"),
 			hasResource("hasResource"),
 			hasResources("hasResources"),
 			step("step")
