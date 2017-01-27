@@ -4,6 +4,7 @@
 #
 cmake_minimum_required(VERSION 2.6.3)
 
+#
 # This creates a standard cmake project. You may extend this file with
 # any cmake macro you see fit.
 #
@@ -33,10 +34,12 @@ endif()
 find_package(catkin REQUIRED COMPONENTS sweetie_bot_logger)
 include_directories(include ${catkin_INCLUDE_DIRS})
 
+#find_package(Boost REQUIRED COMPONENTS graph filesystem system thread regex)
+
 # Defines the orocos_* cmake macros. See that file for additional
 # documentation.
 include( ${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake )
-include_directories(include ${catkin_INCLUDE_DIRS})
+include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 # Rest of the configuration is in src/
 add_subdirectory( src )
@@ -45,4 +48,5 @@ add_subdirectory( src )
 # Generates and installs our package. Must be the last statement such
 # that it can pick up all above settings.
 #
-orocos_generate_package()
+#orocos_generate_package(DEPENDS Boost)
+orocos_generate_package(DEPENDS Boost)

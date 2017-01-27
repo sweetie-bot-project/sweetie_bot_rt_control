@@ -3,21 +3,20 @@
 
 #include <rtt/RTT.hpp>
 
-#include <string>
-
 #include <rtt_actionlib/rtt_actionlib.h>
 #include <rtt_actionlib/rtt_action_server.h>
 #include <actionlib/action_definition.h>
 
-#include <sweetie_bot_resource_control_msgs/MoveManuallyAction.h>
-
-#include <sweetie_bot_logger/logger.hpp>
 #include <sweetie_bot_resource_control/resource_client-service.hpp>
 
+#include <sweetie_bot_resource_control_msgs/MoveManuallyAction.h>
+
+#include <string>
 
 namespace sweetie_bot {
 namespace motion {
 namespace controller {
+
 
 class ControllerActionlibTemplate : public RTT::TaskContext
 {
@@ -27,33 +26,14 @@ class ControllerActionlibTemplate : public RTT::TaskContext
 		ACTION_DEFINITION(sweetie_bot_resource_control_msgs::MoveManuallyAction);	
 
 	protected:
-		// COMPONENT INTERFACE
-		//
-		// PORTS: input
-		// PORTS: output
-		// PROPERTIES
-		std::vector<std::string> resources_required;
-	protected:
-		// OPERATIONS: provides
-		// OPERATIONS: requires
-		// SERVICES: 
-		sweetie_bot::motion::ResourceClientInterface * resource_client;
-
-	protected:
-		// ACTIONLIB:
+		// ActionLib variables
 		rtt_actionlib::RTTActionServer<sweetie_bot_resource_control_msgs::MoveManuallyAction> action_server;
 		GoalHandle goal;
-        bool dataOnPortHook(RTT::base::PortInterface *portInterface); // enable actionlib port in stopped state
 
-	protected:
-		// COMPONENT STATE
-		// ports buffers
-		
-#ifdef SWEETIEBOT_LOGGER
-		SWEETIEBOT_LOGGER log;
-#else
-		LoggerRTT log;
-#endif
+		// ResourceClient interface
+		ResourceClientInterface * resource_client;
+
+        bool dataOnPortHook(RTT::base::PortInterface *portInterface);
 
 	public:
 		ControllerActionlibTemplate(std::string const& name);

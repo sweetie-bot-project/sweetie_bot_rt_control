@@ -1,0 +1,5 @@
+<launch>
+  <node name="action_test" pkg="rtt_ros" type="deployer"
+    args="-s $(find sweetie_bot_config)/config/action_test.ops --" output="screen"/>
+
+</launch>

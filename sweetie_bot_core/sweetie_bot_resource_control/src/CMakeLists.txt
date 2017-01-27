@@ -12,9 +12,8 @@
 #
 orocos_component(resource_arbiter resource_arbiter-component.cpp) # ...you may add multiple source files
 
-orocos_service(resource_client resource_client-service.cpp) # only one service per library!
-orocos_service(resource_client_dummy resource_client_dummy-service.cpp) # only one service per library!
-
+orocos_service(resource_client_service resource_client-service.cpp) # only one service per library!
+orocos_service(resource_client_dummy_service resource_client_dummy-service.cpp) # only one service per library!
 #
 # You may add multiple orocos_component statements.
 

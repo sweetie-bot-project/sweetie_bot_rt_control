@@ -10,9 +10,7 @@
 #include <sweetie_bot_resource_control/resource_client-service.hpp>
 
 namespace sweetie_bot {
-
 namespace motion {
-
 namespace controller {
 
 
@@ -54,9 +52,7 @@ class ControllerTemplate : public RTT::TaskContext
 };
 
 } // namespace controller
-
 } // namespace motion
-
 } // namespace sweetie_bot
 
 #endif

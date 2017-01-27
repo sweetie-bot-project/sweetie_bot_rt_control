@@ -1,20 +1,41 @@
 #include "controller_actionlib_template-component.hpp"
 
 #include <rtt/Component.hpp>
-#include <rtt/Logger.hpp>
-
-#include <sweetie_bot_resource_control/sweetie_bot_resource_control_service.hpp>
-
 
 using namespace RTT;
 
+namespace sweetie_bot {
+namespace motion {
+namespace controller {
+
 ControllerActionlibTemplate::ControllerActionlibTemplate(std::string const& name) : 
 	TaskContext(name),
+	log("sweetie.motion.controller." + name)
 {
+
+	// ports
+	// properties
+	std::vector<std::string> res = { "leg1", "leg2", "leg3", "leg4" };
+	this->addProperty("required_resources", resources_required).
+		doc("List of required resources.").
+		set(res);
+	// operations: provided
+	this->addOperation("resourceChangedHook", &ControllerTemplate::resourceChangedHook, this).
+		doc("Check if all necessary resources present and component ready to be set operational.");
+
 	// action server startup
-	action_server.addPort(this->provides());
+	action_server.addPorts(this->provides());
 	action_server.registerGoalCallback(boost::bind(&ControllerActionlibTemplate::goalCallback, this, _1));
 	action_server.registerCancelCallback(boost::bind(&ControllerActionlibTemplate::cancelCallback, this, _1));
+
+    log(INFO) << "ControllerActionlibTemplate is constructed!" << endlog();
+}
+
+bool ControllerActionlibTemplate::dataOnPortHook( RTT::base::PortInterface* portInterface ) 
+{
+    //return this->isConfigured();
+    //return this->isRunning();
+    return true;
 }
 
 bool ControllerActionlibTemplate::resourceChangedHook()
@@ -23,47 +44,47 @@ bool ControllerActionlibTemplate::resourceChangedHook()
 	bool has_resources = resource_client->hasResources(res);
 
 	if (!goal.isValid()) {
-		log(Info) << getName() << ": resourceChangedHook: action_server: no valid goal." << endlog();
+		log(INFO) << getName() << ": resourceChangedHook: action_server: no valid goal." << endlog();
 		return false;
 	}
 	if (has_resources) {
-		log(Info) << getName() << ": resourceChangedHook: necessary resources are acquaired." << endlog();
+		log(INFO) << getName() << ": resourceChangedHook: necessary resources are acquaired." << endlog();
 
 		switch (goal.getGoalStatus().status) {
 			case actionlib_msgs::GoalStatus::PENDING:
 				goal.setAccepted();
 				//TODO goal start
-				log(Info) << getName() << ": resourceChangedHook: action_server: accept goal." << endlog();
+				log(INFO) << getName() << ": resourceChangedHook: action_server: accept goal." << endlog();
 				return true;
 
 			case actionlib_msgs::GoalStatus::ACTIVE:
-				log(Info) << getName() << ": resourceChangedHook: action_server: goal remains active." << endlog();
+				log(INFO) << getName() << ": resourceChangedHook: action_server: goal remains active." << endlog();
 				return true;
 
 			default:
-				log(Info) << getName() << ": resourceChangedHook: action_server: no valid goal." << endlog();
+				log(INFO) << getName() << ": resourceChangedHook: action_server: no valid goal." << endlog();
 				return false;
 		}
 	}
 	else {
-		log(Info) << getName() << ": resourceChangedHook: there are not enough resources." << endlog();
+		log(INFO) << getName() << ": resourceChangedHook: there are not enough resources." << endlog();
 
 		switch (goal.getGoalStatus().status) {
 			case actionlib_msgs::GoalStatus::PENDING:
 				goal.setRejected();
 				//TODO goal cleanup
-				log(Info) << getName() << ": resourceChangedHook: action_server: reject goal." << endlog();
+				log(INFO) << getName() << ": resourceChangedHook: action_server: reject goal." << endlog();
 				return false;
 
 			case actionlib_msgs::GoalStatus::ACTIVE:
 				goal.setAborted();
 				//TODO goal stop
 				//TODO goal cleanup
-				log(Info) << getName() << ": resourceChangedHook: action_server: goal remains active." << endlog();
+				log(INFO) << getName() << ": resourceChangedHook: action_server: goal remains active." << endlog();
 				return false;
 
 			default:
-				log(Info) << getName() << ": resourceChangedHook: action_server: no valid goal." << endlog();
+				log(INFO) << getName() << ": resourceChangedHook: action_server: no valid goal." << endlog();
 				return false;
 		}
 	}
@@ -76,25 +97,29 @@ bool ControllerActionlibTemplate::configureHook()
 
 	subservices = this->provides()->getProviderNames();
 	for(Service::ProviderNames::const_iterator name = subservices.begin(); name != subservices.end(); name++) {
-		resource_client = dynamic_cast<ResourceClientInterface2*>( this->provides()->getService().get() );
+        log(INFO) << "Trying to load " << *name << endlog();
+        resource_client = dynamic_cast<ResourceClientInterface*>(this->provides()->getService(*name).get());
 		if (resource_client) break;
 	}
 	if (!resource_client) {
-		log(Error) << getName() << ": ResourseClient plugin is not loaded." << endlog();
+		log(ERROR) << getName() << ": ResourceClient plugin is not loaded." << endlog();
 		return false;
 	}
 
 	// Start action server.
 	action_server.start();
+	action_server.initialize();
 
-	log(Info) << getName() << " is configured !" << endlog();
+	log(INFO) << getName() << " is configured !" << endlog();
 	return true;
 }
 
 void ControllerActionlibTemplate::goalCallback(GoalHandle gh) 
 {
 	if ( goal.isValid() )
-		switch ( goal.getGoalStatus().status ) {
+    {
+		switch ( goal.getGoalStatus().status ) 
+        {
 			case actionlib_msgs::GoalStatus::ACTIVE:
 				//TODO goal stop
 				//TODO goal cleanup
@@ -102,7 +127,7 @@ void ControllerActionlibTemplate::goalCallback(GoalHandle gh)
 				this->stop();
 				
 				goal.setCanceled();
-				log(Info) << getName() << ": action_server: active goal is canceled by new goal." << endlog();
+				log(INFO) << getName() << ": action_server: active goal is canceled by new goal." << endlog();
 				break;
 
 			case actionlib_msgs::GoalStatus::PENDING:
@@ -110,12 +135,12 @@ void ControllerActionlibTemplate::goalCallback(GoalHandle gh)
 				this->stop();
 
 				goal.setCanceled();
-				log(Info) << getName() << ": action_server: pending goal is canceled by new goal." << endlog();
+				log(INFO) << getName() << ": action_server: pending goal is canceled by new goal." << endlog();
 				break;
 		}
 	}
 	goal = gh;
-	log(Info) << getName() << ": action_server: received new goal." << endlog();
+	log(INFO) << getName() << ": action_server: received new goal." << endlog();
 	
 	//TODO goal execution conditions check
 	this->start();
@@ -124,7 +149,7 @@ void ControllerActionlibTemplate::goalCallback(GoalHandle gh)
 	resource_client->requestResources(res);
 }
 
-void cancelCallback(GoalHandle gh) 
+void ControllerActionlibTemplate::cancelCallback(GoalHandle gh) 
 {
     if (goal == gh) {
 		switch ( goal.getGoalStatus().status ) {
@@ -135,7 +160,7 @@ void cancelCallback(GoalHandle gh)
 				this->stop();
 
 				goal.setCanceled();
-				log(Info) << getName() << ": action_server: active goal is canceled by client request." << endlog();
+				log(INFO) << getName() << ": action_server: active goal is canceled by client request." << endlog();
 				break;
 
 			case actionlib_msgs::GoalStatus::PENDING:
@@ -143,41 +168,50 @@ void cancelCallback(GoalHandle gh)
 				this->stop();
 
 				goal.setCanceled();
-				log(Info) << getName() << ": action_server: pending goal is canceled by client request." << endlog();
+				log(INFO) << getName() << ": action_server: pending goal is canceled by client request." << endlog();
 				break;
+
+            default:
+                log(WARN) << ": action_server: cancel callback received strange stuff." << endlog();
 		}
 	}
 	else {
-		log(Error) << "ActionServer: cancel request to unknown goal." << endlog();
+		log(ERROR) << "ActionServer: cancel request to unknown goal." << endlog();
 	}
 }
 
 bool ControllerActionlibTemplate::startHook()
 {
-	Logger::log(Logger::Info) << getName() <<" is started !" << endlog();
+	log(INFO) << getName() <<" is started !" << endlog();
+
 	return true;
 }
 
 void ControllerActionlibTemplate::updateHook()
 {
-	log(Debug) << getName() << " executes updateHook !" << endlog();
+	log(DEBUG) << getName() << " executes updateHook !" << endlog();
 
 	if (resource_client->isOperational()) {
-		log(Debug) << getName() << " do useful staff." << endlog();
+		log(DEBUG) << getName() << " do useful staff." << endlog();
 	} 
 }
 
 void ControllerActionlibTemplate::stopHook() 
 {
 	resource_client->stopOperational();
-	log(Info) << getName() << " is stopped!" << endlog();
+	log(INFO) << getName() << " is stopped!" << endlog();
 }
 
 void ControllerActionlibTemplate::cleanupHook() 
 {
+
 	resource_client = 0; 
-	action_server.stop();
-	Logger::log(Logger::Info) << "ControllerActionlibTemplate cleaning up !" <<Logger::endl;
+	// action_server.stop(); // no such method
+	log(INFO) << "ControllerActionlibTemplate cleaning up !" << endlog();
 }
 
-ORO_CREATE_COMPONENT(ControllerActionlibTemplate)
+} // namespace controller
+} // namespace motion
+} // namespace sweetie_bot
+
+ORO_CREATE_COMPONENT(sweetie_bot::motion::controller::ControllerActionlibTemplate)

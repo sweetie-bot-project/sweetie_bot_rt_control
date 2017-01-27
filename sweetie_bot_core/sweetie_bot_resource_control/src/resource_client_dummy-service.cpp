@@ -63,11 +63,12 @@ class ResourceClientDummyService :
 		
 
 ResourceClientDummyService::ResourceClientDummyService(TaskContext* owner) :
-	Service("resource_client_dummy", owner),
+	Service("resource_client", owner),
 	is_operational(false),
 	resourceChangedHook_call("resourceChangedHook"),
 	log("swetie.motion.resource_control")
 {
+	doc("Dummy resource control client plugin. Always assumes that it owns requested recources.");
 	// OPERATONS
 	// for component internal use only
 	this->addOperation("requestResources", &ResourceClientDummyService::requestResources, this)
@@ -131,4 +132,3 @@ bool ResourceClientDummyService::hasResources(const std::vector<std::string>& re
 } // namespace sweetie_bot
 
 ORO_SERVICE_NAMED_PLUGIN(sweetie_bot::motion::ResourceClientDummyService, "resource_client_dummy")
-

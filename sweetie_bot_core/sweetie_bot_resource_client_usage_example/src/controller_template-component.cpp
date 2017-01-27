@@ -10,24 +10,20 @@ namespace controller {
 
 ControllerTemplate::ControllerTemplate(std::string const& name)  : 
 	TaskContext(name, RTT::base::TaskCore::PreOperational),
-	log("sweetie.motion.controller.template")
-	//log("sweetie.motion.controller." + name)
+	log("sweetie.motion.controller." + name)
 {
-	resource_client = getProvider<ResourceClient>("resource_client").get();
 	// ports
 	// properties
 	std::vector<std::string> res = { "leg1", "leg2", "leg3", "leg4" };
 	this->addProperty("required_resources", resources_required).
 		doc("List of required resources.").
 		set(res);
-	// operations
+	// operations: provided
 	this->addOperation("resourceChangedHook", &ControllerTemplate::resourceChangedHook, this).
 		doc("Check if all necessary resources present and component ready to be set operational.");
-	// services
-	if (!resource_client) {
-		log(ERROR) << getName() << "Unable to load `resource_client` service!" << endlog();
-		this->exception();
-	}
+	// services: required
+	resource_client = new ResourceClient(this);
+	this->requires()->addServiceRequester(ServiceRequester::shared_ptr(resource_client));
 	// other actions
 	log(INFO) << "ControllerTemplate is constructed!" << endlog();
 }
@@ -55,6 +51,11 @@ bool ControllerTemplate::resourceChangedHook()
 bool ControllerTemplate::configureHook()
 {
 	// INITIALIZATION
+	// check if ResourceClient presents
+	if (!resource_client->ready()) {
+		log(ERROR) << getName() << ": `resource_client` service is not ready!" << endlog();
+		return false;
+	}
 	// get properties
 	// check if necessary ports and operations are connected
 	// allocate memory

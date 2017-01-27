@@ -136,6 +136,8 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			is_operational(false),
 			log("sweetie.motion.resource_control")
 	{
+		doc("Client plugin for basic ResourceArbiter (without priorities).");
+
 		// PORTS
 		this->addPort("out_resource_request", request_port).
 			doc("Send ResourceRequest to ResourceArbiter component.");
