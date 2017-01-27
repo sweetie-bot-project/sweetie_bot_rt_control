@@ -1,11 +1,7 @@
-# Linear and rotational speed goal
-geometry_msgs/Vector3 linear
-geometry_msgs/Vector3 angular
+# Test action for ControllerActionlibTemplate
+float64 speed
+float64 moving_time
 ---
-# Result: how much time robot was moving
-duration time_moving
+float64 moving_time
 ---
-# Feedback: current time in motion and speed
-duration time_moving
-geometry_msgs/Vector3 linear
-geometry_msgs/Vector3 angular
+float64 moving_time

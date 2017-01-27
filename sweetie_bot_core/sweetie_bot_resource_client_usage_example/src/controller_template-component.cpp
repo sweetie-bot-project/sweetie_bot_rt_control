@@ -44,7 +44,7 @@ bool ControllerTemplate::resourceChangedHook()
 		return false;
 	}
 	log(INFO) << "ControllerTemplate HAVE all resources." << endlog();
-	// perform opertional condition checks and state reset if necessary
+	// TODO perform opertional condition checks and state reset if necessary
 	return true;
 }
 
@@ -56,10 +56,10 @@ bool ControllerTemplate::configureHook()
 		log(ERROR) << getName() << ": `resource_client` service is not ready!" << endlog();
 		return false;
 	}
-	// get properties
-	// check if necessary ports and operations are connected
-	// allocate memory
-	// set ports data samples
+	// TODO get properties
+	// TODO check if necessary ports and operations are connected
+	// TODO allocate memory
+	// TODO set ports data samples
 	log(INFO) << "ControllerTemplate is configured !" << endlog();
 	return true;
 }

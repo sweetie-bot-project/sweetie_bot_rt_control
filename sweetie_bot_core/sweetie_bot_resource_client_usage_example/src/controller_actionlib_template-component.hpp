@@ -5,14 +5,11 @@
 
 #include <string>
 
-#include <rtt_actionlib/rtt_actionlib.h>
-#include <rtt_actionlib/rtt_action_server.h>
-#include <actionlib/action_definition.h>
-
 #include <sweetie_bot_resource_control_msgs/MoveManuallyAction.h>
 
 #include <sweetie_bot_logger/logger.hpp>
 #include <sweetie_bot_resource_control/resource_client-service.hpp>
+#include <sweetie_bot_resource_control/simple_action_server.hpp>
 
 
 namespace sweetie_bot {
@@ -22,8 +19,7 @@ namespace controller {
 class ControllerActionlibTemplate : public RTT::TaskContext
 {
 	protected:
-		typedef actionlib::ServerGoalHandle<
-            sweetie_bot_resource_control_msgs::MoveManuallyAction> GoalHandle;
+		// Goal, Feedback, Result typedefs
 		ACTION_DEFINITION(sweetie_bot_resource_control_msgs::MoveManuallyAction);	
 
 	protected:
@@ -41,12 +37,22 @@ class ControllerActionlibTemplate : public RTT::TaskContext
 
 	protected:
 		// ACTIONLIB:
-		rtt_actionlib::RTTActionServer<sweetie_bot_resource_control_msgs::MoveManuallyAction> action_server;
-		GoalHandle goal;
-        bool dataOnPortHook(RTT::base::PortInterface *portInterface); // enable actionlib port in stopped state
+		// Simple action server
+		OrocosSimpleActionServer<sweetie_bot_resource_control_msgs::MoveManuallyAction> action_server;
+		// enable actionlib event ports in stopped state
+        bool dataOnPortHook(RTT::base::PortInterface *portInterface);
+		// new pending goal is received
+		void newGoalHook(const Goal& goal);
+		// active goal is being canceled
+		void cancelGoalHook();
+		// buffers (also can be created dynamically)
+		Goal goal; // maybe shared_ptr is better?
+		Result result;
+		Feedback feedback;
 
 	protected:
 		// COMPONENT STATE
+		long long start_time;
 		// ports buffers
 		
 #ifdef SWEETIEBOT_LOGGER
@@ -59,9 +65,6 @@ class ControllerActionlibTemplate : public RTT::TaskContext
 		ControllerActionlibTemplate(std::string const& name);
 
 		bool resourceChangedHook();
-
-		void goalCallback(GoalHandle gh);
-		void cancelCallback(GoalHandle gh);
 
 		bool configureHook();
 		bool startHook();

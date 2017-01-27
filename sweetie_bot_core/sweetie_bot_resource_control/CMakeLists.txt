@@ -39,6 +39,9 @@ endif()
 include( ${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake )
 include_directories( include ${catkin_INCLUDE_DIRS} )
 
+#Install headers: OROCOS automatically place them in `orocos/package_name/` directory.
+orocos_install_headers(include/sweetie_bot_resource_control/resource_client-service.hpp include/sweetie_bot_resource_control/simple_action_server.hpp) 
+
 # Rest of the configuration is in src/
 add_subdirectory( src )
 
