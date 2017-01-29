@@ -1,7 +1,9 @@
 # Acknowledge of ResourceAssigment (is_operational = true) or notification about deactivation (is_operational = false).
+#  * requester_name --- name of the controller component emitting request.
+#  * request_id / request_number --- the indentifer of last ResourceRequester emitted by controller, 
+#       or resource arbiter request counter value from ResourceAssigment message.
+#  * is_operational --- flag operational state.
+#
 string requester_name 
-uint8 state
-# state values
-uint8 NONOPERATIONAL = 0
-uint8 PENDING = 1
-uint8 OPERATIONAL = 2
+uint32 request_id
+bool is_operational

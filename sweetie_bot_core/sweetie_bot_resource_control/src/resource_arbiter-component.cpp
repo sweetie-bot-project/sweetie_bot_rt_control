@@ -17,7 +17,7 @@ ResourceArbiter::ResourceArbiter(std::string const& name) :
 	log("sweetie.motion.resource_arbiter")
 {
 	// PORTS
-	this->ports()->addPort("out_resource_assignment", assigment_port)
+	this->ports()->addPort("out_resource_assigment", assigment_port)
 		.doc("Publishes a list of all resources and their current owners.");
 	this->ports()->addEventPort("in_resource_request", request_port)
 		.doc("Resource arbiter receives requests for resource allocation via this port.");
@@ -29,7 +29,8 @@ ResourceArbiter::ResourceArbiter(std::string const& name) :
 		.doc("List of controlled resources.");
 	// OPERATIONS
 	this->addOperation("assignAllResourcesTo", &ResourceArbiter::assignAllResourcesTo, this, RTT::OwnThread)
-		.doc("Assign all resources to the component 'name' or to no one when the name equals \"none\"");
+		.doc("Assign all resources to the component 'name' or to no one when the name equals \"none\"")
+		.arg("name", "Name of component");
 
 	log(INFO) << "ResourceArbiter constructed !" << RTT::endlog();
 }
@@ -43,7 +44,7 @@ bool ResourceArbiter::configureHook()
 		resource_assigment.insert( ResourceToOwnerMap::value_type(*name, "none") ); // add a free resource
 	}
 	// allocates buffers
-	assigment_msg.requesters.reserve(max_requests_per_cycle);
+	assigment_msg.request_ids.reserve(max_requests_per_cycle);
 	assigment_msg.resources.reserve(resource_assigment.size());
 	assigment_msg.owners.reserve(resource_assigment.size());
 	request_msg.resources.reserve(resource_assigment.size());
@@ -56,6 +57,7 @@ bool ResourceArbiter::configureHook()
 
 bool ResourceArbiter::startHook() 
 {
+	assigment_msg.request_ids.clear();
 	log(INFO) << "ResourceArbiter is started !" << RTT::endlog();
 }
 
@@ -70,13 +72,20 @@ bool ResourceArbiter::startHook()
 void ResourceArbiter::processResourceRequest(ResourceRequest& resourceRequestMsg)
 {
 	if (log(INFO)) {
-		log() << "Resource request: [" << resourceRequestMsg.requester_name << "] apply for [";
+		log() << "Resource request: `" << resourceRequestMsg.requester_name << "` request " << resourceRequestMsg.request_id << " [";
 		for(auto it = resourceRequestMsg.resources.begin(); it != resourceRequestMsg.resources.end(); it++) log() << *it << ", ";
 		log() << RTT::endlog();
 	}
 
-	// Use msg buffer to store name of controllers, which requests was processed.
-	assigment_msg.requesters.push_back(resourceRequestMsg.requester_name);
+	// Use msg buffer to store pending requests ids
+	{ 
+		auto it = assigment_msg.request_ids.begin();
+		for(; it != assigment_msg.request_ids.end(); it++) {
+			if ( (*it & 0xffff) == (resourceRequestMsg.request_id & 0xffff) ) break;
+		} 
+		if (it != assigment_msg.request_ids.end()) *it = resourceRequestMsg.request_id; // replace old pending request by new
+		else assigment_msg.request_ids.push_back(resourceRequestMsg.request_id); // add new pending request
+	}
 
 	// Now process request and change resource assigment. Direct use of assigment_msg is inconvinent, so ResourceToOwnerMap is used.
 	for (int i = 0; i < resourceRequestMsg.resources.size(); i++) {
@@ -105,6 +114,8 @@ void ResourceArbiter::processResourceRequest(ResourceRequest& resourceRequestMsg
  */
 void ResourceArbiter::sendResourceAssigmentMsg() {
 	// inform components about resource assigments
+
+	// do not touch resource_ids --- it contains pending request list
 	assigment_msg.resources.clear();
 	assigment_msg.owners.clear();
 	for (ResourceToOwnerMap::iterator it = resource_assigment.begin(); it != resource_assigment.end(); ++it) {
@@ -123,17 +134,20 @@ void ResourceArbiter::sendResourceAssigmentMsg() {
  */
 void ResourceArbiter::processResourceRequesterState(ResourceRequesterState& resourceRequesterStateMsg)
 {
-	log(INFO) << "Resource requester state change: [" << resourceRequesterStateMsg.requester_name  << 
-		"] state = " << resourceRequesterStateMsg.state << RTT::endlog();
-	// if the component has not been deactivated, no actions needed
-	if (resourceRequesterStateMsg.state != ResourceRequesterState::NONOPERATIONAL)
-		return;
+	log(INFO) << "Resource requester state change: `" << resourceRequesterStateMsg.requester_name  << "` request_id = " << resourceRequesterStateMsg.request_id <<
+		" is_operational = " << resourceRequesterStateMsg.is_operational << RTT::endlog();
 
-	// free resources of a deactivated component
-	for (ResourceToOwnerMap::iterator it = resource_assigment.begin(); it != resource_assigment.end(); ++it) {
-		if (it->second == resourceRequesterStateMsg.requester_name) {
-			log(DEBUG) << "Resource released (component deactivation): " << it->first << RTT::endlog();
-			it->second = "none";
+	// delete coresponding request from pending requests list
+	auto found = std::find(assigment_msg.request_ids.begin(), assigment_msg.request_ids.end(), resourceRequesterStateMsg.request_id);
+	if (found != assigment_msg.request_ids.end()) assigment_msg.request_ids.erase(found);
+
+	if (!resourceRequesterStateMsg.is_operational) {
+		// free resources of a deactivated component
+		for (ResourceToOwnerMap::iterator it = resource_assigment.begin(); it != resource_assigment.end(); ++it) {
+			if (it->second == resourceRequesterStateMsg.requester_name) {
+				log(DEBUG) << "Resource released (component deactivation): " << it->first << RTT::endlog();
+				it->second = "none";
+			}
 		}
 	}
 }
@@ -144,11 +158,8 @@ void ResourceArbiter::processResourceRequesterState(ResourceRequesterState& reso
 void ResourceArbiter::assignAllResourcesTo(std::string name)
 {
 	for(ResourceToOwnerMap::iterator it = resource_assigment.begin(); it != resource_assigment.end(); ++it)
-	{
 		it->second = name;
-	}
 	// inform clients
-	assigment_msg.requesters.clear(); 
 	sendResourceAssigmentMsg();
 }
 
@@ -157,7 +168,6 @@ void ResourceArbiter::updateHook()
 	bool assigment_changed = false;
 
 	// Process up to max_requests_per_cycle ResourceRequests, store requesteres name
-	assigment_msg.requesters.clear();
 	for(int req_count = 0; req_count < max_requests_per_cycle; req_count++) {
 		if (request_port.read(request_msg, false) == RTT::NewData) {
 			processResourceRequest(request_msg);
@@ -174,6 +184,16 @@ void ResourceArbiter::updateHook()
 
 	// Inform clients
 	if (assigment_changed) sendResourceAssigmentMsg();
+
+	if (log(DEBUG)) {
+		log() << "Pending request_ids: [ ";
+		for (auto it = assigment_msg.request_ids.begin(); it != assigment_msg.request_ids.end(); it++) log() << *it << ", ";
+		log() << "]" << RTT::endlog();
+		log() << "ResourceAssignment: [ ";
+		for (ResourceToOwnerMap::const_iterator it = resource_assigment.begin(); it != resource_assigment.end(); it++) 
+			log() << it->first << ": " << it->second << ", ";
+		log() << "]" << RTT::endlog();
+	}
 }
 
 void ResourceArbiter::stopHook() 
@@ -181,9 +201,8 @@ void ResourceArbiter::stopHook()
 	log(INFO) << "ResourceArbiter is stopped !" << Logger::endl;
 }
 
-}
-
-}
+} // namespace motion
+} // namespace sweetie_bot
 
 /*
  * Using this macro, only one component may live

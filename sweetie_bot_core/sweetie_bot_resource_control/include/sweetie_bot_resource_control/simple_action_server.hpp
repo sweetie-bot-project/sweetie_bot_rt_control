@@ -42,10 +42,10 @@ template <class ActionSpec> class OrocosSimpleActionServer
 		 * Create ports, register callbacks.
 		 * @param owner_service Pointer to owner service.
 		 */
-		OrocosSimpleActionServer(boost::shared_ptr<RTT::Service> owner_service, const std::string& topic) 
+		OrocosSimpleActionServer(boost::shared_ptr<RTT::Service> owner_service) 
 		{	
 			if (!owner_service) throw std::invalid_argument("OrocosSimpleActionServer: owner pointer must be valid.");
-			action_server.addPorts(owner_service, true, topic);
+			action_server.addPorts(owner_service);
 			action_server.registerGoalCallback(boost::bind(&OrocosSimpleActionServer<ActionSpec>::goalCallback, this, _1));
 			action_server.registerCancelCallback(boost::bind(&OrocosSimpleActionServer<ActionSpec>::cancelCallback, this, _1));
 		}

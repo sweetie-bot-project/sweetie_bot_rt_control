@@ -1,9 +1,8 @@
 # Resource assignment to controllers.
-#
-#  * reqesteres --- list of controllers, which requests were processed by the arbiter to form this resource assigment.
-#  * resource --- list of all resourses.
-#  * owner --- owners of resources. Must have the same size as resources.
-#
-string[] requesters
+#  * request_ids / request_number --- the list of indentifers of last ResourceRequests of pending controllers
+#       or resource arbiter request counter value from ResourceAssigment message.
+#  * resource --- assignment resources list.
+#  * owner --- owner controller name.
+uint32[] request_ids 
 string[] resources
 string[] owners

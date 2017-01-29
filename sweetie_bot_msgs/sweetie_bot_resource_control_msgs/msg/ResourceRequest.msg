@@ -1,12 +1,15 @@
-# name of the requester
-string requester_name
+# Resource assignment request.
+#  * requester_name --- name of the controller component emitting request.
+#  * request_id --- high 16 bits contains controller request counter number, low 16 bits contains an unique requester indentifer.
+#  * resources --- resources set (kinematic chains names: leg1, leg2, ..., tail, eyes).
+#  * pending_pri --- priorities in pending state (same size as resources).
+#  * operational_pri --- priorities in operational state (same size as resources).
+#
+# request_id is optional if operation is used to emmit request.
+#
 
-# names of the requested resources
+string requester_name 
+uint32 request_id
 string[] resources
-
-
-# priorities of giving the corresponding resource (pending) to this requester
-# and holding it after acquiring (operational)
-# range is [0:1]
-float32[] pri_pending
 float32[] pri_operational
+float32[] pri_pending

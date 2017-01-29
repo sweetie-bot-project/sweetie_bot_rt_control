@@ -23,7 +23,7 @@ class ResourceArbiter : public RTT::TaskContext
 {
 	public:
 		typedef std::map<std::string, std::string> ResourceToOwnerMap;
-		const int max_requests_per_cycle = 5; /**< Arbiter will process no more then 5 requests in updateHook. */
+		const unsigned int max_requests_per_cycle = 10;
 
 	protected:
 		// COMPONENT INTERFACE

@@ -1,6 +1,6 @@
 #include <sweetie_bot_resource_control/resource_client-service.hpp>
 
-#include <algorithm>
+#include <functional>
 
 #include <rtt/RTT.hpp>
 #include <rtt/Service.hpp>
@@ -46,9 +46,11 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 	protected:
 
 		/**
-		 * Owner component name.
+		 * Owner component name and unique client_id
 		 */
 		std::string owner_name;
+		unsigned int client_id; 
+		unsigned int request_counter;
 
 		// SERVICE STATE
 		/* 
@@ -85,7 +87,31 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 		 */
 		void processResourceAssignment(ResourceAssignment &msg)
 		{
-			if (state == ResourceClient::NONOPERATIONAL) return;
+			switch (state) {	
+				case ResourceClient::NONOPERATIONAL:
+					// skip message in NONOPERATIONAL state
+					return;
+
+				case ResourceClient::PENDING:
+					// in PENDING state skip messages until our request is processed
+					{
+						bool last_request_is_processed = false;
+						for(auto it = msg.request_ids.begin(); it != msg.request_ids.end(); it++) {
+							if ( (0xffff & *it) == client_id  && (*it >> 16) >= request_counter ) {
+								last_request_is_processed = true;
+								break;
+							}
+						}
+						if (!last_request_is_processed) {
+							log(INFO) << "[" << owner_name << "] ResourceService: ResourceAssignment skipped, state: " << state << endlog();
+							return;
+						}
+					}
+
+				case ResourceClient::OPERATIONAL:
+					// process all assigmetns
+					break;
+			}
 
 			if (msg.resources.size() != msg.owners.size()) {
 				log(ERROR) << "[" << owner_name << "] ResourceService: invalid ResourceAssignment message." << endlog();
@@ -126,29 +152,20 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 				}
 			}
 			// determine state transition
-			if (is_operational) {
-				state = ResourceClient::OPERATIONAL;
-			}
-			else {
-				switch (state) {
-					case ResourceClient::OPERATIONAL:
-						state = ResourceClient::NONOPERATIONAL;
-						break;
-					case ResourceClient::PENDING:
-						if (std::find(msg.requesters.begin(), msg.requesters.end(), owner_name) != msg.requesters.end()) 
-							state = ResourceClient::NONOPERATIONAL; // resource request was processed by arbiter
-						//TODO transition PENDING -> NONOPERATIONAL after timeout
-						break;
-				}
-			}
+			ResourceClient::ResourceClientState prev_state = state;
+			if (is_operational) state = ResourceClient::OPERATIONAL;
+			else state = ResourceClient::NONOPERATIONAL;
 			// report state change
-			log(INFO) << "[" << owner_name << "] ResourceService: ResourceAssignment processed, state = " << state << endlog();
+			log(INFO) << "[" << owner_name << "] ResourceService: ResourceAssignment processed, state: " << prev_state << " -> " << state << endlog();
 
 			// announce state
-			ResourceRequesterState requester_state_msg;
-			requester_state_msg.requester_name = owner_name;
-			requester_state_msg.state = state;
-			requester_state_port.write(requester_state_msg);
+			if (state != prev_state) {
+				ResourceRequesterState requester_state_msg;
+				requester_state_msg.request_id = client_id + (request_counter << 16);
+				requester_state_msg.requester_name = owner_name;
+				requester_state_msg.is_operational = is_operational;
+				requester_state_port.write(requester_state_msg);
+			}
 		}
 
 
@@ -165,31 +182,35 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 				doc("Send ResourceRequest to ResourceArbiter component.");
 			this->addPort("out_resource_requester_state", requester_state_port).
 				doc("Send information about client state cahnge to ResourceArbiter component.");
-			this->addEventPort("in_resource_assignment", assignment_port).
+			this->addEventPort("in_resource_assigment", assignment_port).
 				doc("Receive resource assignment changes from ResourceArbiter component.");
 
 			// OPERATIONS
-			this->addOperation("requestResources", &ResourceClientService::requestResources, this).
+			this->addOperation("requestResources", &ResourceClientService::requestResources, this, OwnThread).
 				doc("Request ResourceArbiter for given list of resources.").
 				arg("resources", "List of requested resources");
-			this->addOperation("stopOperational", &ResourceClientService::stopOperational, this).
+			this->addOperation("stopOperational", &ResourceClientService::stopOperational, this, OwnThread).
 				doc("Exit operational state. Inform ResourceArbiter and release all resources.");
 			this->addOperation("isOperational", &ResourceClientService::isOperational, this).
 				doc("Returns true if resource client is in operational state.");
 			this->addOperation("getState", &ResourceClientService::getState, this).
 				doc("Returns state of ResourceClient: 0=NONOPERATIONAL, 1=PENDING, 2=OPERATIONAL.");
-			this->addOperation("hasResource", &ResourceClientService::hasResource, this).
+			this->addOperation("hasResource", &ResourceClientService::hasResource, this, OwnThread).
 				doc("Check is resource client owns a resource.").
 				arg("resource", "Resource name.");
-			this->addOperation("hasResources", &ResourceClientService::hasResource, this).
+			this->addOperation("hasResources", &ResourceClientService::hasResources, this, OwnThread).
 				doc("Check is resource client owns resources.").
 				arg("resources", "Resource name list.");
-			this->addOperation("step", &ResourceClientService::step, this).
+			this->addOperation("step", &ResourceClientService::step, this, OwnThread).
 				doc("Process incomming resource assignment. Call this operation periodically.");
 
 			if (getOwner()) {
 				owner_name = getOwner()->getName();
+				client_id = 0xffff & hash<string>()(owner_name); // unique client id
+				request_counter = 0;
 			}
+			else throw std::invalid_argument("ResourceClient: owner pointer is null.");
+
 			log(INFO) << "[" << owner_name << "] ResourceService is loaded!" << endlog();
 		}
 
@@ -222,12 +243,18 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 				log(ERROR) << "[" << owner_name << "] ResourceService: assignment_port is not connected." << endlog();
 				return false;
 			}
+			if (!requester_state_port.connected()) {
+				log(ERROR) << "[" << owner_name << "] ResourceService: requester_state_port is not connected." << endlog();
+				return false;
+			}
 
 			// clear incoming assigment_messages
 			assignment_port.readNewest(assignment_msg);
+			request_counter++;
 
 			// send resource request
 			request_msg.requester_name = owner_name;
+			request_msg.request_id = client_id + ((unsigned long) request_counter << 16);
 			request_msg.resources = resources_requested;
 
 			request_port.write(request_msg);
@@ -241,7 +268,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			}
 
 			if (log(DEBUG)) {
-				log() << "[" << owner_name << "] ResourceService: requests [";
+				log() << "[" << owner_name << "] ResourceService: request " << request_msg.request_id << " [";
 				for(ResourceSet::const_iterator i = resources.begin(); i != resources.end(); i++) log() << i->first << ", ";
 				log() << "]" << endlog();
 			}
@@ -259,7 +286,8 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 
 			ResourceRequesterState msg;
 			msg.requester_name = owner_name;
-			msg.state = state;
+			msg.request_id = client_id + ((unsigned long) request_counter << 16);
+			msg.is_operational = state == ResourceClient::OPERATIONAL;
 			requester_state_port.write(msg);
 
 			log(INFO) << "[" << owner_name << "] ResourceService: exits opertional state.";
@@ -284,7 +312,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 
 		void step() 
 		{
-			if (assignment_port.read(assignment_msg, false) == RTT::NewData) {
+			while (assignment_port.read(assignment_msg, false) == RTT::NewData) {
 				processResourceAssignment(assignment_msg);
 			}
 		}
