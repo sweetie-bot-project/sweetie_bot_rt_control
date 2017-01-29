@@ -1,4 +1,4 @@
-<package format="2">
+<package>
   <name>sweetie_bot_resource_control</name>
   <version>1.0.0</version>
   <description>SweetieBot robot resource arbiter package.  </description>
@@ -13,10 +13,15 @@
   <author>Maxim Rovbo</author>
   <author>disRecord</author>
 
-  <depend>rtt</depend>
-  <depend>sweetie_bot_logger</depend>
-  <depend>sweetie_bot_resource_control_msgs</depend>
-  <depend>rtt_sweetie_bot_resource_control_msgs</depend>
+  <build_depend>rtt</build_depend>
+  <build_depend>sweetie_bot_logger</build_depend>
+  <build_depend>sweetie_bot_resource_control_msgs</build_depend>
+  <build_depend>rtt_sweetie_bot_resource_control_msgs</build_depend>
+
+  <run_depend>rtt</run_depend>
+  <run_depend>sweetie_bot_logger</run_depend>
+  <run_depend>sweetie_bot_resource_control_msgs</run_depend>
+  <run_depend>rtt_sweetie_bot_resource_control_msgs</run_depend>
 
   <export>
 
