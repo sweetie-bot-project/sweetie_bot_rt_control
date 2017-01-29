@@ -12,7 +12,7 @@ namespace controller {
 
 ControllerActionlibTemplate::ControllerActionlibTemplate(std::string const& name) : 
 	TaskContext(name),
-	action_server(this->provides(), "/motion/controller/" + name "/"),
+	action_server(this->provides()),
 	log("sweetie.motion.controller." + name)
 {
 
