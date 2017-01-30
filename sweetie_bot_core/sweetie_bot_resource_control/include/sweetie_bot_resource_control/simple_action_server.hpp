@@ -79,6 +79,13 @@ template <class ActionSpec> class OrocosSimpleActionServer
 		}
 
 		/**
+		* Check, if active goal is being preemted.
+		*/
+		bool isPreemting() {
+			return goal_active.isValid() && goal_active.getGoalStatus().status == actionlib_msgs::GoalStatus::PREEMPTING;
+		}
+
+		/**
 		* Check, if pending goal is present.
 		*/
 		bool isPending() {
@@ -97,7 +104,7 @@ template <class ActionSpec> class OrocosSimpleActionServer
 		 * Return pointer to pending goal.
 		 **/
 		boost::shared_ptr<const Goal> getPendingGoal() {
-			if (isPending()) return goal_active.getGoal();
+			if (isPending()) return goal_pending.getGoal();
 			else return nullptr;
 		}
 
@@ -180,20 +187,33 @@ template <class ActionSpec> bool OrocosSimpleActionServer<ActionSpec>::acceptPen
 {
 	if (isPending()) {
 		if (goal_active.isValid()) {
-			goal_active.setAborted(result, msg);
+			switch (goal_active.getGoalStatus().status) {
+				case actionlib_msgs::GoalStatus::ACTIVE:
+				case actionlib_msgs::GoalStatus::PREEMPTING:
+					goal_active.setAborted(result, msg);
+					break;
+			}
 		}
 		goal_pending.setAccepted();
 		goal_active = goal_pending;
 		return isActive();
 	}
-	else return false;
+	else {
+		// if pending is in RECALLING cancelHook perform necessary actions
+		return false;
+	}
 }
 
 template <class ActionSpec> bool OrocosSimpleActionServer<ActionSpec>::rejectPending(const Result& result, const std::string& msg) 
 {
 	if (!goal_pending.isValid())  return false;
-	goal_pending.setRejected(result, msg);
-	return true;
+	switch (goal_pending.getGoalStatus().status) {
+		case actionlib_msgs::GoalStatus::PENDING:
+		case actionlib_msgs::GoalStatus::RECALLING:
+			goal_pending.setRejected(result, msg);
+			return true;
+	}
+	return false;
 }
 
 template <class ActionSpec> bool OrocosSimpleActionServer<ActionSpec>::publishFeedback(const Feedback& feedpack)
@@ -206,28 +226,48 @@ template <class ActionSpec> bool OrocosSimpleActionServer<ActionSpec>::publishFe
 template <class ActionSpec> bool OrocosSimpleActionServer<ActionSpec>::abortActive(const Result& result, const std::string& msg)
 {
 	if (!goal_active.isValid())  return false;
-	goal_active.setAborted(result, msg);
-	return true;
+	switch (goal_active.getGoalStatus().status) {
+		case actionlib_msgs::GoalStatus::ACTIVE:
+		case actionlib_msgs::GoalStatus::PREEMPTING:
+			goal_active.setAborted(result, msg);
+			return true;
+	}
+	return false;
 }
 
 template <class ActionSpec> bool OrocosSimpleActionServer<ActionSpec>::cancelActive(const Result& result, const std::string& msg)
 {
-	if (!goal_active.isValid())  return false;
-	goal_active.setCanceled(result, msg);
+	if (!goal_active.isValid()) return false;
+	switch (goal_active.getGoalStatus().status) {
+		case actionlib_msgs::GoalStatus::ACTIVE:
+		case actionlib_msgs::GoalStatus::PREEMPTING:
+			goal_active.setCanceled(result, msg);
+			return true;
+	}
 	return true;
 }
 
 template <class ActionSpec> bool OrocosSimpleActionServer<ActionSpec>::succeedActive(const Result& result, const std::string& msg)
 {
 	if (!goal_active.isValid()) return false;
-	goal_active.setSucceeded(result, msg);
-	return true;
+	switch (goal_active.getGoalStatus().status) {
+		case actionlib_msgs::GoalStatus::ACTIVE:
+		case actionlib_msgs::GoalStatus::PREEMPTING:
+			goal_active.setSucceeded(result, msg);
+			return true;
+	}
+	return false;
 }
 
 template <class ActionSpec> void OrocosSimpleActionServer<ActionSpec>::goalCallback(GoalHandle gh) 
 {
 	if (goal_pending.isValid()) {
-	   	goal_pending.setRejected(Result(), "Pending goal is replaced by new received goal.");
+		switch (goal_pending.getGoalStatus().status) {
+			case actionlib_msgs::GoalStatus::PENDING:
+			case actionlib_msgs::GoalStatus::RECALLING:
+				goal_pending.setRejected(Result(), "Pending goal is replaced by new received goal.");
+				break;
+		}
 	}
 	goal_pending = gh;
 	if (isPending() && newGoalHook) {
@@ -236,19 +276,23 @@ template <class ActionSpec> void OrocosSimpleActionServer<ActionSpec>::goalCallb
 }
 
 template <class ActionSpec> void OrocosSimpleActionServer<ActionSpec>::cancelCallback(GoalHandle gh) {
-	if (goal_active == gh) {
-		if (gh.isValid() && gh.getGoalStatus().status == actionlib_msgs::GoalStatus::PREEMPTING) {
-			if (cancelGoalHook) cancelGoalHook();
-			gh.setCanceled(Result(), "Active goal is canceled by client request.");
-		}
-	}
-	else if (goal_pending == gh) {
-		if (gh.isValid() && gh.getGoalStatus().status == actionlib_msgs::GoalStatus::RECALLING) {
-			gh.setCanceled(Result(), "Pending goal is canceled by client request.");
-		}
-	}
-	else {
-		gh.setCanceled(Result(), "Unknown goal.");
+	if (!gh.isValid()) return;
+	switch (gh.getGoalStatus().status) {
+		case actionlib_msgs::GoalStatus::ACTIVE:
+		case actionlib_msgs::GoalStatus::PREEMPTING:
+		case actionlib_msgs::GoalStatus::PENDING:
+		case actionlib_msgs::GoalStatus::RECALLING:
+			if (goal_active == gh) {
+				if (cancelGoalHook) cancelGoalHook();
+				cancelActive(Result(), "Active goal is canceled by client request.");
+			}
+			else if (goal_pending == gh) {
+				gh.setCanceled(Result(), "Pending goal is canceled by client request.");
+			}
+			else {
+				gh.setCanceled(Result(), "Unknown goal.");
+			}
+			break;
 	}
 }
 

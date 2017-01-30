@@ -66,6 +66,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 		 */
 		boost::function<bool()> resourceChangedHook;
 
+		//boost::function<void()> stopOperationalHook;
 		/**
 		 * Sets with assigned and requested resources.
 		 */
@@ -103,7 +104,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 							}
 						}
 						if (!last_request_is_processed) {
-							log(INFO) << "[" << owner_name << "] ResourceService: ResourceAssignment skipped, state: " << state << endlog();
+							log(INFO) << "`" << owner_name << "` ResourceService: ResourceAssignment skipped, state: " << state << endlog();
 							return;
 						}
 					}
@@ -119,7 +120,8 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			}
 
 			// modify lis of owned resources
-			resources.clear();
+			// TODO bug: additional resource is not visible
+			for(auto it = resources.begin(); it != resources.end(); it++) it->second = false;
 			for(int i = 0; i < msg.resources.size(); i++) {
 				if (msg.owners[i] == owner_name) { 
 					// create resource or mark it `owned`
@@ -180,7 +182,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			// PORTS
 			this->addPort("out_resource_request", request_port).
 				doc("Send ResourceRequest to ResourceArbiter component.");
-			this->addPort("out_resource_requester_state", requester_state_port).
+			this->addPort("out_resource_requester_status", requester_state_port).
 				doc("Send information about client state cahnge to ResourceArbiter component.");
 			this->addEventPort("in_resource_assigment", assignment_port).
 				doc("Receive resource assignment changes from ResourceArbiter component.");
@@ -258,6 +260,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			request_msg.resources = resources_requested;
 
 			request_port.write(request_msg);
+			state = ResourceClient::PENDING;
 
 			// save resource list
 			resources.clear();
@@ -268,7 +271,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			}
 
 			if (log(DEBUG)) {
-				log() << "[" << owner_name << "] ResourceService: request " << request_msg.request_id << " [";
+				log() << "`" << owner_name << "` ResourceService: request " << request_msg.request_id << " [";
 				for(ResourceSet::const_iterator i = resources.begin(); i != resources.end(); i++) log() << i->first << ", ";
 				log() << "]" << endlog();
 			}
@@ -290,7 +293,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			msg.is_operational = state == ResourceClient::OPERATIONAL;
 			requester_state_port.write(msg);
 
-			log(INFO) << "[" << owner_name << "] ResourceService: exits opertional state.";
+			log(INFO) << "[" << owner_name << "] ResourceService: exits opertional state." << endlog();
 
 			return true;
 		}

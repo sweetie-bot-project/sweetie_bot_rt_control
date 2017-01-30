@@ -90,8 +90,15 @@ void ControllerTemplate::updateHook()
 	resource_client->step();	
 
 	// main operational 
-	if (resource_client->isOperational()) {
-		log(DEBUG) << "ControllerTemplate executes updateHook!" << endlog();
+	switch (resource_client->getState()) {
+		case ResourceClient::OPERATIONAL:
+			log(DEBUG) << "ControllerTemplate executes updateHook!" << endlog();
+			break;
+
+		case ResourceClient::NONOPERATIONAL:
+			log(INFO) << "ControllerTemplate is exiting  operational state ! " << endlog();
+			this->stop();
+			break;
 	}
 }
 

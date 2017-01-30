@@ -16,6 +16,7 @@ namespace motion {
 class ResourceClientInterface
 {
   public:
+  	 //virtual bool resourceChangeRequest(const std::vector<std::string>& resource_list) = 0;
   	 virtual bool requestResources(const std::vector<std::string>& resource_list) = 0;
   	 virtual bool stopOperational() = 0;
   	 virtual bool isOperational() = 0;
@@ -23,7 +24,8 @@ class ResourceClientInterface
   	 virtual bool hasResource(const std::string& resource) = 0;
   	 virtual bool hasResources(const std::vector<std::string>& resource_list) = 0;
   	 virtual void step() = 0;
-	 virtual void setResourceChangeHook(boost::function<bool()> resourceChangedHook_) = 0;
+	 virtual void setResourceChangeHook(boost::function<bool()> resourceChangeHook_) = 0;
+//	 virtual void setStopOperationalHook(boost::function<void()> stopOperationalHook_) = 0;
 };
 
 
@@ -46,7 +48,7 @@ class ResourceClient: public RTT::ServiceRequester
 		RTT::OperationCaller< void() > step;
 
 		ResourceClient(RTT::TaskContext *owner) :
-			ServiceRequester("resource_client_requester", owner),
+			ServiceRequester("resource_client", owner),
 			requestResources("requestResources"),
 			stopOperational("stopOperational"),
 			isOperational("isOperational"),
@@ -58,6 +60,7 @@ class ResourceClient: public RTT::ServiceRequester
 		addOperationCaller(requestResources);
 		addOperationCaller(stopOperational);
 		addOperationCaller(isOperational);
+		addOperationCaller(getState);
 		addOperationCaller(hasResource);
 		addOperationCaller(hasResources);
 		addOperationCaller(step);

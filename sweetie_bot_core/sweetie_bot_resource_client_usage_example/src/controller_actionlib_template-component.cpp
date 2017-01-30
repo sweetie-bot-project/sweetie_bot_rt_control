@@ -59,7 +59,7 @@ bool ControllerActionlibTemplate::configureHook()
 	}
 	resource_client->setResourceChangeHook(boost::bind(&ControllerActionlibTemplate::resourceChangedHook, this));
 
-	// Start action server: peblish feedback
+	// Start action server: publish feedback
 	if (!action_server.start(true)) {
 		log(ERROR) << "Unable to start action_server." << endlog();
 		return false;
@@ -76,7 +76,7 @@ bool ControllerActionlibTemplate::configureHook()
 
 void ControllerActionlibTemplate::newGoalHook(const Goal& pending_goal) 
 {
-	log(INFO) << "newGoalHook: new pending goal: moving_time = " << goal.speed << " speed = " << goal.speed << endlog();
+	log(INFO) << "newGoalHook: new pending goal: moving_time = " << pending_goal.speed << " speed = " << pending_goal.speed << endlog();
 
 	// TODO sanity check
 	if (pending_goal.moving_time > 1000) {
@@ -85,13 +85,18 @@ void ControllerActionlibTemplate::newGoalHook(const Goal& pending_goal)
 		return;
 	}
 	// TODO check start conditions
+	// TODO long preparations to goal activation
 
 	if (resource_client->isOperational()) {
 		log(INFO) << "newGoalHook: abort active goal." << endlog();
 		// we are in operational state and own all necessary resources
 		// or we can reject pending goal
+		
 		result.moving_time = TimeService::Instance()->getSeconds(start_time);
 		action_server.acceptPending(result, "Aborted by new goal.");
+		//TODO replace active goal
+		goal = pending_goal;
+		start_time = TimeService::Instance()->getTicks();
 	}
 	else {
 		log(INFO) << "newGoalHook: request resources." << endlog();
@@ -120,9 +125,15 @@ bool ControllerActionlibTemplate::resourceChangedHook()
 				result.moving_time = TimeService::Instance()->getSeconds(start_time);
 			
 			// TODO: check startup conditions if necessary
-			// TODO: run startup code
+			if (action_server.isActive()) {
+				//TODO replace active goal
+				start_time = TimeService::Instance()->getTicks();
+			}
+			else {
+				// TODO prepare to pursue active goal
+				start_time = TimeService::Instance()->getTicks();
+			}
 			goal = *pending_goal;
-			start_time = TimeService::Instance()->getTicks();
 
 			// accept pending goal and abort active
 			success = action_server.acceptPending(result, "New goal is arrived.");
@@ -136,7 +147,7 @@ bool ControllerActionlibTemplate::resourceChangedHook()
 		}
 		else {
 			success = action_server.isActive();
-			log(INFO) << "resourceChangedHook: have no pending goal, active goal status = " << success  << endlog();
+			log(INFO) << "resourceChangedHook: have no pending goal, active goal status = " << (int) success  << endlog();
 			// exit opertional state if there is no goal
 			return success;
 		}
@@ -147,10 +158,8 @@ bool ControllerActionlibTemplate::resourceChangedHook()
 		action_server.rejectPending(result, "Not enough resources.");
 		// abort active goal
 		if (action_server.isActive()) {
-			// TODO specific cleanup
-			// set result
+			// set result and abort
 			result.moving_time = TimeService::Instance()->getSeconds(start_time);
-			// abort
 			action_server.abortActive(result, "Not enough resources.");
 			log(INFO) << "resourceChangedHook: active goal is aborted." << endlog();
 		}
@@ -164,12 +173,10 @@ void ControllerActionlibTemplate::cancelGoalHook()
 
 	// set action result
 	result.moving_time = TimeService::Instance()->getSeconds(start_time);
-	// cancel action
-	// TODO action_server.cancelActive(result, "Canceled by user request.");
-	action_server.abortActive(result, "Canceled by user request.");	
+	// cancel, abort or success action
+	action_server.cancelActive(result, "Canceled by user request.");
 	// stop
 	resource_client->stopOperational();
-	// TODO specific cleanup
 }
 
 bool ControllerActionlibTemplate::startHook()
@@ -183,8 +190,9 @@ void ControllerActionlibTemplate::updateHook()
 	log(DEBUG) << "ControllerActionlibTemplate executes updateHook !" << endlog();
 	// check messages on resource_assigment port
 	resource_client->step();
-	
-	if (resource_client->isOperational()) {
+
+	int state = resource_client->getState();
+	if (state == ResourceClient::OPERATIONAL) {
 		// check goal is not necessary: we will be notified via cancelGoalHook.
 		// Also we have goal buffer, so using action_server.getActiveGoal() is not necessary.
 		log(DEBUG) << "Moving to goal: speed = " << goal.speed << endlog();
@@ -205,8 +213,11 @@ void ControllerActionlibTemplate::updateHook()
 			stop();
 		}
 	} 
-	else {
-		stop();
+	else if (state == ResourceClient::NONOPERATIONAL) {
+		log(DEBUG) << "Exit OPERATIONAL state." << endlog();
+		// TODO: clean up 
+		// stop
+		this->stop();
 	}
 }
 

@@ -50,9 +50,6 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   ResourceRequest.msg
-  ResourceReleased.msg
-  ResourceReply.msg
-  ResourceDemandRelease.msg
   ResourceAssignment.msg
   ResourceRequesterState.msg
 )
