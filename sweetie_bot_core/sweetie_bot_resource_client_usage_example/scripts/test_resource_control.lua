@@ -12,6 +12,11 @@ require "logger"
 
 logger.init_loglevels_log4cpp("resource_control.log4cpp")
 
+-- allows ROS to call start/stop via scriptiong commands
+ros:import("rtt_rosdeployment")
+depl:loadService("Deployer", "rosdeployment")
+-- use "rosservice call /motion/Delpoyer/rosdeployment cont1.start()"
+
 -- init resource_control module
 require "resource_control"
 
