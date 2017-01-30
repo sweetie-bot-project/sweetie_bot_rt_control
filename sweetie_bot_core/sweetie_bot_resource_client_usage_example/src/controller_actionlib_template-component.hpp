@@ -65,6 +65,7 @@ class ControllerActionlibTemplate : public RTT::TaskContext
 		ControllerActionlibTemplate(std::string const& name);
 
 		bool resourceChangedHook();
+		void stopOperationalHook();
 
 		bool configureHook();
 		bool startHook();

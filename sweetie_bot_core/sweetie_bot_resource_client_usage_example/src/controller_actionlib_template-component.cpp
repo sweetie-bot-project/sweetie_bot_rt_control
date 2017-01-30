@@ -58,6 +58,7 @@ bool ControllerActionlibTemplate::configureHook()
 		return false;
 	}
 	resource_client->setResourceChangeHook(boost::bind(&ControllerActionlibTemplate::resourceChangedHook, this));
+	resource_client->setStopOperationalHook(boost::bind(&ControllerActionlibTemplate::stopOperationalHook, this));
 
 	// Start action server: publish feedback
 	if (!action_server.start(true)) {
@@ -101,12 +102,10 @@ void ControllerActionlibTemplate::newGoalHook(const Goal& pending_goal)
 	else {
 		log(INFO) << "newGoalHook: request resources." << endlog();
 		// request resources
-		resource_client->requestResources(resources_required);
+		resource_client->resourceChangeRequest(resources_required);
 		start();
 	}
 }
-		
-
 
 bool ControllerActionlibTemplate::resourceChangedHook()
 {
@@ -191,8 +190,7 @@ void ControllerActionlibTemplate::updateHook()
 	// check messages on resource_assigment port
 	resource_client->step();
 
-	int state = resource_client->getState();
-	if (state == ResourceClient::OPERATIONAL) {
+	if (resource_client->isOperational()) {
 		// check goal is not necessary: we will be notified via cancelGoalHook.
 		// Also we have goal buffer, so using action_server.getActiveGoal() is not necessary.
 		log(DEBUG) << "Moving to goal: speed = " << goal.speed << endlog();
@@ -210,20 +208,23 @@ void ControllerActionlibTemplate::updateHook()
 			action_server.succeedActive(result, "Goal is reached.");
 			// exit operational state
 			resource_client->stopOperational();
-			stop();
 		}
 	} 
-	else if (state == ResourceClient::NONOPERATIONAL) {
-		log(DEBUG) << "Exit OPERATIONAL state." << endlog();
-		// TODO: clean up 
-		// stop
-		this->stop();
-	}
+}
+
+void ControllerActionlibTemplate::stopOperationalHook() {
+	log(DEBUG) << "Exit OPERATIONAL state." << endlog();
+	// TODO: clean up 
+	// stop
+	this->stop();
 }
 
 void ControllerActionlibTemplate::stopHook() 
 {
-	log(INFO) << "ControllerActionlibTemplate is stopped!" << endlog();
+	if (resource_client->isOperational()) { // prevent recursion
+		resource_client->stopOperational()
+		log(INFO) << "ControllerActionlibTemplate is stopped!" << endlog();
+	}
 }
 
 void ControllerActionlibTemplate::cleanupHook() 

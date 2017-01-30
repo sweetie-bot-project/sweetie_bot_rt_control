@@ -19,8 +19,8 @@ ControllerTemplate::ControllerTemplate(std::string const& name)  :
 		doc("List of required resources.").
 		set(res);
 	// operations: provided
-	this->addOperation("resourceChangedHook", &ControllerTemplate::resourceChangedHook, this).
-		doc("Check if all necessary resources present and component ready to be set operational.");
+	this->addOperation("resourceChangedHook", &ControllerTemplate::resourceChangedHook, this, OwnThread).
+		doc("Hook is called by `resource_client` to check if all necessary resources present and component is ready to be set operational.");
 	// services: required
 	resource_client = new ResourceClient(this);
 	this->requires()->addServiceRequester(ServiceRequester::shared_ptr(resource_client));
@@ -77,7 +77,7 @@ bool ControllerTemplate::startHook()
 	// reset state variables
 	// check if controller can be set operational in current conditions
 	// request resources
-	resource_client->requestResources(resources_required);
+	resource_client->resourceChangeRequest(resources_required);
 
 	// now update hook will be periodically executed
 	log(INFO) << "ControllerTemplate is started !" << endlog();
@@ -86,19 +86,18 @@ bool ControllerTemplate::startHook()
 
 void ControllerTemplate::updateHook()
 {
+	log(DEBUG) << "ControllerTemplate executes updateHook!" << endlog();
 	// let resource_client do it stuff
 	resource_client->step();	
 
 	// main operational 
-	switch (resource_client->getState()) {
-		case ResourceClient::OPERATIONAL:
-			log(DEBUG) << "ControllerTemplate executes updateHook!" << endlog();
-			break;
-
-		case ResourceClient::NONOPERATIONAL:
-			log(INFO) << "ControllerTemplate is exiting  operational state ! " << endlog();
-			this->stop();
-			break;
+	int state = resource_client->getState();
+	if (state & ResourceClient::OPERATIONAL) {
+		log(DEBUG) << "ControllerTemplate is operational in updateHook!" << endlog();
+	}
+	else if (state == ResourceClient::NONOPERATIONAL) {
+		log(INFO) << "ControllerTemplate is exiting  operational state !" << endlog();
+		this->stop();
 	}
 }
 
@@ -107,9 +106,10 @@ void ControllerTemplate::updateHook()
  */
 void ControllerTemplate::stopHook() 
 {
+	// user calls stop() directly 
+	if (resource_client->isOperational()) resource_client->stopOperational();
 	// deinitialization
 	// release all resources
-	resource_client->stopOperational();
 	log(INFO) << "ControllerTemplate is stopped!" << endlog();
 }
 

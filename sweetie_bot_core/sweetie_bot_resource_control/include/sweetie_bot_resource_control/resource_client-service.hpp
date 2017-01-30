@@ -16,16 +16,17 @@ namespace motion {
 class ResourceClientInterface
 {
   public:
-  	 //virtual bool resourceChangeRequest(const std::vector<std::string>& resource_list) = 0;
-  	 virtual bool requestResources(const std::vector<std::string>& resource_list) = 0;
+  	 virtual bool resourceChangeRequest(const std::vector<std::string>& resource_list) = 0;
   	 virtual bool stopOperational() = 0;
+  	 virtual void step() = 0;
+
   	 virtual bool isOperational() = 0;
   	 virtual int getState() = 0;
   	 virtual bool hasResource(const std::string& resource) = 0;
   	 virtual bool hasResources(const std::vector<std::string>& resource_list) = 0;
-  	 virtual void step() = 0;
+
 	 virtual void setResourceChangeHook(boost::function<bool()> resourceChangeHook_) = 0;
-//	 virtual void setStopOperationalHook(boost::function<void()> stopOperationalHook_) = 0;
+	 virtual void setStopOperationalHook(boost::function<void()> stopOperationalHook_) = 0;
 };
 
 
@@ -40,31 +41,33 @@ class ResourceClient: public RTT::ServiceRequester
 		};
 
 	public:
-		RTT::OperationCaller< bool(const std::vector<std::string>&) > requestResources;
+		RTT::OperationCaller< bool(const std::vector<std::string>&) > resourceChangeRequest;
+		RTT::OperationCaller< void() > step;
 		RTT::OperationCaller< bool() > stopOperational;
+
 		RTT::OperationCaller< bool() > isOperational;
 		RTT::OperationCaller< int() > getState;
 		RTT::OperationCaller< bool(const std::string&) > hasResource;
 		RTT::OperationCaller< bool(const std::vector<std::string>&) > hasResources;
-		RTT::OperationCaller< void() > step;
 
 		ResourceClient(RTT::TaskContext *owner) :
 			ServiceRequester("resource_client", owner),
-			requestResources("requestResources"),
+			step("step"),
+			resourceChangeRequest("resourceChangeRequest"),
 			stopOperational("stopOperational"),
 			isOperational("isOperational"),
 			getState("getState"),
 			hasResource("hasResource"),
-			hasResources("hasResources"),
-			step("step")
+			hasResources("hasResources")
 	{
-		addOperationCaller(requestResources);
+		addOperationCaller(resourceChangeRequest);
 		addOperationCaller(stopOperational);
+		addOperationCaller(step);
+
 		addOperationCaller(isOperational);
 		addOperationCaller(getState);
 		addOperationCaller(hasResource);
 		addOperationCaller(hasResources);
-		addOperationCaller(step);
 	}
 };
 
