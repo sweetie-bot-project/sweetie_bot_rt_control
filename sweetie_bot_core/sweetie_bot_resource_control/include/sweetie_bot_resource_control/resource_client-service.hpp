@@ -32,10 +32,11 @@ class ResourceClientInterface
 class ResourceClient: public RTT::ServiceRequester
 {
 	public:
-		enum ResourceClientState {
+		enum ResourceClientStateEnum {
 			NONOPERATIONAL = 0, 
 			PENDING = 1, 
 			OPERATIONAL = 2,
+			OPERATIONAL_PENDING = 3,
 		};
 
 	public:

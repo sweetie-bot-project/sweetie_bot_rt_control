@@ -33,8 +33,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 		 * Resources set. Element presents if it was requsted, value is true if it is owned.
 		 */
 		typedef std::map<std::string, bool> ResourceSet;
-		// port buffers
-		ResourceAssignment assignment_msg;
+		typedef int ResourceClientState;
 
 	protected:
 		// SERVICE INTERFACE
@@ -56,7 +55,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 		/* 
 		 * Resource client state: NONOPERATIONAL, PENDING, OPERATIONAL.
 		 */
-		ResourceClient::ResourceClientState state;
+		ResourceClientState state;
 
 		/* 
 		 * Hook that is provided by the controller that is using this plugin to determine
@@ -71,6 +70,9 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 		 * Sets with assigned and requested resources.
 		 */
 		ResourceSet resources;
+
+		// port buffers
+		ResourceAssignment assignment_msg;
 
 #ifdef SWEETIEBOT_LOGGER
 		SWEETIEBOT_LOGGER log;
@@ -94,6 +96,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 					return;
 
 				case ResourceClient::PENDING:
+				case ResourceClient::OPERATIONAL_PENDING:
 					// in PENDING state skip messages until our request is processed
 					{
 						bool last_request_is_processed = false;
@@ -154,7 +157,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 				}
 			}
 			// determine state transition
-			ResourceClient::ResourceClientState prev_state = state;
+			ResourceClientState prev_state = state;
 			if (is_operational) state = ResourceClient::OPERATIONAL;
 			else state = ResourceClient::NONOPERATIONAL;
 			// report state change
@@ -220,7 +223,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 
 		bool isOperational()
 		{
-			return state == ResourceClient::OPERATIONAL;
+			return state & ResourceClient::OPERATIONAL;
 		}
 
 		int getState()
@@ -260,7 +263,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			request_msg.resources = resources_requested;
 
 			request_port.write(request_msg);
-			state = ResourceClient::PENDING;
+			state = state | ResourceClient::PENDING; 
 
 			// save resource list
 			resources.clear();
@@ -290,7 +293,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			ResourceRequesterState msg;
 			msg.requester_name = owner_name;
 			msg.request_id = client_id + ((unsigned long) request_counter << 16);
-			msg.is_operational = state == ResourceClient::OPERATIONAL;
+			msg.is_operational = false; 
 			requester_state_port.write(msg);
 
 			log(INFO) << "[" << owner_name << "] ResourceService: exits opertional state." << endlog();
