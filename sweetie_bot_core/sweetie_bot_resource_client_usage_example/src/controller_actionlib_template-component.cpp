@@ -222,7 +222,7 @@ void ControllerActionlibTemplate::stopOperationalHook() {
 void ControllerActionlibTemplate::stopHook() 
 {
 	if (resource_client->isOperational()) { // prevent recursion
-		resource_client->stopOperational()
+		resource_client->stopOperational();
 		log(INFO) << "ControllerActionlibTemplate is stopped!" << endlog();
 	}
 }
