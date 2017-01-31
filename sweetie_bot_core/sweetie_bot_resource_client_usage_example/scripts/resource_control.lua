@@ -1,5 +1,6 @@
 -- RESOURCE CONTROL DEPLOYMENT MODULE
 --
+require 'rttlib'
 
 -- get Deployer
 local depl = rtt.getTC():getPeer("Deployer")

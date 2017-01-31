@@ -1,6 +1,7 @@
 -- LOGGER DEPLOYMENT MODULE
 --
 -- Simplify logger initialization.
+require 'rttlib'
 
 -- get Deployer
 local depl = rtt.getTC():getPeer("Deployer")
