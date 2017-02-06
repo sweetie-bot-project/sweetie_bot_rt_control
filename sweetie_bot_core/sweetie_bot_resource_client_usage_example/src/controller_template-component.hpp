@@ -6,6 +6,9 @@
 
 #include <rtt/Component.hpp>
 
+//#include <orocos/std_srvs/typekit/SetBool.h>
+#include <std_srvs/SetBool.h>
+
 #include <sweetie_bot_logger/logger.hpp>
 #include <sweetie_bot_resource_control/resource_client-service.hpp>
 
@@ -49,6 +52,8 @@ class ControllerTemplate : public RTT::TaskContext
 		void updateHook();
 		void stopHook();
 		void cleanupHook();
+
+		bool rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp);
 };
 
 } // namespace controller

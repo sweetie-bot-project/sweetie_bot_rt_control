@@ -45,6 +45,11 @@ setProperty(cont3, "required_resources", "strings", {"leg1", "leg2", "leg3", "le
 resource_control.register_controller("cont3")
 cont3:setPeriod(1.0)
 
+-- ROS compatible operations support
+cont1:loadService("rosservice")
+cont1:provides("rosservice"):connect("rosSetOperational", "/motion/controller/cont1/set_operational", "std_srvs/SetBool")
+-- use `rosservice call /motion/controller/cont1/set_operational 1` to start the controller
+
 cont1:configure()
 cont2:configure()
 cont3:configure()

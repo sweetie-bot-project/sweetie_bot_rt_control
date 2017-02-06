@@ -13,17 +13,20 @@
   <author>disRecord</author>
 
   <depend>rtt</depend>
+  <depend>actionlib</depend>
   <depend>sweetie_bot_logger</depend>
   <depend>rtt_actionlib</depend>
-  <depend>actionlib</depend>
-  <depend>sweetie_bot_resource_control_msgs</depend>
+
+  <depend>rtt_std_srvs</depend>
   <depend>rtt_sweetie_bot_resource_control_msgs</depend>
+
   <depend>sweetie_bot_resource_control</depend>
 
   <export>
 	  <rtt_ros>
 		  <!-- Plugin deps are loaded automatically by the rtt_ros import service -->
 		  <plugin_depend>rtt_sweetie_bot_resource_control_msgs</plugin_depend>
+		  <plugin_depend>rtt_std_srvs</plugin_depend>
 		  <plugin_depend>rtt_actionlib</plugin_depend>
 	  </rtt_ros>
   </export>

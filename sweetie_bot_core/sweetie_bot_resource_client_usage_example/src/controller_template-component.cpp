@@ -21,6 +21,8 @@ ControllerTemplate::ControllerTemplate(std::string const& name)  :
 	// operations: provided
 	this->addOperation("resourceChangedHook", &ControllerTemplate::resourceChangedHook, this, OwnThread).
 		doc("Hook is called by `resource_client` to check if all necessary resources present and component is ready to be set operational.");
+	this->addOperation("rosSetOperational", &ControllerTemplate::rosSetOperational, this)
+		.doc("ROS compatible start/stop operation (std_srvs::SetBool).");
 	// services: required
 	resource_client = new ResourceClient(this);
 	this->requires()->addServiceRequester(ServiceRequester::shared_ptr(resource_client));
@@ -117,6 +119,23 @@ void ControllerTemplate::cleanupHook()
 {
 	// free memory, close files and etc
 	log(INFO) << "ControllerTemplate cleaning up !" << endlog();
+}
+
+/**
+ * ROS comaptible start/stop operation.
+ */
+bool ControllerTemplate::rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp)
+{
+	if (req.data) {
+		resp.success = start();
+		resp.message = "start() is called.";
+	}
+	else {
+		stop();
+		resp.success = true;
+		resp.message = "stop() is called.";
+	}
+	return true;
 }
 
 } // namespace controller
