@@ -20,10 +20,10 @@ class ResourceClientInterface
   	 virtual bool stopOperational() = 0;
   	 virtual void step() = 0;
 
-  	 virtual bool isOperational() = 0;
-  	 virtual int getState() = 0;
-  	 virtual bool hasResource(const std::string& resource) = 0;
-  	 virtual bool hasResources(const std::vector<std::string>& resource_list) = 0;
+  	 virtual bool isOperational() const = 0;
+  	 virtual int getState() const = 0;
+  	 virtual bool hasResource(const std::string& resource) const = 0;
+  	 virtual bool hasResources(const std::vector<std::string>& resource_list) const = 0;
 
 	 virtual void setResourceChangeHook(boost::function<bool()> resourceChangeHook_) = 0;
 	 virtual void setStopOperationalHook(boost::function<void()> stopOperationalHook_) = 0;

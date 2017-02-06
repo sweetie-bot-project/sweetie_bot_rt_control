@@ -237,12 +237,12 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 
 		// Properties' getters and setters
 
-		bool isOperational()
+		bool isOperational() const
 		{
 			return state & ResourceClient::OPERATIONAL;
 		}
 
-		int getState()
+		int getState() const
 		{
 			return state;
 		}
@@ -325,13 +325,13 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			return true;
 		}
 
-		bool hasResource(const std::string& res)
+		bool hasResource(const std::string& res) const
 		{
 			ResourceSet::const_iterator it = resources.find(res);
 			return it != resources.end() && it->second;
 		}
 
-		bool hasResources(const std::vector<std::string>& res)
+		bool hasResources(const std::vector<std::string>& res) const
 		{
 			for (int i = 0; i < res.size(); i++) {
 				ResourceSet::const_iterator it = resources.find(res[i]);

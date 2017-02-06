@@ -74,28 +74,28 @@ template <class ActionSpec> class OrocosSimpleActionServer
 		/**
 		* Check, if active goal is present.
 		*/
-		bool isActive() {
+		bool isActive() const {
 			return goal_active.isValid() && goal_active.getGoalStatus().status == actionlib_msgs::GoalStatus::ACTIVE;
 		}
 
 		/**
 		* Check, if active goal is being preemted.
 		*/
-		bool isPreemting() {
+		bool isPreemting() const {
 			return goal_active.isValid() && goal_active.getGoalStatus().status == actionlib_msgs::GoalStatus::PREEMPTING;
 		}
 
 		/**
 		* Check, if pending goal is present.
 		*/
-		bool isPending() {
+		bool isPending() const {
 			return goal_pending.isValid() && goal_pending.getGoalStatus().status == actionlib_msgs::GoalStatus::PENDING;
 		}
 
 		/** 
 		* Return pointer to active goal.
 		*/
-		boost::shared_ptr<const Goal> getActiveGoal() {
+		boost::shared_ptr<const Goal> getActiveGoal() const {
 			if (isActive()) return goal_active.getGoal();
 			else return nullptr;
 		}
@@ -103,7 +103,7 @@ template <class ActionSpec> class OrocosSimpleActionServer
 		/**
 		 * Return pointer to pending goal.
 		 **/
-		boost::shared_ptr<const Goal> getPendingGoal() {
+		boost::shared_ptr<const Goal> getPendingGoal() const {
 			if (isPending()) return goal_pending.getGoal();
 			else return nullptr;
 		}
