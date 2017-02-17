@@ -7,6 +7,30 @@ using namespace RTT;
 namespace sweetie_bot {
 namespace motion {
 namespace controller {
+	//
+//TODO move somewhere
+
+/**
+ * @brief Find OROCOS subservice which implements given interface.
+ * Find OROCOS subservice which implements given interface ServiceInterface.
+ * @param service Pointer to parent service.
+ * @return Pointer to found subservice or zero if nothing found.
+ **/
+template<class ServiceInterface> ServiceInterface * getSubServiceByInterface(Service * service) 
+{
+	if (!service) return nullptr;
+
+	ServiceInterface * found_service;
+	Service::ProviderNames subservices;
+
+	subservices = service->getProviderNames();
+	for(Service::ProviderNames::const_iterator name = subservices.begin(); name != subservices.end(); name++) {
+        found_service = dynamic_cast<ServiceInterface*>(service->getService(*name).get());
+		if (found_service) return found_service;
+	}
+	return nullptr;
+}
+
 
 ControllerTemplate::ControllerTemplate(std::string const& name)  : 
 	TaskContext(name, RTT::base::TaskCore::PreOperational),
@@ -19,20 +43,19 @@ ControllerTemplate::ControllerTemplate(std::string const& name)  :
 		doc("List of required resources.").
 		set(res);
 	// operations: provided
-	this->addOperation("resourceChangedHook", &ControllerTemplate::resourceChangedHook, this, OwnThread).
-		doc("Hook is called by `resource_client` to check if all necessary resources present and component is ready to be set operational.");
 	this->addOperation("rosSetOperational", &ControllerTemplate::rosSetOperational, this)
 		.doc("ROS compatible start/stop operation (std_srvs::SetBool).");
-	// services: required
-	resource_client = new ResourceClient(this);
-	this->requires()->addServiceRequester(ServiceRequester::shared_ptr(resource_client));
 	// other actions
 	log(INFO) << "ControllerTemplate is constructed!" << endlog();
 }
 
-/*	Determines if the controller can function normally in the given situation or not. 
- *	Usually it just checks if all the required resources have been allocated to it.
- *	The isOperational flag will be set by the plugin.
+/*	
+ *	@brief Hook is called by `resource_client` to check if all necessary resources present and component is ready to be set operational.
+ *  
+ *	It determines if the controller can function normally in the given situation or not. 
+ *	This usually involves checks if all the required resources have been allocated to it.
+ *
+ *	@return true if component is ready to become opertional. Otherwise resources would be released and state would be switched to non-operational.
  */
 bool ControllerTemplate::resourceChangedHook()
 {
@@ -53,11 +76,14 @@ bool ControllerTemplate::resourceChangedHook()
 bool ControllerTemplate::configureHook()
 {
 	// INITIALIZATION
-	// check if ResourceClient presents
-	if (!resource_client->ready()) {
-		log(ERROR) << getName() << ": `resource_client` service is not ready!" << endlog();
+	// check if ResourceClient Service presents: try to find it amoung loaded services
+	resource_client = getSubServiceByInterface<ResourceClientInterface>(this->provides().get());
+	if (!resource_client) {
+		log(ERROR) << "ResourceClient plugin is not loaded." << endlog();
 		return false;
 	}
+	resource_client->setResourceChangeHook(boost::bind(&ControllerTemplate::resourceChangedHook, this));
+
 	// TODO get properties
 	// TODO check if necessary ports and operations are connected
 	// TODO allocate memory
@@ -69,8 +95,8 @@ bool ControllerTemplate::configureHook()
 /* 
  * Tries to make the controller operational. 
  *
- * Sends a resource request, a reply to which will be processed by the plugin's
- * callback and the controller will be activated and start doing its task
+ * Sends a resource request. Later a reply to which will be processed by the plugin's 
+ * callback resourceChangedHook. If it returns true controller will become operational.
  * in the updateHook if all resources were allocated or not, if some are lacking.
  * This is checked using the controller's resourceChangedHook.
  */

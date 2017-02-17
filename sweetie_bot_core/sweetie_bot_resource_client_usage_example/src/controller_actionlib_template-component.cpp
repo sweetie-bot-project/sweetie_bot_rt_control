@@ -10,6 +10,23 @@ namespace sweetie_bot {
 namespace motion {
 namespace controller {
 
+//TODO move somewhere
+template<class ServiceInterface> ServiceInterface * getSubServiceByInterface(Service * service) 
+{
+	if (!service) return nullptr;
+
+	ServiceInterface * found_service;
+	Service::ProviderNames subservices;
+
+	subservices = service->getProviderNames();
+	for(Service::ProviderNames::const_iterator name = subservices.begin(); name != subservices.end(); name++) {
+        found_service = dynamic_cast<ServiceInterface*>(service->getService(*name).get());
+		if (found_service) return found_service;
+	}
+	return nullptr;
+}
+
+
 ControllerActionlibTemplate::ControllerActionlibTemplate(std::string const& name) : 
 	TaskContext(name),
 	action_server(this->provides()),
@@ -45,14 +62,7 @@ bool ControllerActionlibTemplate::dataOnPortHook( RTT::base::PortInterface* port
 bool ControllerActionlibTemplate::configureHook()
 {
 	// Get ResourceClient plugin interface.
-	Service::ProviderNames subservices;
-
-	subservices = this->provides()->getProviderNames();
-	for(Service::ProviderNames::const_iterator name = subservices.begin(); name != subservices.end(); name++) {
-        resource_client = dynamic_cast<ResourceClientInterface*>(this->provides()->getService(*name).get());
-        log(DEBUG) << "Trying to load " << *name << " is ResourceClient: " << (resource_client != 0) << endlog();
-		if (resource_client) break;
-	}
+	resource_client = getSubServiceByInterface<ResourceClientInterface>(this->provides().get());
 	if (!resource_client) {
 		log(ERROR) << "ResourceClient plugin is not loaded." << endlog();
 		return false;

@@ -6,7 +6,6 @@
 
 #include <rtt/Component.hpp>
 
-//#include <orocos/std_srvs/typekit/SetBool.h>
 #include <std_srvs/SetBool.h>
 
 #include <sweetie_bot_logger/logger.hpp>
@@ -28,9 +27,12 @@ class ControllerTemplate : public RTT::TaskContext
 		std::vector<std::string> resources_required;
 	protected:
 		// OPERATIONS: provides
+		bool rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp);
 		// OPERATIONS: requires
-		// SERVICES:
-		sweetie_bot::motion::ResourceClient * resource_client;
+		// SERVICES: provides
+		// SERVICES: required
+		// SERVICES: internal interface
+		sweetie_bot::motion::ResourceClientInterface * resource_client;
 
 	protected:
 		// COMPONENT STATE
@@ -52,8 +54,6 @@ class ControllerTemplate : public RTT::TaskContext
 		void updateHook();
 		void stopHook();
 		void cleanupHook();
-
-		bool rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp);
 };
 
 } // namespace controller
