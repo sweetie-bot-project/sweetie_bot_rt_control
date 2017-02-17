@@ -16,7 +16,11 @@ class ServoInvLead : public RTT::TaskContext
 {
 	protected:
 		// Logger
-		LoggerOCL log;
+#ifdef SWEETIEBOT_LOGGER
+		SWEETIEBOT_LOGGER log;
+#else
+		LoggerRTT log;
+#endif
 
 		// buffers
 		sensor_msgs::JointState joints;
