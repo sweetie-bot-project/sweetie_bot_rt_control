@@ -42,11 +42,11 @@ class ResourceClientDummyService :
 	public:
 		ResourceClientDummyService(TaskContext* owner);
 
-		bool isOperational() {
+		bool isOperational() const {
 			return is_operational;
 		}
 
-		int getState() {
+		int getState() const {
 			if (is_operational) return ResourceClient::OPERATIONAL;
 			else return ResourceClient::NONOPERATIONAL;
 		}
@@ -55,11 +55,11 @@ class ResourceClientDummyService :
 
 		bool stopOperational();
 
-		bool hasResource(const std::string& resource) {
+		bool hasResource(const std::string& resource) const {
 			return owned_resources.count(resource);
 		}
 
-		bool hasResources(const std::vector<std::string>& resource_list);
+		bool hasResources(const std::vector<std::string>& resource_list) const;
 
 		void step() {}
 
@@ -140,7 +140,7 @@ bool ResourceClientDummyService::stopOperational()
 	return true;
 }
 
-bool ResourceClientDummyService::hasResources(const std::vector<std::string>& resource_list) {
+bool ResourceClientDummyService::hasResources(const std::vector<std::string>& resource_list) const {
 	for(std::vector<std::string>::const_iterator res = resource_list.begin(); res != resource_list.end(); res++) {
 		if ( !owned_resources.count(*res) ) return false;
 	}

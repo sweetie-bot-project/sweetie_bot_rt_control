@@ -12,15 +12,17 @@
   <author>Maxim Rovbo</author>
   <author>disRecord</author>
 
+  <!-- ROS and OROCOS packages -->
   <depend>rtt</depend>
   <depend>actionlib</depend>
-  <depend>sweetie_bot_logger</depend>
   <depend>rtt_actionlib</depend>
-
+  <!-- ROS and OROCOS datatypes -->
   <depend>rtt_std_srvs</depend>
-  <depend>rtt_sweetie_bot_resource_control_msgs</depend>
-
+  <!-- SWEETIEBOT packages -->
+  <depend>sweetie_bot_logger</depend>
   <depend>sweetie_bot_resource_control</depend>
+  <!-- SWEETIEBOT datatypes -->
+  <depend>rtt_sweetie_bot_resource_control_msgs</depend>
 
   <export>
 	  <rtt_ros>
