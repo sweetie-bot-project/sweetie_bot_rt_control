@@ -10,18 +10,16 @@
 # ref.out (reference trajectory)
 import("rtt_ros");
 ros.import("rtt_rospack");
-ros.import("rtt_sensor_msgs");
-
-import("sweetie_bot_servo_inv");
 
 # PATHS
-
-var string herk_script_path = ros.find("sweetie_bot_hardware_herkulex") + "/scripts/";
+var string herk_script_path = ros.find("sweetie_bot_herkulex_control") + "/scripts/";
 var string servo_inv_script_path = ros.find("sweetie_bot_servo_inv") + "/scripts/";
 var string LOGGER_SCRIPTS = ros.find("sweetie_bot_logger") + "/scripts/"
 
 # LOAD LOGGER
-runScript(LOGGER_SCRIPTS + "logger_conf.ops");
+ros.import("sweetie_bot_logger");
+loadService("Deployer", "log4cpp"); # add log4cpp service
+log4cpp.configure("herkulex_control.log4cpp"); # load configuration from file
 
 # LOAD HERKULEX_* SUBSYSTEM
 
@@ -32,6 +30,7 @@ runScript(herk_script_path + "herkulex_sched_conf.ops");
 runScript(herk_script_path + "herkulex_sched_reporting.ops");
 
 # LOAD SERVO_INV
+ros.import("sweetie_bot_servo_inv");
 
 # Servo rajectore generator invertion component.
 loadComponent("servo_inv","sweetie_bot::ServoInvLead");
@@ -41,7 +40,7 @@ servo_inv.lead = 0.023; # Lead is equal to one period duration.
 # Simple trajectory player
 loadComponent("file_player","sweetie_bot::PlayerJointState");
 file_player.file_name = servo_inv_script_path + "ref_servos12_sine.in";
-file_player.joint_names = strings("servo1","servo2");
+file_player.joint_names = strings("servo1", "servo2");
 
 # SETUP COMPONENT CONNECTIONS
 
@@ -59,9 +58,8 @@ connect("servo_inv.out_goals", "herk_sched.in_goals", ConnPolicy());
 file_player.configure
 servo_inv.start
 
-// turn off trapez profile generator
+# turn off trapez profile generator
 herk_array.setRegisterRAM("servo1", "acceleration_ratio", 0); 
-herk_array.setRegisterRAM("servo2", "acceleration_ratio", 0);
 
 # SETUP REPORTING
 # To work properly reporters should have data samples on reporting ports.
@@ -79,6 +77,9 @@ reporter_goal.WriteHeader = 0;
 reporter_goal.ReportFile = "goal.out";
 addPeer("reporter_goal", "servo_inv");
 reporter_goal.reportPort("servo_inv", "out_goals");
+
+herk_array.setRegisterRAM("servo1", "position_kp", 20);
+herk_array.setRegisterRAM("servo1", "position_kd", 0);
 
 # BEGIN TEST
 

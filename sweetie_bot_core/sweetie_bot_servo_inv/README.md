@@ -3,12 +3,19 @@ Packge `sweetie_bot_servo_inv`: servo invertion components
 
 
 This package is part of [Sweetie Bot project](sweetiebot.net). 
-Package contains components which translate reference trajectory represented by `sensor_msg::JointState` 
+Components provided by package translate reference trajectory represented by `sensor_msg::JointState` 
 to position controlled servo commands `sweetie_bot_hardware_herkulex_msg::ServoGoal`.
+
+### `ServoInvLead`: invertion of servo trajectory generator
+
+1. Assume trajectory generator working with rectangular speed profile. (For Herkulex servos set `r{acceletiaon_ratio} = 0`).
+2. `ServoGoal` is set to current reference position with lead (usually one or two discretization periods), so servo `r{desired_posion}` 
+    register value is equal to reference position with delay. 
 
 ### `PlayerJointState`: simple `JointState` trajectory player
 
 Read trajectory from file and replay it as sequence `sensor_msg::JointState` messages.
+File format is compatible with [GNU/Octave](octave.org) ASCII format.
 
 File format:
 
@@ -22,12 +29,6 @@ Samples are stored one per line. When component is running each time tick
 one sample is published on output port. The tick source can be external 
 (`sync` port) or internal (periodic `Activity`).
 
-
-### `ServoInvLead`: invertion of servo trajectory generator
-
-1. Assume trajectory generator working with rectangular speed profile. (For Herkulex servos set `r{acceletiaon_ratio} = 0`).
-2. `ServoGoal` is set to current reference position with lead (usually one or two discretization periods), so servo `r{desired_posion}` 
-    register value is equal to reference position with delay. 
 
 #### Usage 
 

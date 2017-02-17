@@ -8,7 +8,6 @@
 #include <sweetie_bot_logger/logger.hpp>
 
 #include <orocos/sensor_msgs/typekit/JointState.h>
-#include <orocos/sweetie_bot_hardware_herkulex_msgs/typekit/ServoGoal.h>
 
 namespace sweetie_bot 
 {
