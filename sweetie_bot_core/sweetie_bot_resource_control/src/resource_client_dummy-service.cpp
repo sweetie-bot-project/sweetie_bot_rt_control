@@ -1,4 +1,4 @@
-#include <sweetie_bot_resource_control/resource_client-service.hpp>
+#include <sweetie_bot_resource_control/resource_client.hpp>
 
 #include <rtt/RTT.hpp>
 #include <rtt/Service.hpp>

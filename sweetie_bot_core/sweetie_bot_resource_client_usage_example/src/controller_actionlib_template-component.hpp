@@ -8,7 +8,7 @@
 #include <sweetie_bot_resource_control_msgs/MoveManuallyAction.h>
 
 #include <sweetie_bot_logger/logger.hpp>
-#include <sweetie_bot_resource_control/resource_client-service.hpp>
+#include <sweetie_bot_resource_control/resource_client.hpp>
 #include <sweetie_bot_resource_control/simple_action_server.hpp>
 
 

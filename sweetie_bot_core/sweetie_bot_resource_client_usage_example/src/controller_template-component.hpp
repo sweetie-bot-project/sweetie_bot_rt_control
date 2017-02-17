@@ -9,7 +9,7 @@
 #include <std_srvs/SetBool.h>
 
 #include <sweetie_bot_logger/logger.hpp>
-#include <sweetie_bot_resource_control/resource_client-service.hpp>
+#include <sweetie_bot_resource_control/resource_client.hpp>
 
 namespace sweetie_bot {
 namespace motion {
