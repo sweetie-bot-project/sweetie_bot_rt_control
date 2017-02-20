@@ -29,10 +29,10 @@ ServoInvLead::ServoInvLead(std::string const& name) :
 
 	this->addProperty("period", period)
 		.doc("Control cycle duration (seconds).")
-		.set(0.023);
+		.set(0.0224);
 	this->addProperty("lead", lead)
 		.doc("Goal position lead in seconds. Goal position is equal desired position plus desired velocity multiplied by lead.")
-		.set(0.0115);
+		.set(0.0112);
 }
 
 bool ServoInvLead::startHook()

@@ -34,8 +34,8 @@ ros.import("sweetie_bot_servo_inv");
 
 # Servo rajectore generator invertion component.
 loadComponent("servo_inv","sweetie_bot::ServoInvLead");
-servo_inv.period = 0.023; # Important! Period is equal to timer configuration.
-servo_inv.lead = 0.023; # Lead is equal to one period duration.
+servo_inv.period = 0.0224; # Important! Period is equal to timer configuration.
+servo_inv.lead = 0.0224; # Lead is equal to one period duration.
 
 # Simple trajectory player
 loadComponent("file_player","sweetie_bot::PlayerJointState");
