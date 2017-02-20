@@ -5,7 +5,7 @@
 
 namespace sweetie_bot {
 
-using sweetie_bot::Logger;
+using sweetie_bot::logger::Logger;
 
 Kinematics::Kinematics(std::string const& name) : TaskContext(name),
 									  input_port_joints_seed_("in_joints_seed_sorted"),
