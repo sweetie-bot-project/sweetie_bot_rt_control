@@ -6,9 +6,10 @@
 #include <kdl/chain.hpp>
 #include <sweetie_bot_robot_model/robot_model-requester.hpp>
 
-using namespace std;
+#include <sweetie_bot_logger/logger.hpp>
 
 namespace sweetie_bot {
+namespace motion {
 
 class Agregator : public RTT::TaskContext{
 
@@ -21,10 +22,18 @@ class Agregator : public RTT::TaskContext{
     sensor_msgs::JointState input_joint_state_;
     sensor_msgs::JointState output_joint_state_;
 
-    vector<string> chain_names_;
-    vector<string> joint_names_;
+    std::vector<std::string> chain_names_;
+    std::vector<std::string> joint_names_;
+
+    // logging
+#ifdef SWEETIEBOT_LOGGER
+    sweetie_bot::logger::SWEETIEBOT_LOGGER log;
+#else
+    sweetie_bot::logger::LoggerLog4Cpp log;
+#endif
+
   public:
-    Agregator(string const& name);
+    Agregator(std::string const& name);
     bool configureHook();
     bool startHook();
     void updateHook();
@@ -32,5 +41,6 @@ class Agregator : public RTT::TaskContext{
     void cleanupHook();
 };
 
+} // namespace motion
 } // namespace sweetie_bot
 #endif

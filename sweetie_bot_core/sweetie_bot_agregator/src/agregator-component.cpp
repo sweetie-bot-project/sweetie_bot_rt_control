@@ -5,13 +5,14 @@
 using namespace std;
 
 namespace sweetie_bot {
+namespace motion {
 
 Agregator::Agregator(string const& name) : TaskContext(name),
                                                                           input_port_joint_state_("in_joints"),
-                                                                          output_port_joint_state_("out_joints_sorted")
+                                                                          output_port_joint_state_("out_joints_sorted"),
+                                                                          log(logger::getDefaultCategory("sweetie_bot.motion") + "." + name)
 {
 
-  cout << "sweetie_bot::Agregator constructed !" <<endl;
   this->ports()->addEventPort( input_port_joint_state_ )
    .doc( "Messages received on this port is used to update full robot pose buffered by component. Only present fields are updated." );
   this->ports()->addPort( output_port_joint_state_ )
@@ -19,6 +20,7 @@ Agregator::Agregator(string const& name) : TaskContext(name),
 
   robot_model_ = getProvider<RobotModel>("robot_model"); // It tries to load the service if it is not loaded.
   robot_model_interface_ = boost::dynamic_pointer_cast<RobotModelInterface>(this->provides()->getService("robot_model"));
+  this->log(INFO) << "constructed." <<endlog();
 }
 
 bool Agregator::configureHook(){
@@ -33,17 +35,17 @@ bool Agregator::configureHook(){
   output_joint_state_.position.assign(joint_names_.size(), 0.0);
   output_joint_state_.velocity.assign(joint_names_.size(), 0.0);
   output_joint_state_.effort.assign(joint_names_.size(), 0.0);
-  cout << "sweetie_bot::Agregator configured !" <<endl;
+  this->log(INFO) << "configured." <<endlog();
   return true;
 }
 
 bool Agregator::startHook(){
-  cout << "sweetie_bot::Agregator started !" <<endl;
+  this->log(INFO) << "started." <<endlog();
   return true;
 }
 
 void Agregator::updateHook(){
-  //cout << "sweetie_bot::Agregator executes updateHook !" <<endl;
+  //this->log(INFO) << "executes updateHook." <<endlog();
 
   if( input_port_joint_state_.read(input_joint_state_) == NewData ){
     for(int i=0; i<joint_names_.size(); i++){
@@ -59,19 +61,20 @@ void Agregator::updateHook(){
     }
     // Set message timestamp
     output_joint_state_.header.stamp = ros::Time(((double)RTT::os::TimeService::Instance()->getNSecs())*1E-9);
-    //cout << output_joint_state_ << endl;
+    //this->log(INFO) << output_joint_state_ << endlog();
     output_port_joint_state_.write(output_joint_state_);
   }
 }
 
 void Agregator::stopHook() {
-  cout << "sweetie_bot::Agregator executes stopping !" <<endl;
+  this->log(INFO) << "stoped." <<endlog();
 }
 
 void Agregator::cleanupHook() {
-  cout << "sweetie_bot::Agregator cleaning up !" <<endl;
+  this->log(INFO) << "cleaning up." <<endlog();
 }
 
+} // namespace motion
 } // namespace sweetie_bot
 
 /*
@@ -86,4 +89,4 @@ void Agregator::cleanupHook() {
  * If you have put your component class
  * in a namespace, don't forget to add it here too:
  */
-ORO_CREATE_COMPONENT(sweetie_bot::Agregator)
+ORO_CREATE_COMPONENT(sweetie_bot::motion::Agregator)

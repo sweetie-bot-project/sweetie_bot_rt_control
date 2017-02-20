@@ -17,20 +17,17 @@
 
 #include <sweetie_bot_logger/logger.hpp>
 
-using namespace std;
-using namespace RTT;
-using namespace KDL;
-
 namespace sweetie_bot {
+namespace motion {
 
 class Kinematics : public RTT::TaskContext{
     struct LimbData
     {
-	shared_ptr<Chain> chain;
-	shared_ptr<vector<string>> joints;
-	shared_ptr<ChainFkSolverPos_recursive> fk_solver;
+	shared_ptr<KDL::Chain> chain;
+	shared_ptr<std::vector<std::string>> joints;
+	shared_ptr<KDL::ChainFkSolverPos_recursive> fk_solver;
 	shared_ptr<TRAC_IK::TRAC_IK> ik_solver;
-	shared_ptr<JntArray> seed;
+	shared_ptr<KDL::JntArray> seed;
     };
 
     boost::shared_ptr<RobotModel> robot_model_;
@@ -48,15 +45,17 @@ class Kinematics : public RTT::TaskContext{
     sweetie_bot_kinematics_msgs::LimbState input_limb_state_;
     sweetie_bot_kinematics_msgs::LimbState output_limb_state_;
 
-    vector<string> chain_names_;
-    vector<string> joint_names_;
-    unordered_map<string,LimbData> limb_;
+    std::vector<std::string> chain_names_;
+    std::vector<std::string> joint_names_;
+    std::unordered_map<std::string,LimbData> limb_;
+
     // logging
 #ifdef SWEETIEBOT_LOGGER
-	sweetie_bot::logger::SWEETIEBOT_LOGGER log;
+    sweetie_bot::logger::SWEETIEBOT_LOGGER log;
 #else
-	sweetie_bot::logger::LoggerLog4Cpp log;
+    sweetie_bot::logger::LoggerLog4Cpp log;
 #endif
+
   public:
     Kinematics(std::string const& name);
     bool configureHook();
@@ -66,6 +65,7 @@ class Kinematics : public RTT::TaskContext{
     void cleanupHook();
 };
 
+} // namespace motion
 } // namespace sweetie_bot
 
 #endif

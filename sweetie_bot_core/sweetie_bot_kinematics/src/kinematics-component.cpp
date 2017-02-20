@@ -3,11 +3,12 @@
 #include <iostream>
 #include <kdl_conversions/kdl_msg.h>
 
-namespace sweetie_bot {
-
 using sweetie_bot::logger::Logger;
 
-Kinematics::Kinematics(std::string const& name) : TaskContext(name),
+namespace sweetie_bot {
+namespace motion {
+
+Kinematics::Kinematics(string const& name) : TaskContext(name),
 									  input_port_joints_seed_("in_joints_seed_sorted"),
 									  input_port_joints_("in_joints_sorted"),
 									  input_port_limbs_("in_limbs"),
@@ -15,8 +16,6 @@ Kinematics::Kinematics(std::string const& name) : TaskContext(name),
 									  output_port_limbs_("out_limbs"),
 									  log(logger::getDefaultCategory("sweetie_bot.motion") + "." + name)
 {
-  this->log(INFO) << "This is subtle RTT::Logger..." << endlog();
-  std::cout << "sweetie_bot::Kinematics constructed !" <<std::endl;
   this->ports()->addEventPort( input_port_joints_seed_ )
    .doc( "Messages received on this port is used to update initial robot pose used for inverse kinematic calculation." );
   this->ports()->addEventPort( input_port_joints_ )
@@ -30,18 +29,28 @@ Kinematics::Kinematics(std::string const& name) : TaskContext(name),
 
   robot_model_ = getProvider<RobotModel>("robot_model"); // It tries to load the service if it is not loaded.
   robot_model_interface_ = boost::dynamic_pointer_cast<RobotModelInterface>(this->provides()->getService("robot_model"));
+  this->log(INFO) << "constructed." <<endlog();
 }
 
-bool sweetie_bot::Kinematics::configureHook(){
-  this->log(INFO) << "configureHook is called..." << endlog();
-  if((nullptr == robot_model_) or (nullptr == robot_model_interface_)) return false;
-  if(!robot_model_->configure()) return false;
+bool Kinematics::configureHook()
+{
+  if((nullptr == robot_model_) or (nullptr == robot_model_interface_)) {
+	this->log(ERROR) << "Can't load robot_model!" <<endlog();
+	return false;
+  }
+  if(!robot_model_->configure()) {
+	this->log(ERROR) << "Can't configure robot_model!" <<endlog();
+	return false;
+  }
   chain_names_ = robot_model_->listChains();
   joint_names_ = robot_model_->listAllJoints();
   for(auto &name: chain_names_) {
     Chain * chain = robot_model_interface_->getChain(name);
     vector<string> joints = robot_model_->listJoints(name);
-    if(nullptr == chain) return false;
+    if(nullptr == chain) {
+	this->log(ERROR) << "Can't get chain!" <<endlog();
+	return false;
+    }
     int nj = chain->getNrOfSegments();
 
     KDL::JntArray * joint_seed = new KDL::JntArray(nj);
@@ -53,11 +62,11 @@ bool sweetie_bot::Kinematics::configureHook(){
 	(*joint_seed)(i) = 0;
     }
 
-    limb_[name].chain     = std::make_shared<Chain>(*chain);
-    limb_[name].joints    = std::make_shared<vector<string>>(joints);
-    limb_[name].fk_solver = std::make_shared<ChainFkSolverPos_recursive>(*chain);
-    limb_[name].ik_solver = std::make_shared<TRAC_IK::TRAC_IK>(*chain, lower_joint_limits, upper_joint_limits, 0.025, 1e-5, TRAC_IK::Speed);
-    limb_[name].seed      = std::make_shared<JntArray>(*joint_seed);
+    limb_[name].chain     = make_shared<Chain>(*chain);
+    limb_[name].joints    = make_shared<vector<string>>(joints);
+    limb_[name].fk_solver = make_shared<ChainFkSolverPos_recursive>(*chain);
+    limb_[name].ik_solver = make_shared<TRAC_IK::TRAC_IK>(*chain, lower_joint_limits, upper_joint_limits, 0.025, 1e-5, TRAC_IK::Speed);
+    limb_[name].seed      = make_shared<JntArray>(*joint_seed);
 
     // init port data
     input_joint_seed_.name = joint_names_;
@@ -86,18 +95,17 @@ bool sweetie_bot::Kinematics::configureHook(){
     output_port_limbs_.setDataSample(output_limb_state_);
   }
 
-  cout << "sweetie_bot::Kinematics configured !" <<endl;
+  this->log(INFO) << "configured." <<endlog();
   return true;
 }
 
-bool sweetie_bot::Kinematics::startHook(){
-  std::cout << "sweetie_bot::Kinematics started !" <<std::endl;
+bool Kinematics::startHook(){
+  this->log(INFO) << "started." <<endlog();
   return true;
 }
 
-void sweetie_bot::Kinematics::updateHook(){
-  this->log(INFO) << "sweetie_bot::Kinematics executes updateHook !" << endlog();
-  RTT::log(Info) << "sweetie_bot::Kinematics executes updateHook !" << endlog();
+void Kinematics::updateHook(){
+  //this->log(INFO) << "executes updateHook !" << endlog();
 
   // Init seed
   if( input_port_joints_seed_.read(input_joint_seed_) == NewData){
@@ -134,13 +142,12 @@ void sweetie_bot::Kinematics::updateHook(){
 	}
 	else
 	{
-	  std::cout << "!kinematics_status=" << kinematics_status <<std::endl;
+	  this->log(ERROR) << "kinematics_status=" << kinematics_status <<endlog();
 	  return;
 	}
     }
     // Set message timestamp
     output_limb_state_.header.stamp = ros::Time(((double)RTT::os::TimeService::Instance()->getNSecs())*1E-9);
-    //cout << output_limb_state_ << endl;
     output_port_limbs_.write(output_limb_state_);
   }
 
@@ -154,7 +161,7 @@ void sweetie_bot::Kinematics::updateHook(){
     for(auto &name: input_limb_state_.name) {
 	auto it = find(chain_names_.begin(), chain_names_.end(), name);
 	if(it == chain_names_.end()) {
-	  cout << "! limb '" << name << "' doesn't exists! " <<endl;
+	  this->log(ERROR) << " limb '" << name << "' doesn't exists! " <<endlog();
 	  return;
 	}
 
@@ -167,27 +174,27 @@ void sweetie_bot::Kinematics::updateHook(){
 	}
         else
         {
-          std::cout << "!kinematics_status=" << kinematics_status <<std::endl;
+          this->log(ERROR) << "!kinematics_status=" << kinematics_status <<endlog();
 	  return;
         }
 	limb_num++;
     }
     // Set message timestamp
     output_joint_state_.header.stamp = ros::Time(((double)RTT::os::TimeService::Instance()->getNSecs())*1E-9);
-    //cout << output_joint_state_ << endl;
     output_port_joints_.write(output_joint_state_);
   }
 
 }
 
-void sweetie_bot::Kinematics::stopHook() {
-  std::cout << "sweetie_bot::Kinematics executes stopping !" <<std::endl;
+void Kinematics::stopHook() {
+  this->log(INFO) << "stoped." <<endlog();
 }
 
-void sweetie_bot::Kinematics::cleanupHook() {
-  std::cout << "sweetie_bot::Kinematics cleaning up !" <<std::endl;
+void Kinematics::cleanupHook() {
+  this->log(INFO) << "cleaning up." <<endlog();
 }
 
+} // namespace motion
 } // namespace sweetie_bot
 
 /*
@@ -195,11 +202,11 @@ void sweetie_bot::Kinematics::cleanupHook() {
  * in one library *and* you may *not* link this library
  * with another component library. Use
  * ORO_CREATE_COMPONENT_TYPE()
- * ORO_LIST_COMPONENT_TYPE(sweetie_bot::Kinematics)
+ * ORO_LIST_COMPONENT_TYPE(sweetie_bot::motion::Kinematics)
  * In case you want to link with another library that
  * already contains components.
  *
  * If you have put your component class
  * in a namespace, don't forget to add it here too:
  */
-ORO_CREATE_COMPONENT(sweetie_bot::Kinematics)
+ORO_CREATE_COMPONENT(sweetie_bot::motion::Kinematics)

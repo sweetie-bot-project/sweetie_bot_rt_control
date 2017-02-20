@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   rtt_ros
   sensor_msgs
   orocos_kdl
+  sweetie_bot_logger
   )
 
 # Use 'source orocos_toolchain/env.sh' if the command below fails:

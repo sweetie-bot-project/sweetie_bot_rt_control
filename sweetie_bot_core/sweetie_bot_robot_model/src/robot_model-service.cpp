@@ -9,12 +9,15 @@
 
 #include <Eigen/Dense>
 
+#include <sweetie_bot_logger/logger.hpp>
+
 using namespace std;
 using namespace RTT;
 using namespace KDL;
 using namespace Eigen;
 
 namespace sweetie_bot {
+namespace motion {
 
 /**
  * Robot model service which can be loaded in a component.
@@ -28,10 +31,19 @@ private:
   vector<string> chain_names_;
   vector<string> joint_names_;
   TaskContext* owner_;
+
+    // logging
+#ifdef SWEETIEBOT_LOGGER
+    sweetie_bot::logger::SWEETIEBOT_LOGGER log;
+#else
+    sweetie_bot::logger::LoggerLog4Cpp log;
+#endif
+
 public:
     RobotModelService(TaskContext* owner) 
         : Service("robot_model", owner),
-          owner_( owner) 
+          owner_( owner),
+          log(logger::getDefaultCategory("sweetie_bot.motion") + "." + "robot_model")
     {
 	this->addOperation("getOwnerName", &RobotModelService::getOwnerName, this).doc("Returns the name of the owner of this object.");
 	this->addOperation("configure", &RobotModelService::configure, this, OwnThread).doc("Configures service: read parameters, construct kdl tree.");
@@ -57,28 +69,28 @@ public:
 
     bool configure()
     {
-	std::cout << "RobotModelService executes configure !" <<std::endl;
 	if(isConfigured()){
-	  std::cout << "RobotModelService already configured !" <<std::endl;
+	  this->log(WARN) << "already configured!" <<endlog();
 	  return true;
 	}
 
 	if (!kdl_parser::treeFromString(robot_description_, tree_)){
-	  std::cout << "RobotModelService failed to construct kdl tree !" <<std::endl;
+	  this->log(ERROR) << "Failed to construct kdl tree!" <<endlog();
 	  return false;
 	}
 
 	if(!readChains()){
-	  std::cout << "RobotModelService can't get chains !" <<std::endl;
+	  this->log(ERROR) << "Can't get chains!" <<endlog();
 	  return false;
 	}
 
+	this->log(INFO) << "configured." <<endlog();
 	return true;
     }
 
     void cleanup()
     {
-	std::cout << "RobotModelService cleanup !" <<std::endl;
+	this->log(INFO) << "cleanup." <<std::endl;
 	for(auto &chain: chains_){
 	  free(chain.second);
 	}
@@ -93,22 +105,22 @@ public:
 
 	Property<std::string> first_link, last_link;
 	char joint_num = 0;
-	std::cout << "chains:"<< std::endl;
+	//std::cout << "chains:"<< std::endl;
 	for(int i = 0; i < chains_bag.rvalue().size(); i++) {
 		Property<PropertyBag> chain_bag = chains_bag.rvalue().getItem(i);
 		if (!chains_bag.ready()) return false;
 
-		std::cout << "  "<< chain_bag.getName() <<  std::endl;
+		//std::cout << "  "<< chain_bag.getName() <<  std::endl;
 
 		first_link = chain_bag.rvalue().getProperty("first_link");
 		if (!first_link.ready()) return false;
 
-		std::cout << "    " << first_link.getName() << ": " << first_link.rvalue() <<  std::endl;
+		//std::cout << "    " << first_link.getName() << ": " << first_link.rvalue() <<  std::endl;
 
 		last_link = chain_bag.rvalue().getProperty("last_link");
 		if (!last_link.ready()) return false;
 
-		std::cout << "    " << last_link.getName() << ": " << last_link.rvalue() <<  std::endl;
+		//std::cout << "    " << last_link.getName() << ": " << last_link.rvalue() <<  std::endl;
 		KDL::Chain * chain = new KDL::Chain();
 		if(!tree_.getChain( first_link, last_link, *chain )) return false;
 
@@ -119,12 +131,13 @@ public:
 		// fill up joints list for each chain
 		for(int j = 0; j < chain->getNrOfSegments(); j++){
 		  string joint_name = chain->getSegment(j).getJoint().getName();
-		  std::cout << "      joint(" << (int)joint_num << ")=" << joint_name << std::endl;
+		  //std::cout << "      joint(" << (int)joint_num << ")=" << joint_name << std::endl;
 		  joint_num++;
 		  joint_names_.push_back(joint_name);
 		}
 
 	}
+	this->log(INFO) << "Loaded " << chain_names_.size() << " chains and " << joint_names_.size() << " joints." <<endlog();
 	return true;
     }
 
@@ -236,6 +249,7 @@ public:
     }
 };
 
+} // namespace motion
 } // namespace sweetie_bot
 
-ORO_SERVICE_NAMED_PLUGIN(sweetie_bot::RobotModelService, "robot_model")
+ORO_SERVICE_NAMED_PLUGIN(sweetie_bot::motion::RobotModelService, "robot_model")

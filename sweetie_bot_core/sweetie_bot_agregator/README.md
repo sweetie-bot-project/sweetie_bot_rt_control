@@ -18,7 +18,7 @@ Requires: `robot_model`
 ## Testing
 
 ```
-roslaunch sweetie_bot_agregator agregator.launch
+roslaunch sweetie_bot_agregator test_agregator.launch
 rostopic echo /agregator/output_joint_state
 rosrun sweetie_bot_agregator send_joint_state_partial.sh
 rosrun sweetie_bot_agregator send_joint_state_full.sh

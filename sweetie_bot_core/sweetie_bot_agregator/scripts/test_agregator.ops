@@ -1,25 +1,33 @@
 # Загрузка поддержки взаимодействия с ROS
 import("rtt_ros");
+
+
 ros.import("rtt_sensor_msgs")
+
 
 ros.import("rtt_rospack");  # Разрешение путей ROS: операци ros.find(<package name>)
 ros.import("rtt_rosparam");
 
 require("print");
-import("sweetie_bot_agregator");
 import("sweetie_bot_robot_model");
+import("sweetie_bot_agregator");
 
-loadComponent("sweetie_bot_agregator", "sweetie_bot::Agregator");
+# Logger
+loadService("Deployer", "log4cpp"); # add log4cpp service
+log4cpp.configure(ros.find("sweetie_bot_agregator") + "/scripts/config.log4cpp"); # load configuration from file
+log4cpp.addRosAppender("sweetie_bot", 20); # redirect sweetie_bot to /rosout
+
+loadComponent("sweetie_bot_agregator", "sweetie_bot::motion::Agregator");
 loadService("sweetie_bot_agregator","rosparam");
 loadService("sweetie_bot_agregator","marshalling"); # Поддержка исполнения скриптов и загрузки xml/cpf файлов
-
-## Create connections
-stream("sweetie_bot_agregator.in_joints", ros.topic("/agregator/input_joint_state"))
-stream("sweetie_bot_agregator.out_joints_sorted", ros.topic("/agregator/output_joint_state"))
 
 # Загружаем параметры из xml файла.
 sweetie_bot_agregator.marshalling.loadProperties(ros.find("sweetie_bot_description_proto2") + "/robots/chains.cpf");
 sweetie_bot_agregator.rosparam.getParam("/", "robot_model")
+
+# Create ROS mapping 
+stream("sweetie_bot_agregator.in_joints", ros.topic("/agregator/input_joint_state"))
+stream("sweetie_bot_agregator.out_joints_sorted", ros.topic("/agregator/output_joint_state"))
 
 sweetie_bot_agregator.configure();
 sweetie_bot_agregator.start();

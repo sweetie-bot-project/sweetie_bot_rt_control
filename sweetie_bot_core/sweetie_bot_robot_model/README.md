@@ -38,7 +38,7 @@ orocos_generate_package(DEPENDS sweetie_bot_robot_model)
 ```
 #### 3. Include requester
 ```
-#include <sweetie_bot_robot_model/sweetie_bot_robot_model-requester.hpp>
+#include <sweetie_bot_robot_model/robot_model-requester.hpp>
 ```
 #### 4. Declare RobotModel class variables
 ```
