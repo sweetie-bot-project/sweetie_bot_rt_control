@@ -4,14 +4,16 @@
 #include "servo_inv_lead.hpp"
 
 using namespace RTT;
-using sweetie_bot::Logger;
+using sweetie_bot::logger::Logger;
 
-namespace sweetie_bot 
-{
+namespace sweetie_bot {
+
+namespace motion {
+
 
 ServoInvLead::ServoInvLead(std::string const& name) : 
 	TaskContext(name),
-	log("sweetie.core.servo_inv")
+	log(logger::getDefaultCategory("sweetie_bot.motion") + "." + name)
 {
 	if (!log.ready()) {
 		RTT::Logger::In in("ServoInvLead");
@@ -98,7 +100,8 @@ void ServoInvLead::stopHook() {
 	log(INFO) << "ServoInvLead stopped!" << endlog();
 }
 
-}
+} // nmaespace motion
+} // namespace sweetie_bot
 
 /*
  * Using this macro, only one component may live
@@ -112,4 +115,4 @@ void ServoInvLead::stopHook() {
  * If you have put your component class
  * in a namespace, don't forget to add it here too:
  */
-ORO_CREATE_COMPONENT(sweetie_bot::ServoInvLead)
+ORO_CREATE_COMPONENT(sweetie_bot::motion::ServoInvLead)

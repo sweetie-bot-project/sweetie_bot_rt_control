@@ -17,9 +17,9 @@ class PlayerJointState : public RTT::TaskContext
 	protected:
 		// Logger
 #ifdef SWEETIEBOT_LOGGER
-		SWEETIEBOT_LOGGER log;
+		logger::SWEETIEBOT_LOGGER log;
 #else
-		LoggerRTT log;
+		logger::LoggerRTT log;
 #endif
 
 		// buffers
