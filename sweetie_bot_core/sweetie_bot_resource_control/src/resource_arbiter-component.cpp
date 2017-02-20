@@ -14,7 +14,7 @@ namespace motion {
 
 ResourceArbiter::ResourceArbiter(std::string const& name) :
 	TaskContext(name, RTT::base::TaskCore::PreOperational),
-	log("sweetie.motion.resource_control")
+	log(logger::getDefaultCategory("sweetie_bot.motion") + ".resource_control." + name)
 {
 	// PORTS
 	this->ports()->addPort("out_resource_assigment", assigment_port)
@@ -200,7 +200,7 @@ void ResourceArbiter::updateHook()
 
 void ResourceArbiter::stopHook() 
 {
-	log(INFO) << "ResourceArbiter is stopped !" << Logger::endl;
+	log(INFO) << "ResourceArbiter is stopped !" << RTT::endlog();
 }
 
 } // namespace motion

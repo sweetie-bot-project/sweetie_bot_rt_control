@@ -39,9 +39,9 @@ class ControllerTemplate : public RTT::TaskContext
 		// ports buffers
 		
 #ifdef SWEETIEBOT_LOGGER
-		sweetie_bot::SWEETIEBOT_LOGGER log;
+		sweetie_bot::logger::SWEETIEBOT_LOGGER log;
 #else
-		sweetie_bot::LoggerRTT log;
+		sweetie_bot::logger::LoggerRTT log;
 #endif
 
 	public:

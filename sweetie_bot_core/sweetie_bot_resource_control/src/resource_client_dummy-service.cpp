@@ -34,9 +34,9 @@ class ResourceClientDummyService :
 		OperationCaller<void()> stopOperationalHook_call;
 
 #ifdef SWEETIEBOT_LOGGER
-		sweetie_bot::SWEETIEBOT_LOGGER log;
+		logger::SWEETIEBOT_LOGGER log;
 #else
-		sweetie_bot::LoggerRTT log;
+		logger::LoggerRTT log;
 #endif
 
 	public:
@@ -78,7 +78,7 @@ ResourceClientDummyService::ResourceClientDummyService(TaskContext* owner) :
 	Service("resource_client", owner),
 	is_operational(false),
 	resourceChangeHook_call("resourceChangeHook"),
-	log("swetie.motion.resource_control")
+	log(logger::getDefaultCategory("swetie.motion") + ".resource_control")
 {
 	doc("Dummy resource control client plugin. Always assumes that it owns requested recources.");
 	// OPERATONS

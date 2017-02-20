@@ -81,9 +81,9 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 		ResourceAssignment assignment_msg;
 
 #ifdef SWEETIEBOT_LOGGER
-		SWEETIEBOT_LOGGER log;
+		logger::SWEETIEBOT_LOGGER log;
 #else
-		sweetie_bot::LoggerRTT log;
+		logger::LoggerRTT log;
 #endif
 
 	protected:
@@ -188,7 +188,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 		ResourceClientService(TaskContext* owner) :
 			Service("resource_client", owner),
 			state(ResourceClient::NONOPERATIONAL),
-			log("sweetie.motion.resource_control"),
+			log(logger::getDefaultCategory("swetie.motion") + ".resource_control"),
 			resourceChangeHook_call("resourceChangeHook"),
 			stopOperationalHook_call("stopOperationalHook")
 		{

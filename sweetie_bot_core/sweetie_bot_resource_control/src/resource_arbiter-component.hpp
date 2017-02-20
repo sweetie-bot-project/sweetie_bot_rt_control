@@ -52,9 +52,9 @@ class ResourceArbiter : public RTT::TaskContext
 		ResourceRequesterState requester_state_msg;
 
 #ifdef SWEETIEBOT_LOGGER
-		SWEETIEBOT_LOGGER log;
+		logger::SWEETIEBOT_LOGGER log;
 #else
-		sweetie_bot::LoggerRTT log;
+		logger::LoggerRTT log;
 #endif
 		// TODO: priorities, queue of requesters, partial allocation and reallocation, etc.
 
