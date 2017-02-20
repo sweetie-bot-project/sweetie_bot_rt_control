@@ -9,17 +9,17 @@
 #include <orocos/sensor_msgs/typekit/JointState.h>
 #include <orocos/sweetie_bot_herkulex_msgs/typekit/ServoGoal.h>
 
-namespace sweetie_bot
-{
+namespace sweetie_bot {
+namespace motion {
 
 class ServoInvLead : public RTT::TaskContext
 {
 	protected:
 		// Logger
 #ifdef SWEETIEBOT_LOGGER
-		SWEETIEBOT_LOGGER log;
+		logger::SWEETIEBOT_LOGGER log;
 #else
-		LoggerRTT log;
+		logger::LoggerRTT log;
 #endif
 
 		// buffers
@@ -45,5 +45,6 @@ class ServoInvLead : public RTT::TaskContext
 		void stopHook();
 };
 
+}
 }
 #endif

@@ -7,14 +7,14 @@
 #include "player_joint_state.hpp"
 
 using namespace RTT;
-using sweetie_bot::Logger;
+using sweetie_bot::logger::Logger;
 
 namespace sweetie_bot 
 {
 
 PlayerJointState::PlayerJointState(std::string const& name) : 
 	TaskContext(name, PreOperational),
-	log("sweetie.core.servo_inv")
+	log(logger::getDefaultCategory("sweetie_bot.motion") + "." + name)
 {
 	if (!log.ready()) {
 		RTT::Logger::In in("PlayerJointState");
