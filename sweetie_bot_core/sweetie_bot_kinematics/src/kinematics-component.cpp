@@ -13,7 +13,8 @@ Kinematics::Kinematics(std::string const& name) : TaskContext(name),
 									  input_port_limbs_("in_limbs"),
 									  output_port_joints_("out_joints"),
 									  output_port_limbs_("out_limbs"),
-									  log("sweetie.core.kinematics", 20){
+									  log(logger::getDefaultCategory("sweetie_bot.motion") + "." + name)
+{
   this->log(INFO) << "This is subtle RTT::Logger..." << endlog();
   std::cout << "sweetie_bot::Kinematics constructed !" <<std::endl;
   this->ports()->addEventPort( input_port_joints_seed_ )
@@ -32,6 +33,7 @@ Kinematics::Kinematics(std::string const& name) : TaskContext(name),
 }
 
 bool sweetie_bot::Kinematics::configureHook(){
+  this->log(INFO) << "configureHook is called..." << endlog();
   if((nullptr == robot_model_) or (nullptr == robot_model_interface_)) return false;
   if(!robot_model_->configure()) return false;
   chain_names_ = robot_model_->listChains();

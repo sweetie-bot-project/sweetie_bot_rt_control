@@ -52,7 +52,11 @@ class Kinematics : public RTT::TaskContext{
     vector<string> joint_names_;
     unordered_map<string,LimbData> limb_;
     // logging
-    sweetie_bot::logger::LoggerRosout log;
+#ifdef SWEETIEBOT_LOGGER
+	sweetie_bot::logger::SWEETIEBOT_LOGGER log;
+#else
+	sweetie_bot::logger::LoggerLog4Cpp log;
+#endif
   public:
     Kinematics(std::string const& name);
     bool configureHook();

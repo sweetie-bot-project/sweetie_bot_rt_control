@@ -13,10 +13,9 @@ import("sweetie_bot_kinematics");
 import("sweetie_bot_robot_model");
 
 # Logger
-var string LOGGER_SCRIPTS = ros.find("sweetie_bot_logger") + "/scripts/";
-loadComponent("sweetie_bot_logger", "OCL::logging::LoggingService");
-loadService("sweetie_bot_logger","marshalling"); # Поддержка исполнения скрип:тов и загрузки xml/cpf файлов
-sweetie_bot_logger.marshalling.loadProperties(LOGGER_SCRIPTS + "logger_ocl.cpf");
+loadService("Deployer", "log4cpp"); # add log4cpp service
+log4cpp.configure(ros.find("sweetie_bot_kinematics") + "/scripts/logger_log4cpp.log4cpp"); # load configuration from file
+log4cpp.addRosAppender("sweetie_bot", 20); # redirect sweetie_bot to /rosout
 
 loadComponent("sweetie_bot_kinematics", "sweetie_bot::Kinematics");
 loadService("sweetie_bot_kinematics","rosparam");

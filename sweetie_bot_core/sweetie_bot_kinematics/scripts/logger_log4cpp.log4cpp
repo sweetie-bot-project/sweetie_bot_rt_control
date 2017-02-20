@@ -1,0 +1,16 @@
+# root category logs to application (this level is also the default for all 
+# categories who's level is NOT explicitly set in this file)
+log4j.rootCategory=ERROR, console
+ 
+# setup log level for RTT::Logger messages
+log4j.category.org.orocos.rtt=INFO
+
+# setup log level for different categories
+log4j.category.sweetie_bot=INFO, console
+log4j.additivity.sweetie_bot=false
+
+# Setup console appender: print message to console
+log4j.appender.console=ConsoleAppender
+log4j.appender.console.threshold=DEBUG
+log4j.appender.console.layout=org.apache.log4j.PatternLayout
+log4j.appender.console.layout.ConversionPattern=%d{%H:%M:%S,%l} [%-5p] %-20c - %m%n
