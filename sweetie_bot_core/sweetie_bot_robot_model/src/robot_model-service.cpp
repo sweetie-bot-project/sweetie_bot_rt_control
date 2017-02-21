@@ -32,11 +32,11 @@ private:
   vector<string> joint_names_;
   TaskContext* owner_;
 
-    // logging
+  // logging
 #ifdef SWEETIEBOT_LOGGER
-    sweetie_bot::logger::SWEETIEBOT_LOGGER log;
+  sweetie_bot::logger::SWEETIEBOT_LOGGER log;
 #else
-    sweetie_bot::logger::LoggerLog4Cpp log;
+  sweetie_bot::logger::LoggerLog4Cpp log;
 #endif
 
 public:

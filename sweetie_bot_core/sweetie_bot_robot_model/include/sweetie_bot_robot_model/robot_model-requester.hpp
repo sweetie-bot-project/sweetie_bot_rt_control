@@ -9,27 +9,24 @@
 
 #include <kdl/chain.hpp>
 
-using namespace std;
-using namespace RTT;
-using namespace KDL;
-
 namespace sweetie_bot {
+namespace motion {
 
 class RobotModelInterface
 {
    public:
-	virtual Chain * getChain(const string& name) = 0;
+	virtual KDL::Chain * getChain(const std::string& name) = 0;
 };
 
 class RobotModel : public ServiceRequester {
     public:
         OperationCaller<bool()> configure;
-        OperationCaller<vector<string>()> listChains;
-        OperationCaller<vector<string>(const string&)> listJoints;
-        OperationCaller<vector<string>()> listAllJoints;
-        OperationCaller<int(const string&)> getJointPos;
-        OperationCaller<bool(const string&, const sensor_msgs::JointState&, JntArray&, JntArray&, JntArray&)> extractChain;
-        OperationCaller<bool(const string&, JntArray&, JntArray&, JntArray&, sensor_msgs::JointState&)> packChain;
+        OperationCaller<std::vector<std::string>()> listChains;
+        OperationCaller<std::vector<std::string>(const string&)> listJoints;
+        OperationCaller<std::vector<std::string>()> listAllJoints;
+        OperationCaller<int(const std::string&)> getJointPos;
+        OperationCaller<bool(const std::string&, const sensor_msgs::JointState&, KDL::JntArray&, KDL::JntArray&, KDL::JntArray&)> extractChain;
+        OperationCaller<bool(const std::string&, KDL::JntArray&, KDL::JntArray&, KDL::JntArray&, sensor_msgs::JointState&)> packChain;
 
         RobotModel(TaskContext * owner) :
             ServiceRequester("robot_model_requester", owner),
