@@ -4,6 +4,8 @@
 #include <kdl_conversions/kdl_msg.h>
 
 using sweetie_bot::logger::Logger;
+using namespace RTT;
+using namespace KDL;
 
 namespace sweetie_bot {
 namespace motion {
@@ -53,9 +55,9 @@ bool Kinematics::configureHook()
     }
     int nj = chain->getNrOfSegments();
 
-    KDL::JntArray * joint_seed = new KDL::JntArray(nj);
-    KDL::JntArray lower_joint_limits(nj);
-    KDL::JntArray upper_joint_limits(nj);
+    JntArray * joint_seed = new JntArray(nj);
+    JntArray lower_joint_limits(nj);
+    JntArray upper_joint_limits(nj);
     for(int i=0; i<nj; i++){
 	lower_joint_limits(i) = -1.57;
 	upper_joint_limits(i) =  1.57;
@@ -124,7 +126,7 @@ void Kinematics::updateHook(){
   if( input_port_joints_.read(input_joint_state_) == NewData ){
     for(auto &name: chain_names_) {
 
-	KDL::Frame result_frame;
+	Frame result_frame;
 	geometry_msgs::Pose result_pose;
 
 	JntArray position, velocity, effort;
@@ -165,9 +167,9 @@ void Kinematics::updateHook(){
 	  return;
 	}
 
-	KDL::Frame desired_end_effector_pose;
+	Frame desired_end_effector_pose;
 	tf::poseMsgToKDL( input_limb_state_.pose[limb_num], desired_end_effector_pose );
-	KDL::JntArray return_joints_positions, zero_joints_speed, zero_joints_effort;
+	JntArray return_joints_positions, zero_joints_speed, zero_joints_effort;
 	int kinematics_status = limb_[name].ik_solver->CartToJnt(*limb_[name].seed, desired_end_effector_pose, return_joints_positions); //, tolerances);
 	if(kinematics_status >= 0) {
 	  if(!robot_model_->packChain( name, return_joints_positions, zero_joints_speed, zero_joints_effort, output_joint_state_)) return;

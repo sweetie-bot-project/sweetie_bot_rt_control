@@ -23,21 +23,21 @@ namespace motion {
 class Kinematics : public RTT::TaskContext{
     struct LimbData
     {
-	shared_ptr<KDL::Chain> chain;
-	shared_ptr<std::vector<std::string>> joints;
-	shared_ptr<KDL::ChainFkSolverPos_recursive> fk_solver;
-	shared_ptr<TRAC_IK::TRAC_IK> ik_solver;
-	shared_ptr<KDL::JntArray> seed;
+      shared_ptr<KDL::Chain> chain;
+      shared_ptr<std::vector<std::string>> joints;
+      shared_ptr<KDL::ChainFkSolverPos_recursive> fk_solver;
+      shared_ptr<TRAC_IK::TRAC_IK> ik_solver;
+      shared_ptr<KDL::JntArray> seed;
     };
 
     boost::shared_ptr<RobotModel> robot_model_;
     boost::shared_ptr<RobotModelInterface> robot_model_interface_;
 
-    InputPort<sensor_msgs::JointState> input_port_joints_seed_;
-    InputPort<sensor_msgs::JointState> input_port_joints_;
-    OutputPort<sensor_msgs::JointState> output_port_joints_;
-    InputPort<sweetie_bot_kinematics_msgs::LimbState> input_port_limbs_;
-    OutputPort<sweetie_bot_kinematics_msgs::LimbState> output_port_limbs_;
+    RTT::InputPort<sensor_msgs::JointState> input_port_joints_seed_;
+    RTT::InputPort<sensor_msgs::JointState> input_port_joints_;
+    RTT::OutputPort<sensor_msgs::JointState> output_port_joints_;
+    RTT::InputPort<sweetie_bot_kinematics_msgs::LimbState> input_port_limbs_;
+    RTT::OutputPort<sweetie_bot_kinematics_msgs::LimbState> output_port_limbs_;
 
     sensor_msgs::JointState input_joint_seed_;
     sensor_msgs::JointState input_joint_state_;

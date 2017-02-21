@@ -16,8 +16,8 @@ class Agregator : public RTT::TaskContext{
     boost::shared_ptr<RobotModel> robot_model_;
     boost::shared_ptr<RobotModelInterface> robot_model_interface_;
 
-    InputPort<sensor_msgs::JointState> input_port_joint_state_;
-    OutputPort<sensor_msgs::JointState> output_port_joint_state_;
+    RTT::InputPort<sensor_msgs::JointState> input_port_joint_state_;
+    RTT::OutputPort<sensor_msgs::JointState> output_port_joint_state_;
 
     sensor_msgs::JointState input_joint_state_;
     sensor_msgs::JointState output_joint_state_;

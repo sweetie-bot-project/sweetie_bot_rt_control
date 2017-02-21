@@ -3,6 +3,7 @@
 #include <iostream>
 
 using namespace std;
+using namespace RTT;
 
 namespace sweetie_bot {
 namespace motion {
