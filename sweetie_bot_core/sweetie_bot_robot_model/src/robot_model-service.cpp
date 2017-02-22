@@ -50,6 +50,7 @@ public:
 	this->addOperation("listChains", &RobotModelService::listChains, this, ClientThread).doc("Lists loaded chains");
 	this->addOperation("listJoints", &RobotModelService::listJoints, this, ClientThread).doc("Lists joints in chain");
 	this->addOperation("getJointChain", &RobotModelService::getJointChain, this).doc("Returns chain name of the given joint name.");
+	this->addOperation("getJointChains", &RobotModelService::getJointChains, this).doc("Returns list of chain name of the given joint name list.");
 	this->addOperation("getJointPos", &RobotModelService::getJointPos, this).doc("Returns position of the given joint name in sorted pose.");
 	this->addOperation("extractChain", &RobotModelService::extractChain, this, ClientThread).doc("Extracts (copy) chain parameters from joint state");
 	this->addOperation("packChain", &RobotModelService::packChain, this, ClientThread).doc("Put chain parameters to joint state");
@@ -171,6 +172,16 @@ public:
 	  if((jpos >= chain_begin) and (jpos <= chain_begin+chain_size)) return ci.first; // joint found
 	}
 	return ""; // joint postion not found!
+    }
+
+    vector<string> getJointChains(const vector<string>& names)
+    {
+	vector<string> chain_names;
+	for(auto& name : names){
+	  chain_names.push_back( getJointChain( name ) );
+	  this->log(DEBUG) << name << "=" << getJointChain( name ) << endlog();
+	}
+	return chain_names;
     }
 
     int getJointPos(const string& name)
