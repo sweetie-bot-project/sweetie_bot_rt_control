@@ -39,8 +39,7 @@ class FollowJointState : public RTT::TaskContext
 		// OPERATIONS: requires
 		// SERVICES: provides
 		// SERVICES: required
-		// TODO fix RobotModel namespace
-		RobotModel robot_model; // joints list, kinematics chains access
+		sweetie_bot::motion::RobotModel robot_model; // joints list, kinematics chains access
 		// SERVICES: internal interface
 		sweetie_bot::motion::ResourceClientInterface * resource_client; // resource client
 		// sweetie_bot::filters::TransientJointStateInterface * filter; // trajectory smoother
@@ -64,9 +63,9 @@ class FollowJointState : public RTT::TaskContext
 		sensor_msgs::JointState ref_pose; // controlled joints ref position
 		
 #ifdef SWEETIEBOT_LOGGER
-		sweetie_bot::SWEETIEBOT_LOGGER log;
+		sweetie_bot::logger::SWEETIEBOT_LOGGER log;
 #else
-		sweetie_bot::LoggerRTT log;
+		sweetie_bot::logger::LoggerRTT log;
 #endif
 
 	public:

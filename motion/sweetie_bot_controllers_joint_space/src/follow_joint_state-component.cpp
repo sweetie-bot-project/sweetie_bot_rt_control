@@ -66,7 +66,7 @@ bool isValidJointState(const sensor_msgs::JointState& msg, int sz = -1)
 FollowJointState::FollowJointState(std::string const& name)  : 
 	TaskContext(name, RTT::base::TaskCore::PreOperational),
 	robot_model(this),
-	log("sweetie.motion.controller." + name)
+	log(logger::getDefaultCategory("sweetie.motion") + ".controller." + name)
 {
 	this->provides()->doc("Feedforward JointState reference from high-level to agregator.");
 
@@ -125,7 +125,7 @@ bool FollowJointState::configureHook()
 		}
 		for(auto joint = joint_names.begin(); joint != joint_names.end(); joint++) {
 			// add joint to index
-			controlled_joints.insert(std::make_pair(*joint, JointIndex(robot_model.getJointPos(*joint), controlled_joints.size())));
+			controlled_joints.insert(std::make_pair(*joint, JointIndex(robot_model.getJointIndex(*joint), controlled_joints.size())));
 			ref_pose.name.push_back(*joint);
 		}
 	}
