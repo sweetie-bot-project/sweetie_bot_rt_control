@@ -45,7 +45,7 @@ bool Kinematics::configureHook()
 	return false;
   }
   chain_names_ = robot_model_->listChains();
-  joint_names_ = robot_model_->listAllJoints();
+  joint_names_ = robot_model_->listJoints(""); // List all joints
   for(auto &name: chain_names_) {
     Chain * chain = robot_model_interface_->getChain(name);
     vector<string> joints = robot_model_->listJoints(name);

@@ -49,7 +49,6 @@ public:
 	this->addOperation("configure", &RobotModelService::configure, this, OwnThread).doc("Configures service: read parameters, construct kdl tree.");
 	this->addOperation("listChains", &RobotModelService::listChains, this, ClientThread).doc("Lists loaded chains");
 	this->addOperation("listJoints", &RobotModelService::listJoints, this, ClientThread).doc("Lists joints in chain");
-	this->addOperation("listAllJoints", &RobotModelService::listAllJoints, this, ClientThread).doc("Lists all joints in all chains");
 	this->addOperation("getJointPos", &RobotModelService::getJointPos, this).doc("Returns position of the given joint name in sorted pose.");
 	this->addOperation("extractChain", &RobotModelService::extractChain, this, ClientThread).doc("Extracts (copy) chain parameters from joint state");
 	this->addOperation("packChain", &RobotModelService::packChain, this, ClientThread).doc("Put chain parameters to joint state");
@@ -148,6 +147,8 @@ public:
 
     vector<string> listJoints(const string& name)
     {
+	// if chain name is empty return all joints
+	if(name == "") return joint_names_;
 	vector<string> joint_names;
 	Chain * chain = getChain(name);
 	if( chain != nullptr ) {
@@ -156,11 +157,6 @@ public:
 	  }
  	}
 	return joint_names;
-    }
-
-    vector<string> listAllJoints()
-    {
-	return joint_names_;
     }
 
     int getJointPos(const string& name)
