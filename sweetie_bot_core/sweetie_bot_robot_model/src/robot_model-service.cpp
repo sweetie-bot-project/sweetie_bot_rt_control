@@ -51,7 +51,7 @@ public:
 	this->addOperation("listJoints", &RobotModelService::listJoints, this, ClientThread).doc("Lists joints in chain");
 	this->addOperation("getJointChain", &RobotModelService::getJointChain, this).doc("Returns chain name of the given joint name.");
 	this->addOperation("getJointChains", &RobotModelService::getJointChains, this).doc("Returns list of chain name of the given joint name list.");
-	this->addOperation("getJointPos", &RobotModelService::getJointPos, this).doc("Returns position of the given joint name in sorted pose.");
+	this->addOperation("getJointIndex", &RobotModelService::getJointIndex, this).doc("Returns position of the given joint name in sorted pose.");
 	this->addOperation("extractChain", &RobotModelService::extractChain, this, ClientThread).doc("Extracts (copy) chain parameters from joint state");
 	this->addOperation("packChain", &RobotModelService::packChain, this, ClientThread).doc("Put chain parameters to joint state");
 	this->addProperty("robot_description", robot_description_);
@@ -163,7 +163,7 @@ public:
 
     string getJointChain(const string& name)
     {
-	int jpos = getJointPos(name);
+	int jpos = getJointIndex(name);
 	if(-1 == jpos) return ""; // joint not found!
 	char chain_begin, chain_size;
 	for(auto& ci : chain_pos_) {
@@ -184,7 +184,7 @@ public:
 	return chain_names;
     }
 
-    int getJointPos(const string& name)
+    int getJointIndex(const string& name)
     {
 	auto iterator = find(joint_names_.begin(), joint_names_.end(), name);
 	return (iterator == joint_names_.end()) ? -1 : distance(joint_names_.begin(), iterator);
