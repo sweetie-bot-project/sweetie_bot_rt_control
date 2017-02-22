@@ -49,6 +49,7 @@ public:
 	this->addOperation("configure", &RobotModelService::configure, this, OwnThread).doc("Configures service: read parameters, construct kdl tree.");
 	this->addOperation("listChains", &RobotModelService::listChains, this, ClientThread).doc("Lists loaded chains");
 	this->addOperation("listJoints", &RobotModelService::listJoints, this, ClientThread).doc("Lists joints in chain");
+	this->addOperation("getJointChain", &RobotModelService::getJointChain, this).doc("Returns chain name of the given joint name.");
 	this->addOperation("getJointPos", &RobotModelService::getJointPos, this).doc("Returns position of the given joint name in sorted pose.");
 	this->addOperation("extractChain", &RobotModelService::extractChain, this, ClientThread).doc("Extracts (copy) chain parameters from joint state");
 	this->addOperation("packChain", &RobotModelService::packChain, this, ClientThread).doc("Put chain parameters to joint state");
@@ -89,7 +90,7 @@ public:
 
     void cleanup()
     {
-	this->log(INFO) << "cleanup." <<std::endl;
+	this->log(INFO) << "cleanup." <<endlog();
 	for(auto &chain: chains_){
 	  free(chain.second);
 	}
@@ -104,22 +105,22 @@ public:
 
 	Property<std::string> first_link, last_link;
 	char joint_num = 0;
-	//std::cout << "chains:"<< std::endl;
+	this->log(DEBUG) << "chains:"<< endlog();
 	for(int i = 0; i < chains_bag.rvalue().size(); i++) {
 		Property<PropertyBag> chain_bag = chains_bag.rvalue().getItem(i);
 		if (!chains_bag.ready()) return false;
 
-		//std::cout << "  "<< chain_bag.getName() <<  std::endl;
+		this->log(DEBUG) << "  "<< chain_bag.getName() <<  endlog();
 
 		first_link = chain_bag.rvalue().getProperty("first_link");
 		if (!first_link.ready()) return false;
 
-		//std::cout << "    " << first_link.getName() << ": " << first_link.rvalue() <<  std::endl;
+		this->log(DEBUG) << "    " << first_link.getName() << ": " << first_link.rvalue() <<  endlog();
 
 		last_link = chain_bag.rvalue().getProperty("last_link");
 		if (!last_link.ready()) return false;
 
-		//std::cout << "    " << last_link.getName() << ": " << last_link.rvalue() <<  std::endl;
+		this->log(DEBUG) << "    " << last_link.getName() << ": " << last_link.rvalue() <<  endlog();
 		KDL::Chain * chain = new KDL::Chain();
 		if(!tree_.getChain( first_link, last_link, *chain )) return false;
 
@@ -130,7 +131,7 @@ public:
 		// fill up joints list for each chain
 		for(int j = 0; j < chain->getNrOfSegments(); j++){
 		  string joint_name = chain->getSegment(j).getJoint().getName();
-		  //std::cout << "      joint(" << (int)joint_num << ")=" << joint_name << std::endl;
+		  this->log(DEBUG) << "      joint(" << (int)joint_num << ")=" << joint_name << endlog();
 		  joint_num++;
 		  joint_names_.push_back(joint_name);
 		}
@@ -159,10 +160,23 @@ public:
 	return joint_names;
     }
 
+    string getJointChain(const string& name)
+    {
+	int jpos = getJointPos(name);
+	if(-1 == jpos) return ""; // joint not found!
+	char chain_begin, chain_size;
+	for(auto& ci : chain_pos_) {
+	  tie(chain_begin, chain_size) = ci.second;
+	  //this->log(DEBUG) << ci.first << "=" << (int)chain_begin << " + " << (int)chain_size << endlog();
+	  if((jpos >= chain_begin) and (jpos <= chain_begin+chain_size)) return ci.first; // joint found
+	}
+	return ""; // joint postion not found!
+    }
+
     int getJointPos(const string& name)
     {
-	auto it = find(joint_names_.begin(), joint_names_.end(), name);
-	return (it == joint_names_.end()) ? -1 : distance(joint_names_.begin(), it);
+	auto iterator = find(joint_names_.begin(), joint_names_.end(), name);
+	return (iterator == joint_names_.end()) ? -1 : distance(joint_names_.begin(), iterator);
     }
 
     Chain * getChain(const string& name)

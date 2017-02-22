@@ -21,6 +21,7 @@ class RobotModelInterface
         virtual bool readChains() = 0;
         virtual std::vector<std::string> listChains() = 0;
         virtual std::vector<std::string> listJoints(const std::string& name) = 0;
+        virtual std::string getJointChain(const std::string& name) = 0;
         virtual int getJointPos(const std::string& name) = 0;
         virtual KDL::Chain * getChain(const std::string& name) = 0;
         virtual bool mapChain(const std::string& name, sensor_msgs::JointState& joint_state, KDL::JntArray& position, KDL::JntArray& velocity, KDL::JntArray& effort) = 0;
@@ -35,6 +36,7 @@ class RobotModel : public RTT::ServiceRequester {
         RTT::OperationCaller<bool()> configure;
         RTT::OperationCaller<std::vector<std::string>()> listChains;
         RTT::OperationCaller<std::vector<std::string>(const std::string&)> listJoints;
+        RTT::OperationCaller<std::string(const std::string&)> getJointChain;
         RTT::OperationCaller<int(const std::string&)> getJointPos;
         RTT::OperationCaller<bool(const std::string&, const sensor_msgs::JointState&, KDL::JntArray&, KDL::JntArray&, KDL::JntArray&)> extractChain;
         RTT::OperationCaller<bool(const std::string&, KDL::JntArray&, KDL::JntArray&, KDL::JntArray&, sensor_msgs::JointState&)> packChain;
@@ -44,6 +46,7 @@ class RobotModel : public RTT::ServiceRequester {
             configure("configure"),
             listChains("listChains"),
             listJoints("listJoints"),
+            getJointChain("getJointChain"),
             getJointPos("getJointPos"),
             extractChain("extractChain"),
             packChain("packChain")
@@ -51,6 +54,7 @@ class RobotModel : public RTT::ServiceRequester {
             addOperationCaller(configure);
             addOperationCaller(listChains);
             addOperationCaller(listJoints);
+            addOperationCaller(getJointChain);
             addOperationCaller(getJointPos);
             addOperationCaller(extractChain);
             addOperationCaller(packChain);
