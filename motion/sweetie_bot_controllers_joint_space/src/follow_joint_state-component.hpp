@@ -13,7 +13,7 @@
 
 #include <sweetie_bot_logger/logger.hpp>
 #include <sweetie_bot_resource_control/resource_client.hpp>
-#include <sweetie_bot_robot_model/sweetie_bot_robot_model-requester.hpp>
+#include <sweetie_bot_robot_model/robot_model-requester.hpp>
 
 namespace sweetie_bot {
 namespace motion {
@@ -39,7 +39,7 @@ class FollowJointState : public RTT::TaskContext
 		// OPERATIONS: requires
 		// SERVICES: provides
 		// SERVICES: required
-		sweetie_bot::motion::RobotModel robot_model; // joints list, kinematics chains access
+		sweetie_bot::motion::RobotModel * robot_model; // joints list, kinematics chains access
 		// SERVICES: internal interface
 		sweetie_bot::motion::ResourceClientInterface * resource_client; // resource client
 		// sweetie_bot::filters::TransientJointStateInterface * filter; // trajectory smoother

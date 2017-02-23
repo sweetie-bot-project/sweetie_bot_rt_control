@@ -31,6 +31,7 @@ else()
 endif()
 
 # depends
+find_package(orocos_kdl REQUIRED)
 find_package(catkin REQUIRED COMPONENTS 
 	sweetie_bot_logger
 	orocos_kdl)

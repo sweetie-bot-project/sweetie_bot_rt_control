@@ -11,6 +11,7 @@
 # and installs in the directory lib/orocos/sweetie_bot_resource_client_usage_example/
 #
 orocos_component(follow_joint_state follow_joint_state-component.cpp) # ...you may add multiple source files
+target_link_libraries(follow_joint_state ${orocos_kdl_LIBRARIES})
 #
 # You may add multiple orocos_component statements.
 

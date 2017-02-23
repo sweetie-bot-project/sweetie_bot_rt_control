@@ -65,7 +65,6 @@ bool isValidJointState(const sensor_msgs::JointState& msg, int sz = -1)
 
 FollowJointState::FollowJointState(std::string const& name)  : 
 	TaskContext(name, RTT::base::TaskCore::PreOperational),
-	robot_model(this),
 	log(logger::getDefaultCategory("sweetie.motion") + ".controller." + name)
 {
 	this->provides()->doc("Feedforward JointState reference from high-level to agregator.");
@@ -82,9 +81,8 @@ FollowJointState::FollowJointState(std::string const& name)  :
 		doc("Desired joint positions.");
 
 	// PORTS: output
-	this->addPort("out_joints_ref_fixed", in_joints_ref_port).
+	this->addPort("out_joints_ref_fixed", out_joints_port).
 		doc("Reference joint positions for agregator.");
-		OutputPort<sensor_msgs::JointState> out_joints_port;
 
 	// properties
 	this->addProperty("controlled_chains", controlled_chains).
@@ -94,6 +92,10 @@ FollowJointState::FollowJointState(std::string const& name)  :
 	this->addOperation("rosSetOperational", &FollowJointState::rosSetOperational, this)
 		.doc("ROS compatible start/stop operation (std_srvs::SetBool).");
 
+	// Service: reqires
+	robot_model = new sweetie_bot::motion::RobotModel(this);
+	this->requires()->addServiceRequester(ServiceRequester::shared_ptr(robot_model));
+	
 	// other actions
 	log(INFO) << "FollowJointState is constructed!" << endlog();
 }
@@ -108,7 +110,7 @@ bool FollowJointState::configureHook()
 		return false;
 	}
 	// check if RobotModel Service presents
-	if (!robot_model.ready()) {
+	if (!robot_model->ready()) {
 		log(ERROR) << "RobotModel service is not ready." << endlog();
 		return false;
 	}
@@ -118,14 +120,14 @@ bool FollowJointState::configureHook()
 
 	vector<string> joint_names;
 	for(auto chain = controlled_chains.begin(); chain != controlled_chains.end(); chain++) {
-		joint_names = robot_model.listJoints(*chain);
+		joint_names = robot_model->listJoints(*chain);
 		if (joint_names.size() == 0) {
 			log(ERROR) << "Empty joint group `" << *chain << "`." << endlog();
 			return false;
 		}
 		for(auto joint = joint_names.begin(); joint != joint_names.end(); joint++) {
 			// add joint to index
-			controlled_joints.insert(std::make_pair(*joint, JointIndex(robot_model.getJointIndex(*joint), controlled_joints.size())));
+			controlled_joints.insert(std::make_pair(*joint, JointIndex(robot_model->getJointIndex(*joint), controlled_joints.size())));
 			ref_pose.name.push_back(*joint);
 		}
 	}
