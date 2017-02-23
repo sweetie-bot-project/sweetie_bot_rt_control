@@ -44,7 +44,7 @@ class RobotModel : public RTT::ServiceRequester {
         RTT::OperationCaller<bool(const std::string&, KDL::JntArray&, KDL::JntArray&, KDL::JntArray&, sensor_msgs::JointState&)> packChain;
 
         RobotModel(RTT::TaskContext * owner) :
-            RTT::ServiceRequester("robot_model_requester", owner),
+            RTT::ServiceRequester("robot_model", owner),
             configure("configure"),
             listChains("listChains"),
             listJoints("listJoints"),

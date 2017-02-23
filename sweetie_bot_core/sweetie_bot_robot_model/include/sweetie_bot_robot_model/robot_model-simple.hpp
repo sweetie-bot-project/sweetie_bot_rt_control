@@ -35,7 +35,7 @@ class RobotModel : public RTT::ServiceRequester {
         RTT::OperationCaller<std::vector<std::string>(const std::vector<std::string>&)> getJointChains;
         RTT::OperationCaller<int(const std::string&)> getJointIndex;
         RobotModel(RTT::TaskContext * owner) :
-            RTT::ServiceRequester("robot_model_requester", owner),
+            RTT::ServiceRequester("robot_model", owner),
             configure("configure"),
             listChains("listChains"),
             listJoints("listJoints"),
