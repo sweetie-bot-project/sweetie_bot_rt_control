@@ -12,6 +12,18 @@ project(sweetie_bot_kinematics)
 
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 
+# Logger selection
+set(LOGGER_DEFAULT "" CACHE STRING "Default logger for all packages (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
+set(LOGGER_RESOURCE_CLIENT_USAGE_EXAMPLE "" CACHE STRING "Logger for current package (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
+
+if (LOGGER_RESOURCE_CLIENT_USAGE_EXAMPLE)
+        add_definitions(-DSWEETIEBOT_LOGGER=${LOGGER_RESOURCE_CLIENT_USAGE_EXAMPLE})
+elseif(LOGGER_DEFAULT)
+        add_definitions(-DSWEETIEBOT_LOGGER=${LOGGER_DEFAULT})
+else()
+        add_definitions(-DSWEETIEBOT_LOGGER=LoggerRTT)
+endif()
+
 find_package(orocos_kdl REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   rtt_ros
