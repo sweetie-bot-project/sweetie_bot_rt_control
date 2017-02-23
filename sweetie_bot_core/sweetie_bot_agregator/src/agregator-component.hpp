@@ -31,7 +31,7 @@ class Agregator : public RTT::TaskContext{
 #ifdef SWEETIEBOT_LOGGER
     sweetie_bot::logger::SWEETIEBOT_LOGGER log;
 #else
-    sweetie_bot::logger::LoggerLog4Cpp log;
+    sweetie_bot::logger::LoggerRTT log;
 #endif
 
   public:

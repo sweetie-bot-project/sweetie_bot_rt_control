@@ -38,7 +38,7 @@ private:
 #ifdef SWEETIEBOT_LOGGER
   sweetie_bot::logger::SWEETIEBOT_LOGGER log;
 #else
-  sweetie_bot::logger::LoggerLog4Cpp log;
+  sweetie_bot::logger::LoggerRTT log;
 #endif
 
 public:
@@ -179,7 +179,6 @@ public:
     vector<string> getJointChains(const vector<string>& names)
     {
 	vector<string> chain_names;
-	this->log(INFO) << names.size() << endlog();
 	for(auto& name : names){
 
 	  chain_names.push_back( getJointChain( name ) );
