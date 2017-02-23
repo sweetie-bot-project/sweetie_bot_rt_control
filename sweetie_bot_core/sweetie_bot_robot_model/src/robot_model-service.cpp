@@ -11,6 +11,8 @@
 
 #include <sweetie_bot_logger/logger.hpp>
 
+//#include <rtt/PropertyBag.hpp>
+
 using namespace std;
 using namespace RTT;
 using namespace KDL;
@@ -177,10 +179,17 @@ public:
     vector<string> getJointChains(const vector<string>& names)
     {
 	vector<string> chain_names;
+	this->log(INFO) << names.size() << endlog();
 	for(auto& name : names){
+
 	  chain_names.push_back( getJointChain( name ) );
+	  // remove empty elements (nonexistent joints)
+	  if( chain_names.back() == "") chain_names.pop_back();
+
 	  this->log(DEBUG) << name << "=" << getJointChain( name ) << endlog();
 	}
+	sort( chain_names.begin(), chain_names.end() );
+	chain_names.erase( unique( chain_names.begin(), chain_names.end() ), chain_names.end() );
 	return chain_names;
     }
 
