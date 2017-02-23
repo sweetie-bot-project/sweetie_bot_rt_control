@@ -3,7 +3,7 @@
 #include <rtt/RTT.hpp>
 #include <rtt/plugin/ServicePlugin.hpp>
 
-#include <sweetie_bot_robot_model/robot_model-requester.hpp>
+#include <sweetie_bot_robot_model/robot_model.hpp>
 
 #include <kdl_parser/kdl_parser.hpp>
 

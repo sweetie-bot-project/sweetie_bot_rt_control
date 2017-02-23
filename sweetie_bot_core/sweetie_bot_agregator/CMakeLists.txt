@@ -16,7 +16,6 @@ find_package(orocos_kdl REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   rtt_ros
   sensor_msgs
-  orocos_kdl
   sweetie_bot_logger
   )
 

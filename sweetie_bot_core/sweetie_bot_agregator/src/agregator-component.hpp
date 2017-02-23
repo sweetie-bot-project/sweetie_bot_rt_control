@@ -4,7 +4,9 @@
 #include <rtt/RTT.hpp>
 
 #include <kdl/chain.hpp>
-#include <sweetie_bot_robot_model/robot_model-requester.hpp>
+#include <sweetie_bot_robot_model/robot_model-simple.hpp>
+
+#include <sensor_msgs/JointState.h>
 
 #include <sweetie_bot_logger/logger.hpp>
 
