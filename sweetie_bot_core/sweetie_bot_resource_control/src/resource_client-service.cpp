@@ -209,9 +209,11 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			this->addOperation("stopOperational", &ResourceClientService::stopOperational, this, OwnThread).
 				doc("Exit operational state. Inform ResourceArbiter and release all resources.");
 			this->addOperation("isOperational", &ResourceClientService::isOperational, this).
-				doc("Returns true if resource client is in operational state.");
+				doc("Returns true if resource client is in operational state (shortcut for getState() & OPERATIONS).");
+			this->addOperation("isPending", &ResourceClientService::isPending, this).
+				doc("Returns true if resource client is waiting for arbiter responce (sortcut for getState() & PENDING).");
 			this->addOperation("getState", &ResourceClientService::getState, this).
-				doc("Returns state of ResourceClient: 0=NONOPERATIONAL, 1=PENDING, 2=OPERATIONAL.");
+				doc("Returns state of ResourceClient: 0=NONOPERATIONAL, 1=PENDING, 2=OPERATIONAL, 3=OPERATIONAL_PENDING");
 			this->addOperation("hasResource", &ResourceClientService::hasResource, this, OwnThread).
 				doc("Check is resource client owns a resource.").
 				arg("resource", "Resource name.");
@@ -235,11 +237,14 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			log(INFO) << "[" << owner_name << "] ResourceService is loaded!" << endlog();
 		}
 
-		// Properties' getters and setters
-
 		bool isOperational() const
 		{
 			return state & ResourceClient::OPERATIONAL;
+		}
+
+		bool isPending() const
+		{
+			return state & ResourceClient::PENDING;
 		}
 
 		int getState() const

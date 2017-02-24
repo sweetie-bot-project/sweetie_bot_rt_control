@@ -46,6 +46,10 @@ class ResourceClientDummyService :
 			return is_operational;
 		}
 
+		bool isPending() const {
+			return false;
+		}
+
 		int getState() const {
 			if (is_operational) return ResourceClient::OPERATIONAL;
 			else return ResourceClient::NONOPERATIONAL;
@@ -83,14 +87,16 @@ ResourceClientDummyService::ResourceClientDummyService(TaskContext* owner) :
 	doc("Dummy resource control client plugin. Always assumes that it owns requested recources.");
 	// OPERATONS
 	// for component internal use only
-	this->addOperation("resourceChangeRequest", &ResourceClientDummyService::resourceChangeRequest, this)
+	this->addOperation("resourceChangeRequest", &ResourceClientDummyService::resourceChangeRequest, this, OwnThread)
 		.doc("Send resource request to arbiter.")
 		.arg("resource_list", "Vector with names of resources.");
 	this->addOperation("stopOperational", &ResourceClientDummyService::stopOperational, this)
 		.doc("Deactivate contoller and inform artbiter about state change.");
 	// the external interface: OwnThread is necessary
-	this->addOperation("isOperational", &ResourceClientDummyService::isOperational, this, OwnThread)
+	this->addOperation("isOperational", &ResourceClientDummyService::isOperational, this)
 		.doc("Return true if controller is in operational state.");
+	this->addOperation("isPending", &ResourceClientDummyService::isPending, this)
+		.doc("Always return false.");
 	this->addOperation("getState", &ResourceClientDummyService::getState, this).
 		doc("Returns state of ResourceClient: 0=NONOPERATIONAL, 1=PENDING, 2=OPERATIONAL.");
 	this->addOperation("hasResource", &ResourceClientDummyService::hasResource, this, OwnThread)

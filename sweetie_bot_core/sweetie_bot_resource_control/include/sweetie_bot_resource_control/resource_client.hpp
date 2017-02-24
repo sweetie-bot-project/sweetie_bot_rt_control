@@ -21,6 +21,7 @@ class ResourceClientInterface
   	 virtual void step() = 0;
 
   	 virtual bool isOperational() const = 0;
+  	 virtual bool isPending() const = 0;
   	 virtual int getState() const = 0;
   	 virtual bool hasResource(const std::string& resource) const = 0;
   	 virtual bool hasResources(const std::vector<std::string>& resource_list) const = 0;
@@ -46,6 +47,7 @@ class ResourceClient: public RTT::ServiceRequester
 		RTT::OperationCaller< bool() > stopOperational;
 
 		RTT::OperationCaller< bool() > isOperational;
+		RTT::OperationCaller< bool() > isPending;
 		RTT::OperationCaller< int() > getState;
 		RTT::OperationCaller< bool(const std::string&) > hasResource;
 		RTT::OperationCaller< bool(const std::vector<std::string>&) > hasResources;
@@ -55,6 +57,7 @@ class ResourceClient: public RTT::ServiceRequester
 			step("step"),
 			resourceChangeRequest("resourceChangeRequest"),
 			stopOperational("stopOperational"),
+			isPending("isPending"),
 			isOperational("isOperational"),
 			getState("getState"),
 			hasResource("hasResource"),
