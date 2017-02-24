@@ -2,6 +2,8 @@
 
 #include <rtt/Component.hpp>
 
+#include "joint_state_check.hpp"
+
 using namespace RTT;
 using namespace std;
 
@@ -39,29 +41,6 @@ std::ostream& operator<<(std::ostream& s, const std::vector<std::string>& string
 	s << " ]";
 	return s;
 }
-
-bool isValidJointState(const sensor_msgs::JointState& msg, int sz = -1)
-{
-	if (msg.name.size() != 0) {
-		if (sz < 0) sz = msg.name.size();
-		else if (sz != msg.name.size()) return false;
-	}
-	if (msg.position.size() != 0) {
-		if (sz < 0) sz = msg.position.size();
-		else if (sz != msg.position.size()) return false;
-	}
-	if (msg.velocity.size() != 0) {
-		if (sz < 0) sz = msg.velocity.size();
-		else if (sz != msg.velocity.size()) return false;
-	}
-	if (msg.effort.size() != 0) {
-		if (sz < 0) sz = msg.effort.size();
-		else if (sz != msg.effort.size()) return false;
-	}
-	return true;
-}
-
-
 
 FollowJointState::FollowJointState(std::string const& name)  : 
 	TaskContext(name, RTT::base::TaskCore::PreOperational),
@@ -114,6 +93,7 @@ bool FollowJointState::configureHook()
 		log(ERROR) << "RobotModel service is not ready." << endlog();
 		return false;
 	}
+	n_joints_fullpose = robot_model->listJoints("").size();
 	// build joints index 
 	controlled_joints.clear();
 	ref_pose.name.clear();
@@ -195,11 +175,10 @@ void FollowJointState::updateHook()
 		in_joints_ref_port.read(ref_pose_unsorted, false);
 		in_joints_port.read(actual_fullpose, false);
 
-		// copy controlled joint to actual_pose
-		if (isValidJointState(actual_fullpose)) {
+		// copy controlled joint from actual_pose
+		if (isValidJointStatePos(actual_fullpose, n_joints_fullpose)) {
 			for(JointIndexes::const_iterator it = controlled_joints.begin(); it != controlled_joints.end(); it++) {
-				if (actual_fullpose.position.size()) 
-					actual_pose.position[it->second.index] = actual_fullpose.position[it->second.index_fullpose];
+				actual_pose.position[it->second.index] = actual_fullpose.position[it->second.index_fullpose];
 				if (actual_fullpose.velocity.size()) 
 					actual_pose.velocity[it->second.index] = actual_fullpose.velocity[it->second.index_fullpose];
 				//TODO effort support
@@ -210,13 +189,12 @@ void FollowJointState::updateHook()
 		ref_pose.velocity = actual_pose.velocity;
 
 		// copy controlled joint to ref_pose
-		if (isValidJointState(ref_pose_unsorted)) {
+		if (isValidJointStateNamePos(ref_pose_unsorted)) {
 			for(int i = 0; i < ref_pose_unsorted.name.size(); i++) {
 				JointIndexes::const_iterator found = controlled_joints.find(ref_pose_unsorted.name[i]);
 				if (found != controlled_joints.end()) {
 					// we control this joint so copy it
-					if (ref_pose_unsorted.position.size()) 
-						ref_pose.position[found->second.index] = ref_pose_unsorted.position[i];
+					ref_pose.position[found->second.index] = ref_pose_unsorted.position[i];
 					if (ref_pose_unsorted.velocity.size()) 
 						ref_pose.velocity[found->second.index] = ref_pose_unsorted.velocity[i];
 					//TODO effort support
