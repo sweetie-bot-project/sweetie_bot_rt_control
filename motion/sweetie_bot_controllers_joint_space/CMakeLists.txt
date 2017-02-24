@@ -31,10 +31,13 @@ else()
 endif()
 
 # depends
-find_package(orocos_kdl REQUIRED)
+find_path(alglib_INCLUDE_DIR interpolation.h PATH_SUFFIXES alglib )
+find_library(alglib_LIBRARY NAMES alglib)
+if (NOT (alglib_INCLUDE_DIR AND alglib_LIBRARY))
+	message (FATAL_ERROR "\nCould not find alglib library.")
+endif()
 find_package(catkin REQUIRED COMPONENTS 
-	sweetie_bot_logger
-	orocos_kdl)
+	sweetie_bot_logger)
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 #find_package(Boost REQUIRED COMPONENTS graph filesystem system thread regex)

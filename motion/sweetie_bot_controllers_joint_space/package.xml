@@ -19,6 +19,7 @@
   <!-- ROS and OROCOS datatypes -->
   <depend>rtt_std_srvs</depend>
   <depend>rtt_sensor_msgs</depend>
+  <depend>rtt_control_msgs</depend>
   <!-- SWEETIEBOT packages -->
   <depend>sweetie_bot_logger</depend>
   <depend>sweetie_bot_resource_control</depend>
@@ -29,9 +30,10 @@
   <export>
 	  <rtt_ros>
 		  <!-- Plugin deps are loaded automatically by the rtt_ros import service -->
+		  <plugin_depend>rtt_actionlib</plugin_depend>
 		  <plugin_depend>rtt_std_srvs</plugin_depend>
 		  <plugin_depend>rtt_sensor_msgs</plugin_depend>
-		  <plugin_depend>rtt_actionlib</plugin_depend>
+		  <plugin_depend>rtt_control_msgs</plugin_depend>
 		  <plugin_depend>rtt_sweetie_bot_resource_control_msgs</plugin_depend>
 	  </rtt_ros>
   </export>
