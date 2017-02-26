@@ -13,7 +13,7 @@ namespace motion {
 
 ServoInvLead::ServoInvLead(std::string const& name) : 
 	TaskContext(name),
-	log(logger::getDefaultCategory("sweetie_bot.motion") + "." + name)
+	log(logger::categoryFromComponentName(name))
 {
 	if (!log.ready()) {
 		RTT::Logger::In in("ServoInvLead");

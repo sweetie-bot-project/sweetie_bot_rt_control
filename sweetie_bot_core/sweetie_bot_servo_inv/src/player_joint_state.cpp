@@ -14,7 +14,7 @@ namespace sweetie_bot
 
 PlayerJointState::PlayerJointState(std::string const& name) : 
 	TaskContext(name, PreOperational),
-	log(logger::getDefaultCategory("sweetie_bot.motion") + "." + name)
+	log(logger::categoryFromComponentName(name))
 {
 	if (!log.ready()) {
 		RTT::Logger::In in("PlayerJointState");
