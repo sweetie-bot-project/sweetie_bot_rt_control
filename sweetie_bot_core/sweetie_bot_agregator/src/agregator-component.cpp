@@ -11,7 +11,7 @@ namespace motion {
 Agregator::Agregator(string const& name) : TaskContext(name),
                                                                           input_port_joint_state_("in_joints"),
                                                                           output_port_joint_state_("out_joints_sorted"),
-                                                                          log(logger::getDefaultCategory("sweetie_bot.motion") + "." + name)
+																		  log(logger::categoryFromComponentName(name))
 {
 
   this->ports()->addEventPort( input_port_joint_state_ )

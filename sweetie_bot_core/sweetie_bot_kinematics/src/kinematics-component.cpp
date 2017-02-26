@@ -16,7 +16,7 @@ Kinematics::Kinematics(string const& name) : TaskContext(name),
 									  input_port_limbs_("in_limbs"),
 									  output_port_joints_("out_joints"),
 									  output_port_limbs_("out_limbs"),
-									  log(logger::getDefaultCategory("sweetie_bot.motion") + "." + name)
+									  log(logger::categoryFromComponentName(name))
 {
   this->ports()->addEventPort( input_port_joints_seed_ )
    .doc( "Messages received on this port is used to update initial robot pose used for inverse kinematic calculation." );
