@@ -34,7 +34,7 @@ template<class ServiceInterface> ServiceInterface * getSubServiceByInterface(Ser
 
 ControllerTemplate::ControllerTemplate(std::string const& name)  : 
 	TaskContext(name, RTT::base::TaskCore::PreOperational),
-	log(logger::getDefaultCategory("sweetie_bot.motion") + ".controller." + name)
+	log(logger::categoryFromComponentName(name))
 {
 	// ports
 	// properties

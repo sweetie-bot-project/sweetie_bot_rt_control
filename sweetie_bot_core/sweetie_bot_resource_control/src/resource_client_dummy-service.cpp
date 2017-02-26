@@ -82,7 +82,7 @@ ResourceClientDummyService::ResourceClientDummyService(TaskContext* owner) :
 	Service("resource_client", owner),
 	is_operational(false),
 	resourceChangeHook_call("resourceChangeHook"),
-	log(logger::getDefaultCategory("swetie.motion") + ".resource_control")
+	log(logger::getDefaultCategory("swetie_bot.motion") + ".resource_control")
 {
 	doc("Dummy resource control client plugin. Always assumes that it owns requested recources.");
 	// OPERATONS

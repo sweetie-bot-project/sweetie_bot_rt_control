@@ -14,7 +14,7 @@ namespace motion {
 
 ResourceArbiter::ResourceArbiter(std::string const& name) :
 	TaskContext(name, RTT::base::TaskCore::PreOperational),
-	log(logger::getDefaultCategory("sweetie_bot.motion") + ".resource_control." + name)
+	log(logger::categoryFromComponentName(name))
 {
 	// PORTS
 	this->ports()->addPort("out_resource_assigment", assigment_port)

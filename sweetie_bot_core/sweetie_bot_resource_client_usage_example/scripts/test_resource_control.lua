@@ -11,6 +11,7 @@ local ros = rtt.provides("ros")
 require "logger"
 
 logger.init_loglevels_log4cpp("resource_control.log4cpp")
+logger.set_root_category("sweetie_bot.motion")
 
 -- allows ROS to call start/stop via scriptiong commands
 ros:import("rtt_rosdeployment")

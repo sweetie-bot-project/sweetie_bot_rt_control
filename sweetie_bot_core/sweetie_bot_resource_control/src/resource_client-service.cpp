@@ -188,7 +188,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 		ResourceClientService(TaskContext* owner) :
 			Service("resource_client", owner),
 			state(ResourceClient::NONOPERATIONAL),
-			log(logger::getDefaultCategory("swetie.motion") + ".resource_control"),
+			log(logger::getDefaultCategory("swetie_bot.motion") + ".resource_control"),
 			resourceChangeHook_call("resourceChangeHook"),
 			stopOperationalHook_call("stopOperationalHook")
 		{

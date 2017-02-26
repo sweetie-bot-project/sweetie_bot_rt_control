@@ -30,7 +30,7 @@ template<class ServiceInterface> ServiceInterface * getSubServiceByInterface(Ser
 ControllerActionlibTemplate::ControllerActionlibTemplate(std::string const& name) : 
 	TaskContext(name),
 	action_server(this->provides()),
-	log(logger::getDefaultCategory("sweetie_bot.motion") + ".controller." + name)
+	log(logger::categoryFromComponentName(name))
 {
 
 	// ports
