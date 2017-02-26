@@ -28,7 +28,7 @@ template<class ServiceInterface> ServiceInterface * getSubServiceByInterface(Ser
 
 AnimJointTrajectoryBase::AnimJointTrajectoryBase(std::string const& name) : 
 	TaskContext(name),
-	log(logger::getDefaultCategory("sweetie_bot.motion") + ".controller." + name)
+	log(logger::categoryFromComponentName(name))
 {
 
 	// ports

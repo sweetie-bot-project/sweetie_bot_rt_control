@@ -44,7 +44,7 @@ std::ostream& operator<<(std::ostream& s, const std::vector<std::string>& string
 
 FollowJointState::FollowJointState(std::string const& name)  : 
 	TaskContext(name, RTT::base::TaskCore::PreOperational),
-	log(logger::getDefaultCategory("sweetie.motion") + ".controller." + name)
+	log(logger::categoryFromComponentName(name))
 {
 	this->provides()->doc("Feedforward JointState reference from high-level to agregator.");
 
