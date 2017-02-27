@@ -1,5 +1,5 @@
 <package format="2">
-  <name>sweetie_bot_controllers_joint_space</name>
+  <name>sweetie_bot_controller_joint_space</name>
   <version>1.0.0</version>
   <description>Basic controllers for SweetieBot operating in joint space.</description>
   <maintainer email="goncharovoi@yandex.ru">Oleg Goncharov (disRecord)</maintainer>
@@ -15,7 +15,6 @@
   <depend>rtt</depend>
   <depend>actionlib</depend>
   <depend>rtt_actionlib</depend>
-  <depend>orocos_kdl</depend>
   <!-- ROS and OROCOS datatypes -->
   <depend>rtt_std_srvs</depend>
   <depend>rtt_sensor_msgs</depend>
