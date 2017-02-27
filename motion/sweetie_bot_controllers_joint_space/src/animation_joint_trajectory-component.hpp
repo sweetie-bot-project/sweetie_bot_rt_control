@@ -5,6 +5,7 @@
 
 #include <sweetie_bot_resource_control/simple_action_server.hpp>
 #include <control_msgs/FollowJointTrajectoryAction.h>
+#include <orocos/control_msgs/typekit/FollowJointTrajectoryAction.h>
 
 namespace sweetie_bot {
 namespace motion {

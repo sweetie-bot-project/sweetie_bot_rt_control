@@ -1,5 +1,8 @@
 #include "joint_trajectory_cache.hpp"
 
+#include <limits>
+#include <cstddef>
+
 #include "sweetie_bot_robot_model/robot_model-simple.hpp"
 
 namespace sweetie_bot {
@@ -29,15 +32,29 @@ JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajec
 	// now only same order and same size tolerance values are supported
 	// TODO: add velocity tolerance support
 	// TODO: allow random joints order
-	if (goal.path_tolerance.size() != n_joints || goal.goal_tolerance.size() != n_joints) throw std::invalid_argument("JointTrajectoryCache: inconsitent tolerance array size.");
-	for(int joint = 0; joint < n_joints; joint++) {
-		if (goal.path_tolerance[joint].name != names[joint]) throw std::invalid_argument("JointTrajectoryCache: inconsitent joint order in path_tolerance.");
-		if (goal.goal_tolerance[joint].name != names[joint]) throw std::invalid_argument("JointTrajectoryCache: inconsitent joint order in goal_tolerance.");
-
-		this->path_tolerance[joint] = goal.path_tolerance[joint].position;
-		this->goal_tolerance[joint] = goal.goal_tolerance[joint].position;
+	// TODO: default tolerance parameteres
+	if (goal.path_tolerance.size() == 0 && goal.goal_tolerance.size() == 0) {
+		// no tolerance limits provided. Set then to infinite
+		for(int joint = 0; joint < n_joints; joint++) {
+			this->path_tolerance[joint] = std::numeric_limits<double>::max();
+			this->goal_tolerance[joint] = std::numeric_limits<double>::max();
+		}
 	}
+	else {
+		// check tolerance limits arrays
+		if (goal.path_tolerance.size() != n_joints || goal.goal_tolerance.size() != n_joints) throw std::invalid_argument("JointTrajectoryCache: inconsitent tolerance array size.");
+		for(int joint = 0; joint < n_joints; joint++) {
+			if (goal.path_tolerance[joint].name != names[joint]) throw std::invalid_argument("JointTrajectoryCache: inconsitent joint order in path_tolerance.");
+			if (goal.goal_tolerance[joint].name != names[joint]) throw std::invalid_argument("JointTrajectoryCache: inconsitent joint order in goal_tolerance.");
+
+			this->path_tolerance[joint] = goal.path_tolerance[joint].position;
+			this->goal_tolerance[joint] = goal.goal_tolerance[joint].position;
+		}
+	}
+	// get goal time tolerance
 	this->goal_time_tolerance = goal.goal_time_tolerance.toSec();
+	if (this->goal_time_tolerance == 0.0) this->goal_time_tolerance = 1.0; // sane value TODO: default tolerance parameteres
+	else if (this->goal_time_tolerance < 0.0) this->goal_time_tolerance = std::numeric_limits<double>::max(); // effective infifnity
 }
 
 /**
