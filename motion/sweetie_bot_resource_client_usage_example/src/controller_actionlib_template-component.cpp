@@ -3,28 +3,14 @@
 #include <rtt/Component.hpp>
 #include <rtt/os/TimeService.hpp>
 
+#include <sweetie_bot_orocos_misc/get_subservice_by_type.hpp>
+
 using namespace RTT;
 using RTT::os::TimeService;
 
 namespace sweetie_bot {
 namespace motion {
 namespace controller {
-
-//TODO move somewhere
-template<class ServiceInterface> ServiceInterface * getSubServiceByInterface(Service * service) 
-{
-	if (!service) return nullptr;
-
-	ServiceInterface * found_service;
-	Service::ProviderNames subservices;
-
-	subservices = service->getProviderNames();
-	for(Service::ProviderNames::const_iterator name = subservices.begin(); name != subservices.end(); name++) {
-        found_service = dynamic_cast<ServiceInterface*>(service->getService(*name).get());
-		if (found_service) return found_service;
-	}
-	return nullptr;
-}
 
 
 ControllerActionlibTemplate::ControllerActionlibTemplate(std::string const& name) : 
@@ -62,7 +48,7 @@ bool ControllerActionlibTemplate::dataOnPortHook( RTT::base::PortInterface* port
 bool ControllerActionlibTemplate::configureHook()
 {
 	// Get ResourceClient plugin interface.
-	resource_client = getSubServiceByInterface<ResourceClientInterface>(this->provides().get());
+	resource_client = getSubServiceByType<ResourceClientInterface>(this->provides().get());
 	if (!resource_client) {
 		log(ERROR) << "ResourceClient plugin is not loaded." << endlog();
 		return false;

@@ -20,7 +20,7 @@ endif()
 
 # Logger selection
 set(LOGGER_DEFAULT "" CACHE STRING "Default logger for all packages (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
-set(LOGGER_RESOURCE_CLIENT_USAGE_EXAMPLE "" CACHE STRING "Logger for current package (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
+set(LOGGER_RESOURCE_CLIENT_USAGE_EXAMPLE "" CACHE STRING "Logger for ${PACKAGE_NAME} (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
 
 if (LOGGER_RESOURCE_CLIENT_USAGE_EXAMPLE)
 	add_definitions(-DSWEETIEBOT_LOGGER=${LOGGER_RESOURCE_CLIENT_USAGE_EXAMPLE})
@@ -31,15 +31,16 @@ else()
 endif()
 
 # depends
-find_package(catkin REQUIRED COMPONENTS sweetie_bot_logger)
-include_directories(include ${catkin_INCLUDE_DIRS})
+find_package(catkin REQUIRED COMPONENTS 
+	sweetie_bot_logger
+	sweetie_bot_orocos_misc)
+include_directories(include ${catkin_INCLUDE_DIRS}) # include directory support
 
 #find_package(Boost REQUIRED COMPONENTS graph filesystem system thread regex)
 
 # Defines the orocos_* cmake macros. See that file for additional
 # documentation.
 include( ${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake )
-include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 # Rest of the configuration is in src/
 add_subdirectory( src )

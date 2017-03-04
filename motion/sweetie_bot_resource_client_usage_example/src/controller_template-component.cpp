@@ -2,35 +2,13 @@
 
 #include <rtt/Component.hpp>
 
+#include <sweetie_bot_orocos_misc/get_subservice_by_type.hpp>
+
 using namespace RTT;
 
 namespace sweetie_bot {
 namespace motion {
 namespace controller {
-	//
-//TODO move somewhere
-
-/**
- * @brief Find OROCOS subservice which implements given interface.
- * Find OROCOS subservice which implements given interface ServiceInterface.
- * @param service Pointer to parent service.
- * @return Pointer to found subservice or zero if nothing found.
- **/
-template<class ServiceInterface> ServiceInterface * getSubServiceByInterface(Service * service) 
-{
-	if (!service) return nullptr;
-
-	ServiceInterface * found_service;
-	Service::ProviderNames subservices;
-
-	subservices = service->getProviderNames();
-	for(Service::ProviderNames::const_iterator name = subservices.begin(); name != subservices.end(); name++) {
-        found_service = dynamic_cast<ServiceInterface*>(service->getService(*name).get());
-		if (found_service) return found_service;
-	}
-	return nullptr;
-}
-
 
 ControllerTemplate::ControllerTemplate(std::string const& name)  : 
 	TaskContext(name, RTT::base::TaskCore::PreOperational),
@@ -77,7 +55,7 @@ bool ControllerTemplate::configureHook()
 {
 	// INITIALIZATION
 	// check if ResourceClient Service presents: try to find it amoung loaded services
-	resource_client = getSubServiceByInterface<ResourceClientInterface>(this->provides().get());
+	resource_client = getSubServiceByType<ResourceClientInterface>(this->provides().get());
 	if (!resource_client) {
 		log(ERROR) << "ResourceClient plugin is not loaded." << endlog();
 		return false;
