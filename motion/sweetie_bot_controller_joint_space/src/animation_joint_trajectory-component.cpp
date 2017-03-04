@@ -2,7 +2,7 @@
 
 #include <rtt/Component.hpp>
 
-#include "joint_state_check.hpp"
+#include <sweetie_bot_orocos_misc/joint_state_check.hpp>
 
 using namespace RTT;
 

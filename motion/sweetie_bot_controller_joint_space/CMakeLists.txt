@@ -30,14 +30,17 @@ else()
 	add_definitions(-DSWEETIEBOT_LOGGER=LoggerRTT)
 endif()
 
-# depends
+# Dependes: system
 find_path(alglib_INCLUDE_DIR interpolation.h PATH_SUFFIXES alglib )
 find_library(alglib_LIBRARY NAMES alglib)
 if (NOT (alglib_INCLUDE_DIR AND alglib_LIBRARY))
 	message (FATAL_ERROR "\nCould not find alglib library.")
 endif()
+# Dependes: OROCOS
+# Depends: catkin
 find_package(catkin REQUIRED COMPONENTS 
-	sweetie_bot_logger)
+	sweetie_bot_logger
+	sweetie_bot_orocos_misc)
 
 #find_package(Boost REQUIRED COMPONENTS graph filesystem system thread regex)
 
