@@ -29,9 +29,9 @@ class ResourceClientDummyService :
 		bool is_operational; 
 		std::set<std::string> owned_resources;
 		boost::function <bool()> resourceChangeHook;
-		OperationCaller<bool()> resourceChangeHook_call;
+		//OperationCaller<bool()> resourceChangeHook_call;
 		boost::function <void()> stopOperationalHook;
-		OperationCaller<void()> stopOperationalHook_call;
+		//OperationCaller<void()> stopOperationalHook_call;
 
 #ifdef SWEETIEBOT_LOGGER
 		logger::SWEETIEBOT_LOGGER log;
@@ -81,7 +81,7 @@ class ResourceClientDummyService :
 ResourceClientDummyService::ResourceClientDummyService(TaskContext* owner) :
 	Service("resource_client", owner),
 	is_operational(false),
-	resourceChangeHook_call("resourceChangeHook"),
+	//resourceChangeHook_call("resourceChangeHook"),
 	log(logger::getDefaultCategory("swetie_bot.motion") + ".resource_control")
 {
 	doc("Dummy resource control client plugin. Always assumes that it owns requested recources.");
@@ -110,10 +110,10 @@ ResourceClientDummyService::ResourceClientDummyService(TaskContext* owner) :
 
 	if (!owner) throw std::invalid_argument("ResourceClientDummyService: you must provide owner TaskContext to contructor.");
 	
-	resourceChangeHook_call = owner->provides()->getLocalOperation("resourceChangeHook");
-	resourceChangeHook_call.setCaller(owner->engine());
-	stopOperationalHook_call = owner->provides()->getLocalOperation("stopOperationalHook");
-	stopOperationalHook_call.setCaller(owner->engine());
+	//resourceChangeHook_call = owner->provides()->getLocalOperation("resourceChangeHook");
+	//resourceChangeHook_call.setCaller(owner->engine());
+	//stopOperationalHook_call = owner->provides()->getLocalOperation("stopOperationalHook");
+	//stopOperationalHook_call.setCaller(owner->engine());
 
 	log(INFO) << "[" << getOwner()->getName()  << "] ResourceDummyService is loaded!" << endlog();
 }
@@ -127,7 +127,7 @@ bool ResourceClientDummyService::resourceChangeRequest(const std::vector<std::st
 
 	is_operational = true;
 	if (resourceChangeHook) is_operational = resourceChangeHook();
-	else if (resourceChangeHook_call.ready()) is_operational = resourceChangeHook_call();
+	//else if (resourceChangeHook_call.ready()) is_operational = resourceChangeHook_call();
 
 	log(INFO) << "[" << getOwner()->getName()  << "] ResourceDummyService: ResourceAssignment processed, opertional = " << is_operational << endlog();
 	return true;
@@ -139,7 +139,7 @@ bool ResourceClientDummyService::stopOperational()
 	if (is_operational) {
 		is_operational = false;
 		if (stopOperationalHook) stopOperationalHook();
-		else if (stopOperationalHook_call.ready()) stopOperationalHook_call();
+		//else if (stopOperationalHook_call.ready()) stopOperationalHook_call();
 	}
 
 	log(INFO) << "[" << getOwner()->getName()  << "] ResourceDummyService: exits operational state. " << endlog();

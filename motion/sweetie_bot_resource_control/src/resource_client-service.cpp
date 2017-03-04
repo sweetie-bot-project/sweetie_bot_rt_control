@@ -64,13 +64,13 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 		 * @return bool True when the controller is active (can function), false otherwise.
 		 */
 		boost::function<bool()> resourceChangeHook;
-		OperationCaller<bool()> resourceChangeHook_call;
+		//OperationCaller<bool()> resourceChangeHook_call;
 	
 		/*
 		 * Hook is called when client enters NONOPERATIONAL state.
 		 */
 		boost::function<void()> stopOperationalHook;
-		OperationCaller<void()> stopOperationalHook_call;
+		//OperationCaller<void()> stopOperationalHook_call;
 
 		/**
 		 * Sets with assigned and requested resources.
@@ -188,9 +188,9 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 		ResourceClientService(TaskContext* owner) :
 			Service("resource_client", owner),
 			state(ResourceClient::NONOPERATIONAL),
-			log(logger::getDefaultCategory("swetie_bot.motion") + ".resource_control"),
-			resourceChangeHook_call("resourceChangeHook"),
-			stopOperationalHook_call("stopOperationalHook")
+			log(logger::getDefaultCategory("swetie_bot.motion") + ".resource_control")
+			//resourceChangeHook_call("resourceChangeHook"),
+			//stopOperationalHook_call("stopOperationalHook")
 		{
 			doc("Client plugin for basic ResourceArbiter (without priorities).");
 
@@ -203,11 +203,11 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 				doc("Receive resource assignment changes from ResourceArbiter component.");
 
 			// OPERATIONS
-			this->addOperation("resourceChangeRequest", &ResourceClientService::resourceChangeRequest, this, OwnThread).
+			/*this->addOperation("resourceChangeRequest", &ResourceClientService::resourceChangeRequest, this, OwnThread).
 				doc("Request ResourceArbiter for given list of resources.").
 				arg("resources", "List of requested resources");
 			this->addOperation("stopOperational", &ResourceClientService::stopOperational, this, OwnThread).
-				doc("Exit operational state. Inform ResourceArbiter and release all resources.");
+				doc("Exit operational state. Inform ResourceArbiter and release all resources.");*/
 			this->addOperation("isOperational", &ResourceClientService::isOperational, this).
 				doc("Returns true if resource client is in operational state (shortcut for getState() & OPERATIONS).");
 			this->addOperation("isPending", &ResourceClientService::isPending, this).
@@ -220,8 +220,8 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			this->addOperation("hasResources", &ResourceClientService::hasResources, this, OwnThread).
 				doc("Check is resource client owns resources.").
 				arg("resources", "Resource name list.");
-			this->addOperation("step", &ResourceClientService::step, this, OwnThread).
-				doc("Process incomming resource assignment. Call this operation periodically.");
+			/*this->addOperation("step", &ResourceClientService::step, this, OwnThread).
+				doc("Process incomming resource assignment. Call this operation periodically.");*/
 
 			if (!getOwner())	throw std::invalid_argument("ResourceClient: owner pointer is null.");
 
@@ -229,10 +229,10 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			client_id = 0xffff & hash<string>()(owner_name); // unique client id
 			request_counter = 0;
 
-			resourceChangeHook_call = owner->provides()->getLocalOperation("resourceChangeHook");
-			resourceChangeHook_call.setCaller(owner->engine());
-			stopOperationalHook_call = owner->provides()->getLocalOperation("stopOperationalHook");
-			stopOperationalHook_call.setCaller(owner->engine());
+			//resourceChangeHook_call = owner->provides()->getLocalOperation("resourceChangeHook");
+			//resourceChangeHook_call.setCaller(owner->engine());
+			//stopOperationalHook_call = owner->provides()->getLocalOperation("stopOperationalHook");
+			//stopOperationalHook_call.setCaller(owner->engine());
 
 			log(INFO) << "[" << owner_name << "] ResourceService is loaded!" << endlog();
 		}
@@ -325,7 +325,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 				state = ResourceClient::NONOPERATIONAL;
 				// call user hook
 				if (stopOperationalHook) stopOperationalHook();
-				else if (stopOperationalHook_call.ready()) stopOperationalHook_call();
+				//else if (stopOperationalHook_call.ready()) stopOperationalHook_call();
 			}
 			return true;
 		}
