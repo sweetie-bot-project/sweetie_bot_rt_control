@@ -1,0 +1,22 @@
+<package format="2">
+  <name>sweetie_bot_orocos_misc</name>
+  <version>1.0.0</version>
+  <description>Different support libraries for SweetiBot.</description>
+  <maintainer email="goncharovoi@yandex.ru">disRecord</maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">https://gitlab.com/sweetie-bot/sweetie_doc/wikis</url>
+  <!-- <url type="bugtracker"></url> -->
+
+  <author>Oleg Goncharov (disRecord)</author>
+
+  <depend>catkin</depend>
+  <depend>rtt</depend>
+  <depend>actionlib</depend>
+  <depend>rtt_actionlib</depend>
+
+  <export>
+
+  </export>
+</package>

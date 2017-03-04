@@ -10,7 +10,6 @@
 #include <orocos/rtt_actionlib/rtt_action_server.h>
 
 namespace sweetie_bot {
-namespace motion {
 
 template <class ActionSpec> class OrocosSimpleActionServer 
 {
@@ -296,7 +295,6 @@ template <class ActionSpec> void OrocosSimpleActionServer<ActionSpec>::cancelCal
 	}
 }
 
-} // namespace motion
 } // namespace sweetie_bot
 
 #endif  /*SIMPLE_ACTION_SERVER_HPP*/
