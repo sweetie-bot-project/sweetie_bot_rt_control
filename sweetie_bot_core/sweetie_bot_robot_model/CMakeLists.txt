@@ -52,7 +52,10 @@ add_subdirectory( src )
 # Generates and installs our package. Must be the last statement such
 # that it can pick up all above settings.
 #
-orocos_install_headers(DIRECTORY include/${PROJECT_NAME})
+orocos_install_headers(
+ include/${PROJECT_NAME}/robot_model.hpp
+ include/${PROJECT_NAME}/robot_model-simple.hpp
+)
 
 orocos_generate_package(
   INCLUDE_DIRS include

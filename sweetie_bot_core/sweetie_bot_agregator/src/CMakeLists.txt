@@ -20,7 +20,7 @@ target_link_libraries(agregator ${catkin_LIBRARIES})
 #
 # Installs in the include/orocos/sweetie_bot_agregator/ directory
 #
-orocos_install_headers(agregator-component.hpp) # ...you may add multiple header files
+#orocos_install_headers(agregator-component.hpp) # ...you may add multiple header files
 #
 # You may add multiple orocos_install_headers statements.
 
