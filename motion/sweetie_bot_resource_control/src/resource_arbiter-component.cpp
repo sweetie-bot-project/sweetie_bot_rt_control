@@ -118,14 +118,15 @@ void ResourceArbiter::processResourceRequest(ResourceRequest& resourceRequestMsg
  */
 void ResourceArbiter::sendResourceAssigmentMsg() {
 	// inform components about resource assigments
+	// TODO remove header recreation
 	assigment_msg.resources.clear();
 	assigment_msg.owners.clear();
-	for (Resources::iterator it = resources.begin(); it != resources.end(); ++it) {
+	for (Resources::const_iterator it = resources.begin(); it != resources.end(); ++it) {
 		assigment_msg.resources.push_back(it->first);
 		assigment_msg.owners.push_back(it->second.owner);
 	}
 	assigment_msg.request_ids.clear();
-	for (Clients::iterator it = clients.begin(); it != clients.end(); ++it) {
+	for (Clients::const_iterator it = clients.begin(); it != clients.end(); ++it) {
 		// add request_ids of controllers with pending requests
 		if (it->second.state & ResourceClient::PENDING) assigment_msg.request_ids.push_back( it->second.request_id );
 	}
@@ -148,6 +149,11 @@ bool ResourceArbiter::processResourceRequesterState(ResourceRequesterState& reso
 	// Register new client if necessary.
 	bool assigment_changed = false;
 	ClientInfo& client = clients[resourceRequesterStateMsg.requester_name];
+
+	// Ignore message if it does not correspond the last ResourceRequest issuied by the client.
+	if (client.request_id > resourceRequesterStateMsg.request_id) {
+		return false;
+	}
 	
 	if (resourceRequesterStateMsg.is_operational) {
 		client.state = ResourceClient::OPERATIONAL;
