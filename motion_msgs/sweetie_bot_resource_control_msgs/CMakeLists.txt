@@ -52,6 +52,7 @@ add_message_files(
   ResourceRequest.msg
   ResourceAssignment.msg
   ResourceRequesterState.msg
+  ControllerState.msg
 )
 
 ## Generate services in the 'srv' folder

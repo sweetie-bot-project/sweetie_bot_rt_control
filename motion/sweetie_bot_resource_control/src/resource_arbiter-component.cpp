@@ -18,7 +18,9 @@ ResourceArbiter::ResourceArbiter(std::string const& name) :
 {
 	// PORTS
 	this->ports()->addPort("out_resource_assigment", assigment_port)
-		.doc("Publishes a list of all resources and their current owners.");
+		.doc("Publish a list of all resources and their current owners.");
+	this->ports()->addPort("out_controllers_state", controllers_state_port)
+		.doc("States of all registered controllers.");
 	this->ports()->addEventPort("in_resource_request", request_port)
 		.doc("Resource arbiter receives requests for resource allocation via this port.");
 	this->ports()->addEventPort("in_resource_requester_status", requester_status_port)
@@ -51,8 +53,10 @@ bool ResourceArbiter::configureHook()
 	assigment_msg.resources.reserve(resources.size());
 	assigment_msg.owners.reserve(resources.size());
 	request_msg.resources.reserve(resources.size());
+	// TODO controllers_state_msg
 	// set data samples
 	assigment_port.setDataSample(assigment_msg);
+	// TODO controllers_state_port
 
 	log(INFO) << "ResourceArbiter is configured !" << RTT::endlog();
 	return true;
@@ -116,21 +120,58 @@ void ResourceArbiter::processResourceRequest(ResourceRequest& resourceRequestMsg
 /* 
  * Send ResourceAssignment message with current assigment to clients.
  */
-void ResourceArbiter::sendResourceAssigmentMsg() {
+void ResourceArbiter::sendResourceAssigmentMsg() 
+{
 	// inform components about resource assigments
-	// TODO remove header recreation
-	assigment_msg.resources.clear();
-	assigment_msg.owners.clear();
-	for (Resources::const_iterator it = resources.begin(); it != resources.end(); ++it) {
-		assigment_msg.resources.push_back(it->first);
-		assigment_msg.owners.push_back(it->second.owner);
+	if (assigment_msg.resources.size() != resources.size()) {
+		// recreate all fields
+		assigment_msg.resources.clear();
+		assigment_msg.owners.clear();
+		for (Resources::const_iterator it = resources.begin(); it != resources.end(); ++it) {
+			assigment_msg.resources.push_back(it->first);
+			assigment_msg.owners.push_back(it->second.owner);
+		}
 	}
+	else {
+		// renew only owners
+		assigment_msg.owners.clear();
+		for (Resources::const_iterator it = resources.begin(); it != resources.end(); ++it) {
+			assigment_msg.owners.push_back(it->second.owner);
+		}
+	}
+	// fill up request_id of pending components
 	assigment_msg.request_ids.clear();
 	for (Clients::const_iterator it = clients.begin(); it != clients.end(); ++it) {
 		// add request_ids of controllers with pending requests
 		if (it->second.state & ResourceClient::PENDING) assigment_msg.request_ids.push_back( it->second.request_id );
 	}
+	// send message
 	assigment_port.write(assigment_msg);
+}
+
+void ResourceArbiter::sendControllersStateMsg() 
+{
+	if (controllers_state_msg.name.size() != clients.size()) {
+		unsigned int sz = clients.size();
+		// change array sizes
+		controllers_state_msg.name.clear();
+		controllers_state_msg.name.reserve(sz);
+		controllers_state_msg.request_id.resize(sz);
+		controllers_state_msg.state.resize(sz);
+		// assign names
+		for(Clients::const_iterator it = clients.begin(); it != clients.end(); it++) {
+			controllers_state_msg.name.push_back(it->first);
+		}
+	}
+	// copy states and request_id
+	int index = 0;
+	for(Clients::const_iterator it = clients.begin(); it != clients.end(); it++) {
+		controllers_state_msg.state[index] = it->second.state;
+		controllers_state_msg.request_id[index] = it->second.request_id;
+		index++;
+	}
+	// send message
+	controllers_state_port.write(controllers_state_msg);
 }
 
 /* Process resource requester state report.
@@ -233,6 +274,7 @@ void ResourceArbiter::updateHook()
 			log() << "]" << RTT::endlog();
 		}
 	}
+	sendControllersStateMsg();
 }
 
 void ResourceArbiter::stopHook() 

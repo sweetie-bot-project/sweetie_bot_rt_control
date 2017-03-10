@@ -8,13 +8,10 @@
 #include <orocos/sweetie_bot_resource_control_msgs/typekit/ResourceRequest.h>
 #include <orocos/sweetie_bot_resource_control_msgs/typekit/ResourceRequesterState.h>
 #include <orocos/sweetie_bot_resource_control_msgs/typekit/ResourceAssignment.h>
+#include <orocos/sweetie_bot_resource_control_msgs/typekit/ControllerState.h>
 
 #include <sweetie_bot_logger/logger.hpp>
 #include <sweetie_bot_resource_control/resource_client.hpp>
-
-using sweetie_bot_resource_control_msgs::ResourceRequest;
-using sweetie_bot_resource_control_msgs::ResourceRequesterState;
-using sweetie_bot_resource_control_msgs::ResourceAssignment;
 
 namespace sweetie_bot {
 
@@ -22,6 +19,12 @@ namespace motion {
 
 class ResourceArbiter : public RTT::TaskContext
 {
+	public:
+		typedef sweetie_bot_resource_control_msgs::ResourceRequest ResourceRequest;
+		typedef sweetie_bot_resource_control_msgs::ResourceRequesterState ResourceRequesterState;
+		typedef sweetie_bot_resource_control_msgs::ResourceAssignment ResourceAssignment;
+		typedef sweetie_bot_resource_control_msgs::ControllerState ControllerState;
+
 	protected:
 		/** 
 		 * Packed resource set representation.
@@ -81,6 +84,7 @@ class ResourceArbiter : public RTT::TaskContext
 		RTT::InputPort<ResourceRequesterState> requester_status_port;
 		// Output ports
 		RTT::OutputPort<ResourceAssignment> assigment_port;
+		RTT::OutputPort<ControllerState> controllers_state_port;
 		// Properites
 		std::vector<std::string> resource_list;
 		// Operations: provided
@@ -103,6 +107,7 @@ class ResourceArbiter : public RTT::TaskContext
 		ResourceAssignment assigment_msg;
 		ResourceRequest request_msg;
 		ResourceRequesterState requester_state_msg;
+		ControllerState controllers_state_msg;
 
 #ifdef SWEETIEBOT_LOGGER
 		logger::SWEETIEBOT_LOGGER log;
@@ -115,6 +120,7 @@ class ResourceArbiter : public RTT::TaskContext
 		void processResourceRequest(ResourceRequest& resourceRequestMsg);
 		bool processResourceRequesterState(ResourceRequesterState& resourceRequesterStateMsg);
 		void sendResourceAssigmentMsg();
+		void sendControllersStateMsg();
 
 	public:
 		ResourceArbiter(std::string const& name);
