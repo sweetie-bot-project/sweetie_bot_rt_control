@@ -220,10 +220,12 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			this->addOperation("hasResources", &ResourceClientService::hasResources, this, OwnThread).
 				doc("Check is resource client owns resources.").
 				arg("resources", "Resource name list.");
+			this->addOperation("listResources", &ResourceClientService::listResources, this).
+				doc("Return list of owned resources.");
 			/*this->addOperation("step", &ResourceClientService::step, this, OwnThread).
 				doc("Process incomming resource assignment. Call this operation periodically.");*/
 
-			if (!getOwner())	throw std::invalid_argument("ResourceClient: owner pointer is null.");
+			if (!getOwner()) throw std::invalid_argument("ResourceClient: owner pointer is null.");
 
 			owner_name = getOwner()->getName();
 			client_id = 0xffff & hash<string>()(owner_name); // unique client id
@@ -343,6 +345,15 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 				if (it == resources.end() || !it->second) return false;
 			}
 			return true;
+		}
+
+		std::vector<std::string> listResources() const
+		{
+			std::vector<std::string> owned_resources;
+			for(ResourceSet::const_iterator it = resources.begin(); it != resources.end(); it++) {
+				if (it->second) owned_resources.push_back(it->first);
+			}
+			return owned_resources;
 		}
 
 		void step() 

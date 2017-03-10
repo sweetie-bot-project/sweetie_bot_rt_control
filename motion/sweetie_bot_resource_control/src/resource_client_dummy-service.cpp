@@ -65,6 +65,8 @@ class ResourceClientDummyService :
 
 		bool hasResources(const std::vector<std::string>& resource_list) const;
 
+		std::vector<std::string> listResources() const;
+
 		void step() {}
 
 	    void setResourceChangeHook(boost::function <bool()> resourceChangeHook_) {
@@ -105,6 +107,8 @@ ResourceClientDummyService::ResourceClientDummyService(TaskContext* owner) :
 	this->addOperation("hasResources", &ResourceClientDummyService::hasResources, this, OwnThread)
 		.doc("Check if controller owns all resourses from list.")
 		.arg("resource", "Resource name list.");
+	this->addOperation("listResources", &ResourceClientDummyService::listResources, this).
+		doc("Return list of owned resources.");
 	this->addOperation("step", &ResourceClientDummyService::step, this).
 		doc("Process incomming resource assigment. Call this operation periodically.");
 
@@ -151,6 +155,15 @@ bool ResourceClientDummyService::hasResources(const std::vector<std::string>& re
 		if ( !owned_resources.count(*res) ) return false;
 	}
 	return true;
+}
+
+std::vector<std::string> ResourceClientDummyService::listResources() const
+{
+	std::vector<std::string> resources;
+	for(auto it = owned_resources.begin(); it != owned_resources.end(); it++) {
+		resources.push_back(*it);
+	}
+	return resources;
 }
 
 } // namespace motion 

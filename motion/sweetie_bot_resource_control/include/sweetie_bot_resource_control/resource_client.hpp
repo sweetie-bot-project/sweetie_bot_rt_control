@@ -25,6 +25,7 @@ class ResourceClientInterface
   	 virtual int getState() const = 0;
   	 virtual bool hasResource(const std::string& resource) const = 0;
   	 virtual bool hasResources(const std::vector<std::string>& resource_list) const = 0;
+  	 virtual std::vector<std::string> listResources() const = 0;
 
 	 virtual void setResourceChangeHook(boost::function<bool()> resourceChangeHook_) = 0;
 	 virtual void setStopOperationalHook(boost::function<void()> stopOperationalHook_) = 0;
@@ -52,6 +53,7 @@ class ResourceClient: public RTT::ServiceRequester
 		RTT::OperationCaller< int() > getState;
 		RTT::OperationCaller< bool(const std::string&) > hasResource;
 		RTT::OperationCaller< bool(const std::vector<std::string>&) > hasResources;
+		RTT::OperationCaller< std::vector<std::string>() > listResources;
 
 		ResourceClient(RTT::TaskContext *owner) :
 			ServiceRequester("resource_client", owner),
@@ -62,7 +64,8 @@ class ResourceClient: public RTT::ServiceRequester
 			isOperational("isOperational"),
 			getState("getState"),
 			hasResource("hasResource"),
-			hasResources("hasResources")
+			hasResources("hasResources"),
+			listResources("listResources")
 	{
 		addOperationCaller(resourceChangeRequest);
 		addOperationCaller(stopOperational);
@@ -72,6 +75,7 @@ class ResourceClient: public RTT::ServiceRequester
 		addOperationCaller(getState);
 		addOperationCaller(hasResource);
 		addOperationCaller(hasResources);
+		addOperationCaller(listResources);
 	}
 };
 
