@@ -38,16 +38,19 @@ ResourceArbiter::ResourceArbiter(std::string const& name) :
 bool ResourceArbiter::configureHook() 
 {
 	// clear resource assigment
-	resource_assigment.clear();
+	this->seq = 0;
+	resources.clear();
+	clients.clear();
+	// create a default resource list
 	for(std::vector<std::string>::iterator name = resource_list.begin(); name != resource_list.end(); name++)
 	{
-		resource_assigment.insert( ResourceToOwnerMap::value_type(*name, "none") ); // add a free resource
+		resources.insert( Resources::value_type(*name, ResourceInfo(resources.size(), "none")) ); // add a free resource
 	}
 	// allocates buffers
 	assigment_msg.request_ids.reserve(max_requests_per_cycle);
-	assigment_msg.resources.reserve(resource_assigment.size());
-	assigment_msg.owners.reserve(resource_assigment.size());
-	request_msg.resources.reserve(resource_assigment.size());
+	assigment_msg.resources.reserve(resources.size());
+	assigment_msg.owners.reserve(resources.size());
+	request_msg.resources.reserve(resources.size());
 	// set data samples
 	assigment_port.setDataSample(assigment_msg);
 
@@ -57,7 +60,6 @@ bool ResourceArbiter::configureHook()
 
 bool ResourceArbiter::startHook() 
 {
-	assigment_msg.request_ids.clear();
 	log(INFO) << "ResourceArbiter is started !" << RTT::endlog();
 }
 
@@ -77,36 +79,38 @@ void ResourceArbiter::processResourceRequest(ResourceRequest& resourceRequestMsg
 		log() << " ]" << RTT::endlog();
 	}
 
-	// Use msg buffer to store pending requests ids
-	{ 
-		auto it = assigment_msg.request_ids.begin();
-		for(; it != assigment_msg.request_ids.end(); it++) {
-			if ( (*it & 0xffff) == (resourceRequestMsg.request_id & 0xffff) ) break;
-		} 
-		if (it != assigment_msg.request_ids.end()) *it = resourceRequestMsg.request_id; // replace old pending request by new
-		else assigment_msg.request_ids.push_back(resourceRequestMsg.request_id); // add new pending request
-	}
-
-	// Now process request and change resource assigment. Direct use of assigment_msg is inconvinent, so ResourceToOwnerMap is used.
-	for (int i = 0; i < resourceRequestMsg.resources.size(); i++) {
+	// Now process request and change resource assigment. 
+	ResourceSet requested_resources;
+	for (auto resource = resourceRequestMsg.resources.begin(); resource != resourceRequestMsg.resources.end(); resource++) {
 		// check if the resource actually exists
-		ResourceToOwnerMap::iterator res_owner_pair = resource_assigment.find(resourceRequestMsg.resources[i]);
-		if (res_owner_pair != resource_assigment.end()) {
+		Resources::iterator res_info_pair = resources.find(*resource);
+		if (res_info_pair != resources.end()) {
 			// there is such resource
-			log(DEBUG) << "ResourceArbiter: resource `" << res_owner_pair->first << "` is transferred from `" << res_owner_pair->second
+			log(DEBUG) << "ResourceArbiter: resource `" << res_info_pair->first << "` is transferred from `" << res_info_pair->second.owner
 				<< "` to `" << resourceRequestMsg.requester_name << "`"<< RTT::endlog();
 			// transfer resource
-			res_owner_pair->second = resourceRequestMsg.requester_name;
+			res_info_pair->second.owner = resourceRequestMsg.requester_name;
 		}
 		else {
 			// there is no such resource
-			log(WARN) << "ResourceArbiter: resource does not exist: " << resourceRequestMsg.resources[i]  << RTT::endlog();
-			log(DEBUG) << "ResourceArbiter: resources `" << resourceRequestMsg.resources[i]  << "` is transferred from [none]" 
+			log(WARN) << "ResourceArbiter: resource does not exist: " << *resource  << RTT::endlog();
+			log(DEBUG) << "ResourceArbiter: resources `" << *resource  << "` is transferred from [none]" 
 				<< " to `" << resourceRequestMsg.requester_name << "`"<< RTT::endlog();
-			// allocate resource
-			resource_assigment[resourceRequestMsg.resources[i]] = resourceRequestMsg.requester_name;
+			// allocate resource and set it index and owner
+			if (resources.size() > ResourceSet::max_resource_index) {
+				log(WARN) << "ResourceArbiter: to many resources, unable to implement reposession correctly." << RTT::endlog();
+			}
+			res_info_pair = resources.insert( Resources::value_type( *resource, ResourceInfo(resources.size(), resourceRequestMsg.requester_name) ) ).first;
 		}
+		requested_resources.insertByIndex(res_info_pair->second.index);
 	} 
+	// Update client iformation.
+	// Register new client if necessary.
+	ClientInfo& requester = clients[resourceRequestMsg.requester_name];
+	requester.state |= ResourceClient::PENDING; // NONOPERATIONAL -> PENDING or OPERATIONAL -> OPERATIONAL_PENDING
+	requester.last_request = requested_resources;
+	requester.request_id = resourceRequestMsg.request_id;
+	requester.seq = seq++; // assign and increase request counter
 }
 
 /* 
@@ -114,13 +118,16 @@ void ResourceArbiter::processResourceRequest(ResourceRequest& resourceRequestMsg
  */
 void ResourceArbiter::sendResourceAssigmentMsg() {
 	// inform components about resource assigments
-
-	// do not touch resource_ids --- it contains pending request list
 	assigment_msg.resources.clear();
 	assigment_msg.owners.clear();
-	for (ResourceToOwnerMap::iterator it = resource_assigment.begin(); it != resource_assigment.end(); ++it) {
+	for (Resources::iterator it = resources.begin(); it != resources.end(); ++it) {
 		assigment_msg.resources.push_back(it->first);
-		assigment_msg.owners.push_back(it->second);
+		assigment_msg.owners.push_back(it->second.owner);
+	}
+	assigment_msg.request_ids.clear();
+	for (Clients::iterator it = clients.begin(); it != clients.end(); ++it) {
+		// add request_ids of controllers with pending requests
+		if (it->second.state & ResourceClient::PENDING) assigment_msg.request_ids.push_back( it->second.request_id );
 	}
 	assigment_port.write(assigment_msg);
 }
@@ -132,24 +139,43 @@ void ResourceArbiter::sendResourceAssigmentMsg() {
  * @param resourceRequesterStateMsg ResourceRequesterState Message that notifies the arbitrator about 
  * a component's change of state.
  */
-void ResourceArbiter::processResourceRequesterState(ResourceRequesterState& resourceRequesterStateMsg)
+bool ResourceArbiter::processResourceRequesterState(ResourceRequesterState& resourceRequesterStateMsg)
 {
 	log(INFO) << "ResourceArbiter: requester state change: `" << resourceRequesterStateMsg.requester_name  << "` request_id = " << resourceRequesterStateMsg.request_id <<
 		" is_operational = " << (int) resourceRequesterStateMsg.is_operational << RTT::endlog();
 
-	// delete coresponding request from pending requests list
-	auto found = std::find(assigment_msg.request_ids.begin(), assigment_msg.request_ids.end(), resourceRequesterStateMsg.request_id);
-	if (found != assigment_msg.request_ids.end()) assigment_msg.request_ids.erase(found);
-
-	if (!resourceRequesterStateMsg.is_operational) {
-		// free resources of a deactivated component
-		for (ResourceToOwnerMap::iterator it = resource_assigment.begin(); it != resource_assigment.end(); ++it) {
-			if (it->second == resourceRequesterStateMsg.requester_name) {
-				log(DEBUG) << "ResourceArbiter: resource released (component deactivation): " << it->first << RTT::endlog();
-				it->second = "none";
+	// Update client iformation.
+	// Register new client if necessary.
+	bool assigment_changed = false;
+	ClientInfo& client = clients[resourceRequesterStateMsg.requester_name];
+	
+	if (resourceRequesterStateMsg.is_operational) {
+		client.state = ResourceClient::OPERATIONAL;
+	}	
+	else {
+		client.state = ResourceClient::NONOPERATIONAL;
+		// reassign resources of a deactivated component
+		for (Resources::iterator resource = resources.begin(); resource != resources.end(); resource++) {
+			if (resource->second.owner == resourceRequesterStateMsg.requester_name) {
+				assigment_changed = true;
+				// try to find component which should repossess resource
+				Clients::iterator repossessor = clients.end();
+				for (Clients::iterator client = clients.begin(); client != clients.end(); client++) {
+					// it must be OPERATIONAL and contain resource in its last request
+					if ( (client->second.state & ResourceClient::OPERATIONAL) && client->second.last_request.findByIndex(resource->second.index) ) {
+						// it must have maximal sequence number
+						if ( repossessor == clients.end() || repossessor->second.seq < client->second.seq ) {
+							repossessor = client;
+						}
+					}
+				}
+				if (repossessor != clients.end()) resource->second.owner = repossessor->first;
+				else resource->second.owner = "none";
+				log(DEBUG) << "ResourceArbiter: resource `" << resource->first << "` released (component deactivation) and assigned to `" << resource->second.owner <<  "`." << RTT::endlog();
 			}
 		}
 	}
+	return assigment_changed;
 }
 
 /* Assign all resources to the component 'name' or to no one
@@ -157,8 +183,8 @@ void ResourceArbiter::processResourceRequesterState(ResourceRequesterState& reso
  */
 void ResourceArbiter::assignAllResourcesTo(std::string name)
 {
-	for(ResourceToOwnerMap::iterator it = resource_assigment.begin(); it != resource_assigment.end(); ++it)
-		it->second = name;
+	for(Resources::iterator it = resources.begin(); it != resources.end(); ++it)
+		it->second.owner = name;
 	// inform clients
 	sendResourceAssigmentMsg();
 }
@@ -178,8 +204,7 @@ void ResourceArbiter::updateHook()
 
 	// Process ResourceRequesterState.
 	while (requester_status_port.read(requester_state_msg) == RTT::NewData) {
-		processResourceRequesterState(requester_state_msg);
-		assigment_changed = true;
+		if (processResourceRequesterState(requester_state_msg)) assigment_changed = true;
 	}
 
 	// Inform clients
@@ -191,8 +216,14 @@ void ResourceArbiter::updateHook()
 			for (auto it = assigment_msg.request_ids.begin(); it != assigment_msg.request_ids.end(); it++) log() << *it << ", ";
 			log() << "]" << RTT::endlog();
 			log() << "ResourceAssignment: [ ";
-			for (ResourceToOwnerMap::const_iterator it = resource_assigment.begin(); it != resource_assigment.end(); it++) 
-				log() << it->first << ": " << it->second << ", ";
+			for (Resources::const_iterator it = resources.begin(); it != resources.end(); it++) 
+				log() << it->first << ": " << it->second.owner << ", ";
+			log() << "]" << RTT::endlog();
+			log() << "ActiveClients: [ ";
+			for (Clients::const_iterator it = clients.begin(); it != clients.end(); it++) {
+				if (it->second.state != ResourceClient::NONOPERATIONAL)
+					log() << it->first << ": state=" << it->second.state << " req_id=" << it->second.request_id << " seq=" << it->second.seq  <<", ";
+			}
 			log() << "]" << RTT::endlog();
 		}
 	}

@@ -40,6 +40,7 @@ class ResourceClient: public RTT::ServiceRequester
 			OPERATIONAL = 2,
 			OPERATIONAL_PENDING = 3,
 		};
+		typedef int ResourceClientState;
 
 	public:
 		RTT::OperationCaller< bool(const std::vector<std::string>&) > resourceChangeRequest;
