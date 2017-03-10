@@ -1,5 +1,5 @@
 #ifndef  FOLLOW_JOINT_STATE_COMPONENT_HPP
-#define  FOLLOW_JOINT_STATE_COMPONENT_HPP
+#define  FOLLOW_JOINT_STATE_COMPONENT_HPP 
 
 #include <vector>
 #include <string>
@@ -72,7 +72,8 @@ class FollowJointState : public RTT::TaskContext
 	public:
 		FollowJointState(std::string const& name);
 
-		bool resourceChangedHook();
+		bool resourceChangeHook();
+		bool formJointIndex(const vector<string>& controlled_chains);
 
 		bool configureHook(); 
 		bool startHook();

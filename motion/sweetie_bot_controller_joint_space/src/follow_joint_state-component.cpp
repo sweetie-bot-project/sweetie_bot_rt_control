@@ -58,22 +58,12 @@ FollowJointState::FollowJointState(std::string const& name)  :
 	log(INFO) << "FollowJointState is constructed!" << endlog();
 }
 
-bool FollowJointState::configureHook()
+/**
+ * Create joint index for given kinematic chain list. 
+ * Adjust actual_pose and ref_pose buffer sizes.
+ */
+bool FollowJointState::formJointIndex(const vector<string>& controlled_chains)
 {
-	// INITIALIZATION
-	// check if ResourceClient Service presents
-	resource_client = getSubServiceByType<ResourceClientInterface>(this->provides().get());
-	if (!resource_client) {
-		log(ERROR) << "ResourceClient plugin is not loaded." << endlog();
-		return false;
-	}
-	// check if RobotModel Service presents
-	if (!robot_model->ready()) {
-		log(ERROR) << "RobotModel service is not ready." << endlog();
-		return false;
-	}
-	n_joints_fullpose = robot_model->listJoints("").size();
-	// build joints index 
 	controlled_joints.clear();
 	ref_pose.name.clear();
 
@@ -106,7 +96,28 @@ bool FollowJointState::configureHook()
 	ref_pose.velocity.assign(sz, 0);
 	ref_pose.effort.assign(sz, 0);
 	actual_pose = ref_pose;
+	return true;
+}
 
+
+bool FollowJointState::configureHook()
+{
+	// INITIALIZATION
+	// check if ResourceClient Service presents
+	resource_client = getSubServiceByType<ResourceClientInterface>(this->provides().get());
+	if (!resource_client) {
+		log(ERROR) << "ResourceClient plugin is not loaded." << endlog();
+		return false;
+	}
+	resource_client->setResourceChangeHook(boost::bind(&FollowJointState::resourceChangeHook, this));
+	// check if RobotModel Service presents
+	if (!robot_model->ready()) {
+		log(ERROR) << "RobotModel service is not ready." << endlog();
+		return false;
+	}
+	n_joints_fullpose = robot_model->listJoints("").size();
+	// build joints index 
+	if (!formJointIndex(controlled_chains)) return false;
 	// set ports data samples
 	out_joints_port.setDataSample(ref_pose);
 
@@ -133,6 +144,16 @@ bool FollowJointState::startHook()
 	sync_port.readNewest(timer_id);
 	// now update hook will be periodically executed
 	log(INFO) << "FollowJointState is started !" << endlog();
+	return true;
+}
+
+bool FollowJointState::resourceChangeHook() 
+{
+	// Controller is able to work with arbitrary joint set.
+	// Just rebuild index and continue.
+	if (!formJointIndex(resource_client->listResources())) return false;
+	// TODO movement smoother reset.
+
 	return true;
 }
 
