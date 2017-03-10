@@ -26,6 +26,7 @@ class ControllerTemplate : public RTT::TaskContext
 		// PORTS: output
 		// PROPERTIES
 		std::vector<std::string> resources_required;
+		std::vector<std::string> resources_optional;
 	protected:
 		// OPERATIONS: provides
 		bool rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp);

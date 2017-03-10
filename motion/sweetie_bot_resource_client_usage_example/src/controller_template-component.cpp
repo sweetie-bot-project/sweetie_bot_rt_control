@@ -20,6 +20,8 @@ ControllerTemplate::ControllerTemplate(std::string const& name)  :
 	this->addProperty("required_resources", resources_required).
 		doc("List of required resources.").
 		set(res);
+	this->addProperty("optional_resources", resources_optional).
+		doc("List of optional resources. Component will function without them.");
 	// operations: provided
 	this->addOperation("rosSetOperational", &ControllerTemplate::rosSetOperational, this)
 		.doc("ROS compatible start/stop operation (std_srvs::SetBool).");
@@ -40,13 +42,14 @@ bool ControllerTemplate::resourceChangedHook()
 	log(INFO) << "ControllerTemplate resourceChangedHook is being run!" << endlog();
 	// unable to run if dont have a leg.
 	if (resource_client->hasResource("leg1")) log(INFO) << "ControllerTemplate have a leg." << endlog();
+	if (resource_client->hasResource("head")) log(INFO) << "ControllerTemplate have a head." << endlog();
 	else log(INFO) << "ControllerTemplate do not have a leg." << endlog();
 	// check if all resources present (if resourceChangedHook is not declared, resources client check this condition automatically).
 	if (!resource_client->hasResources(resources_required)) {
-		log(INFO) << "ControllerTemplate do NOT HAVE all resources." << endlog();
+		log(INFO) << "ControllerTemplate do NOT HAVE all necessary resources." << endlog();
 		return false;
 	}
-	log(INFO) << "ControllerTemplate HAVE all resources." << endlog();
+	log(INFO) << "ControllerTemplate HAVE all necessary resources." << endlog();
 	// TODO perform opertional condition checks and state reset if necessary
 	return true;
 }
@@ -83,7 +86,10 @@ bool ControllerTemplate::startHook()
 	// reset state variables
 	// check if controller can be set operational in current conditions
 	// request resources
-	resource_client->resourceChangeRequest(resources_required);
+	std::vector<std::string> resources;	
+	resources.insert(resources.end(), resources_required.begin(), resources_required.end());
+	resources.insert(resources.end(), resources_optional.begin(), resources_optional.end());
+	resource_client->resourceChangeRequest(resources);
 
 	// now update hook will be periodically executed
 	log(INFO) << "ControllerTemplate is started !" << endlog();
@@ -100,6 +106,10 @@ void ControllerTemplate::updateHook()
 	int state = resource_client->getState();
 	if (state & ResourceClient::OPERATIONAL) {
 		log(DEBUG) << "ControllerTemplate is operational in updateHook!" << endlog();
+		std::cout << getName() << " owns: ";
+		for(auto it = resources_optional.begin(); it != resources_optional.end(); it++)
+			if (resource_client->hasResource(*it)) std::cout << *it << ", ";
+		std::cout << std::endl;
 	}
 	else if (state == ResourceClient::NONOPERATIONAL) {
 		log(INFO) << "ControllerTemplate is exiting  operational state !" << endlog();
