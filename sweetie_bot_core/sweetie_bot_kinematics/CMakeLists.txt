@@ -56,3 +56,9 @@ add_subdirectory( src )
 #
 orocos_generate_package(DEPENDS sweetie_bot_robot_model sweetie_bot_logger)
 
+# Scripts installation
+install(DIRECTORY scripts
+	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/scripts)
+# Launch installation
+install(DIRECTORY launch
+	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch)

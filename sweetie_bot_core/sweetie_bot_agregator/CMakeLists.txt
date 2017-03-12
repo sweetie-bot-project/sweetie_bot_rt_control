@@ -51,3 +51,7 @@ add_subdirectory( src )
 # that it can pick up all above settings.
 #
 orocos_generate_package(DEPENDS sweetie_bot_robot_model)
+
+# Scripts installation
+install(DIRECTORY scripts
+	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/scripts)
