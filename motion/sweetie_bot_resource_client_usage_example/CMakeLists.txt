@@ -54,10 +54,10 @@ orocos_generate_package(DEPENDS Boost)
 
 # Scripts installation
 install(DIRECTORY scripts
-	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/scripts)
+	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 # Launch installation
 install(DIRECTORY launch
-	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch)
+	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 # python node installation
 catkin_install_python(PROGRAMS test_client_actionlib.py
 	  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
