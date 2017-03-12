@@ -51,3 +51,13 @@ add_subdirectory( src )
 #
 #orocos_generate_package(DEPENDS Boost)
 orocos_generate_package(DEPENDS Boost)
+
+# Scripts installation
+install(DIRECTORY scripts
+	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/scripts)
+# Launch installation
+install(DIRECTORY launch
+	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch)
+# python node installation
+catkin_install_python(PROGRAMS test_client_actionlib.py
+	  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
