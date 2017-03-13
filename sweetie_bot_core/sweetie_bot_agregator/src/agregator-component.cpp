@@ -46,23 +46,24 @@ bool Agregator::startHook(){
 }
 
 void Agregator::updateHook(){
-  //this->log(INFO) << "executes updateHook." <<endlog();
 
-  if( input_port_joint_state_.read(input_joint_state_) == NewData ){
+  if( input_port_joint_state_.read(input_joint_state_, false) == NewData ){
     for(int i=0; i<joint_names_.size(); i++){
 	auto it = find(input_joint_state_.name.begin(), input_joint_state_.name.end(), joint_names_[i]);
 	if(it == input_joint_state_.name.end()) continue;
 	int j = distance(input_joint_state_.name.begin(), it);
+
 	if(input_joint_state_.position.size() == input_joint_state_.name.size())
 	  output_joint_state_.position[i] = input_joint_state_.position[j];
+
 	if(input_joint_state_.velocity.size() == input_joint_state_.name.size())
-	  output_joint_state_.velocity[i] = input_joint_state_.effort[j];
+	  output_joint_state_.velocity[i] = input_joint_state_.velocity[j];
+
 	if(input_joint_state_.effort.size() == input_joint_state_.name.size())
 	  output_joint_state_.effort[i] = input_joint_state_.effort[j];
     }
     // Set message timestamp
     output_joint_state_.header.stamp = ros::Time(((double)RTT::os::TimeService::Instance()->getNSecs())*1E-9);
-    //this->log(INFO) << output_joint_state_ << endlog();
     output_port_joint_state_.write(output_joint_state_);
   }
 }
