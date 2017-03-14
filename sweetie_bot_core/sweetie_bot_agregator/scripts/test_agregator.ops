@@ -1,8 +1,8 @@
 # Загрузка поддержки взаимодействия с ROS
 import("rtt_ros");
-
-
-ros.import("rtt_sensor_msgs")
+ros.import("rtt_rospack");
+ros.import("sweetie_bot_logger");
+ros.import("rtt_sensor_msgs");
 
 
 ros.import("rtt_rospack");  # Разрешение путей ROS: операци ros.find(<package name>)
@@ -12,8 +12,9 @@ require("print");
 import("sweetie_bot_robot_model");
 import("sweetie_bot_agregator");
 
+
 # Logger
-require("log4cpp"); # add log4cpp service
+loadService("Deployer", "log4cpp"); # add log4cpp service
 log4cpp.default_root_category = "sweetie_bot.motion";
 log4cpp.configure(ros.find("sweetie_bot_agregator") + "/scripts/config.log4cpp"); # load configuration from file
 log4cpp.addRosAppender("sweetie_bot", 20); # redirect sweetie_bot to /rosout
@@ -21,6 +22,14 @@ log4cpp.addRosAppender("sweetie_bot", 20); # redirect sweetie_bot to /rosout
 loadComponent("sweetie_bot_agregator", "sweetie_bot::motion::Agregator");
 loadService("sweetie_bot_agregator","rosparam");
 loadService("sweetie_bot_agregator","marshalling"); # Поддержка исполнения скриптов и загрузки xml/cpf файлов
+
+# timer added
+loadComponent("herk_timer", "OCL::TimerComponent");
+connect("herk_timer.timer_0", "sweetie_bot_agregator.sync_step", ConnPolicy());
+herk_timer.configure();
+herk_timer.start();
+var double TIMER_PERIOD = 0.023;
+herk_timer.startTimer(0, TIMER_PERIOD);
 
 # Загружаем параметры из xml файла.
 sweetie_bot_agregator.marshalling.loadProperties(ros.find("sweetie_bot_description_proto2") + "/robots/chains.cpf");

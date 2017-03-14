@@ -2,6 +2,7 @@
 #define OROCOS_SWEETIE_BOT_AGREGATOR_COMPONENT_HPP
 
 #include <rtt/RTT.hpp>
+#include <rtt/os/Timer.hpp>
 
 #include <kdl/chain.hpp>
 #include <sweetie_bot_robot_model/robot_model-simple.hpp>
@@ -22,6 +23,8 @@ class Agregator : public RTT::TaskContext{
 
     RTT::InputPort<sensor_msgs::JointState> input_port_joint_state_;
     RTT::OutputPort<sensor_msgs::JointState> output_port_joint_state_;
+
+    RTT::InputPort<RTT::os::Timer::TimerId> sync_port_;
 
     sensor_msgs::JointState input_joint_state_;
     sensor_msgs::JointState output_joint_state_;

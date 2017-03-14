@@ -9,15 +9,19 @@ namespace sweetie_bot {
 namespace motion {
 
 Agregator::Agregator(string const& name) : TaskContext(name),
-                                                                          input_port_joint_state_("in_joints"),
-                                                                          output_port_joint_state_("out_joints_sorted"),
-																		  log(logger::categoryFromComponentName(name))
+	input_port_joint_state_("in_joints"),
+	output_port_joint_state_("out_joints_sorted"),
+	sync_port_("sync_step"),
+	log(logger::categoryFromComponentName(name))
 {
 
   this->ports()->addEventPort( input_port_joint_state_ )
    .doc( "Messages received on this port is used to update full robot pose buffered by component. Only present fields are updated." );
   this->ports()->addPort( output_port_joint_state_ )
    .doc( "Port publishes full robot pose buffered by component. It is sorted by kinematics chains." );
+
+  this->ports()->addEventPort( sync_port_ )
+   .doc("Timer event indicating beginig of next control cycle.");
 
   robot_model_ = getProvider<RobotModel>("robot_model"); // It tries to load the service if it is not loaded.
   robot_model_interface_ = boost::dynamic_pointer_cast<RobotModelInterface>(this->provides()->getService("robot_model"));
@@ -41,11 +45,23 @@ bool Agregator::configureHook(){
 }
 
 bool Agregator::startHook(){
+  RTT::os::Timer::TimerId timer_id;
+  sync_port_.readNewest(timer_id);
   this->log(INFO) << "started." <<endlog();
   return true;
 }
 
 void Agregator::updateHook(){
+
+  RTT::os::Timer::TimerId timer_id;
+
+  if (sync_port_.read(timer_id) == NewData) {
+	// Set message timestamp
+	output_joint_state_.header.stamp = ros::Time(((double)RTT::os::TimeService::Instance()->getNSecs())*1E-9);
+	// Send pose every time cycle
+	output_port_joint_state_.write(output_joint_state_);
+  }
+
   for(int req_count = 0; req_count < max_requests_per_cycle; req_count++)
   {
     if( input_port_joint_state_.read(input_joint_state_, false) == NewData )
