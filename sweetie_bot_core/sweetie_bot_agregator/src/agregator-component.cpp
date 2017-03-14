@@ -53,19 +53,12 @@ bool Agregator::startHook(){
 
 void Agregator::updateHook(){
 
-  RTT::os::Timer::TimerId timer_id;
-
-  if (sync_port_.read(timer_id) == NewData) {
-	// Set message timestamp
-	output_joint_state_.header.stamp = ros::Time(((double)RTT::os::TimeService::Instance()->getNSecs())*1E-9);
-	// Send pose every time cycle
-	output_port_joint_state_.write(output_joint_state_);
-  }
-
-  for(int req_count = 0; req_count < max_requests_per_cycle; req_count++)
+  if( input_port_joint_state_.read(input_joint_state_, false) == NewData )
   {
-    if( input_port_joint_state_.read(input_joint_state_, false) == NewData )
+    int req_count = 0;
+    do
     {
+      req_count++;
       if(!isValidJointStateNamePos(input_joint_state_)) continue; // Message check failed. Go to next.
 
       for(int i=0; i<joint_names_.size(); i++)
@@ -83,12 +76,27 @@ void Agregator::updateHook(){
         if(input_joint_state_.effort.size() == input_joint_state_.name.size())
           output_joint_state_.effort[i] = input_joint_state_.effort[j];
       }
-      // Set message timestamp
-      output_joint_state_.header.stamp = ros::Time(((double)RTT::os::TimeService::Instance()->getNSecs())*1E-9);
-      // Send message
-      output_port_joint_state_.write(output_joint_state_);
-    } else break;
+
+    } while ( (input_port_joint_state_.read(input_joint_state_, false) == NewData) and (req_count < max_requests_per_cycle) );
+
+    // Set message timestamp
+    output_joint_state_.header.stamp = ros::Time(((double)RTT::os::TimeService::Instance()->getNSecs())*1E-9);
+    // Send message
+    output_port_joint_state_.write(output_joint_state_);
   }
+
+  //*
+  RTT::os::Timer::TimerId timer_id;
+
+  if (sync_port_.read(timer_id) == NewData) {
+	// Set message timestamp
+	output_joint_state_.header.stamp = ros::Time(((double)RTT::os::TimeService::Instance()->getNSecs())*1E-9);
+	// Send pose every time cycle
+	output_port_joint_state_.write(output_joint_state_);
+	return; // to prevent sending message twice
+  }
+  // */
+
 }
 
 void Agregator::stopHook() {
