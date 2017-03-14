@@ -71,7 +71,7 @@ void Agregator::updateHook(){
       output_joint_state_.header.stamp = ros::Time(((double)RTT::os::TimeService::Instance()->getNSecs())*1E-9);
       // Send message
       output_port_joint_state_.write(output_joint_state_);
-    }
+    } else break;
   }
 }
 
