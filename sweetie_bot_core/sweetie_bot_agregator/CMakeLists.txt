@@ -29,7 +29,7 @@ find_package(catkin REQUIRED COMPONENTS
   rtt_ros
   sensor_msgs
   sweetie_bot_logger
-  )
+  sweetie_bot_orocos_misc)
 
 # Use 'source orocos_toolchain/env.sh' if the command below fails:
 find_package(OROCOS-RTT QUIET)

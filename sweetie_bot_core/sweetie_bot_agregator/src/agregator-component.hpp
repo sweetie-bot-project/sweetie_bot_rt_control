@@ -6,6 +6,8 @@
 #include <kdl/chain.hpp>
 #include <sweetie_bot_robot_model/robot_model-simple.hpp>
 
+#include <sweetie_bot_orocos_misc/joint_state_check.hpp>
+
 #include <sensor_msgs/JointState.h>
 
 #include <sweetie_bot_logger/logger.hpp>
@@ -33,6 +35,8 @@ class Agregator : public RTT::TaskContext{
 #else
     sweetie_bot::logger::LoggerRTT log;
 #endif
+  protected:
+    const unsigned int max_requests_per_cycle = 10;
 
   public:
     Agregator(std::string const& name);
