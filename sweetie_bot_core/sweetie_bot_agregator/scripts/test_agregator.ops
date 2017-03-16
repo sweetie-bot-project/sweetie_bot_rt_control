@@ -15,7 +15,6 @@ import("sweetie_bot_agregator");
 
 # Logger
 loadService("Deployer", "log4cpp"); # add log4cpp service
-log4cpp.default_root_category = "sweetie_bot.motion";
 log4cpp.configure(ros.find("sweetie_bot_agregator") + "/scripts/config.log4cpp"); # load configuration from file
 log4cpp.addRosAppender("sweetie_bot", 20); # redirect sweetie_bot to /rosout
 

@@ -53,49 +53,47 @@ bool Agregator::startHook(){
 
 void Agregator::updateHook(){
 
-  if( input_port_joint_state_.read(input_joint_state_, false) == NewData )
+  bool publish_state=false; // Indicate that there messages to send.
+
+  // Check input pose port
+  int req_count = 0;
+  while ( (input_port_joint_state_.read(input_joint_state_, false) == NewData) and (req_count < max_requests_per_cycle) )
   {
-    int req_count = 0;
-    do
+    req_count++;
+    if(!isValidJointStateNamePos(input_joint_state_)) continue; // Message check failed. Go to next.
+
+    publish_state=true;
+
+    for(int i=0; i<joint_names_.size(); i++)
     {
-      req_count++;
-      if(!isValidJointStateNamePos(input_joint_state_)) continue; // Message check failed. Go to next.
+      auto it = find(input_joint_state_.name.begin(), input_joint_state_.name.end(), joint_names_[i]);
+      if(it == input_joint_state_.name.end()) continue; // Joint not found in message
 
-      for(int i=0; i<joint_names_.size(); i++)
-      {
-        auto it = find(input_joint_state_.name.begin(), input_joint_state_.name.end(), joint_names_[i]);
-        if(it == input_joint_state_.name.end()) continue;
-        int j = distance(input_joint_state_.name.begin(), it);
-        // copy non empty position data
-        if(input_joint_state_.position.size() == input_joint_state_.name.size())
-          output_joint_state_.position[i] = input_joint_state_.position[j];
-        // copy non empty velocity data
-        if(input_joint_state_.velocity.size() == input_joint_state_.name.size())
-          output_joint_state_.velocity[i] = input_joint_state_.velocity[j];
-        // copy non empty effort data
-        if(input_joint_state_.effort.size() == input_joint_state_.name.size())
-          output_joint_state_.effort[i] = input_joint_state_.effort[j];
-      }
+      int j = distance(input_joint_state_.name.begin(), it);
+      // copy non empty position data
+      if(input_joint_state_.position.size() == input_joint_state_.name.size())
+        output_joint_state_.position[i] = input_joint_state_.position[j];
+      // copy non empty velocity data
+      if(input_joint_state_.velocity.size() == input_joint_state_.name.size())
+        output_joint_state_.velocity[i] = input_joint_state_.velocity[j];
+      // copy non empty effort data
+      if(input_joint_state_.effort.size() == input_joint_state_.name.size())
+        output_joint_state_.effort[i] = input_joint_state_.effort[j];
+    }
+  } 
 
-    } while ( (input_port_joint_state_.read(input_joint_state_, false) == NewData) and (req_count < max_requests_per_cycle) );
-
-    // Set message timestamp
-    output_joint_state_.header.stamp = ros::Time(((double)RTT::os::TimeService::Instance()->getNSecs())*1E-9);
-    // Send message
-    output_port_joint_state_.write(output_joint_state_);
-  }
-
-  //*
+  // Check synk port
   RTT::os::Timer::TimerId timer_id;
+  if (sync_port_.read(timer_id) == NewData) publish_state=true;
 
-  if (sync_port_.read(timer_id) == NewData) {
+  // Publish message
+  if (publish_state) {
 	// Set message timestamp
 	output_joint_state_.header.stamp = ros::Time(((double)RTT::os::TimeService::Instance()->getNSecs())*1E-9);
 	// Send pose every time cycle
 	output_port_joint_state_.write(output_joint_state_);
 	return; // to prevent sending message twice
   }
-  // */
 
 }
 
