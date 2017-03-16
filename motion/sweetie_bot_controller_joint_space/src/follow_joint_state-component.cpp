@@ -39,12 +39,19 @@ FollowJointState::FollowJointState(std::string const& name)  :
 		doc("Desired joint positions.");
 
 	// PORTS: output
+	this->addPort("out_joints_src_reset", out_joints_src_reset_port).
+		doc("After start actual position is published for activation_delay secondsd on this port.");
+
 	this->addPort("out_joints_ref_fixed", out_joints_port).
 		doc("Reference joint positions for agregator.");
 
 	// properties
 	this->addProperty("controlled_chains", controlled_chains).
 		doc("List of controlled joint groups (kinematic chains, resources).");
+
+	this->addProperty("activation_delay", activation_delay).
+		doc("After start wait for activation_delay seconds before start processing input and publish actual pose on out_joints_src_reset.")
+		.set(0.0);
 
 	// operations: provided
 	this->addOperation("rosSetOperational", &FollowJointState::rosSetOperational, this)
@@ -96,6 +103,10 @@ bool FollowJointState::formJointIndex(const vector<string>& controlled_chains)
 	ref_pose.velocity.assign(sz, 0);
 	ref_pose.effort.assign(sz, 0);
 	actual_pose = ref_pose;
+
+	// set timestamp to delay actual input processing
+	activation_timestamp = os::TimeService::Instance()->getTicks();
+
 	return true;
 }
 
@@ -118,8 +129,13 @@ bool FollowJointState::configureHook()
 	n_joints_fullpose = robot_model->listJoints("").size();
 	// build joints index 
 	if (!formJointIndex(controlled_chains)) return false;
+	// allocate memory
+	actual_pose.name.resize(n_joints_fullpose);
+	actual_pose.position.resize(n_joints_fullpose);
+	actual_pose.velocity.resize(n_joints_fullpose);
 	// set ports data samples
 	out_joints_port.setDataSample(ref_pose);
+	out_joints_src_reset_port.setDataSample(actual_pose);
 
 	log(INFO) << "FollowJointState is configured !" << endlog();
 	return true;
@@ -171,10 +187,8 @@ void FollowJointState::updateHook()
 	// main operational 
 	int state = resource_client->getState();
 	if (state & ResourceClient::OPERATIONAL) {
-		// read ports
-		in_joints_ref_port.read(ref_pose_unsorted, false);
+		// read port
 		in_joints_port.read(actual_fullpose, false);
-
 		// copy controlled joint from actual_pose
 		if (isValidJointStatePos(actual_fullpose, n_joints_fullpose)) {
 			for(JointIndexes::const_iterator it = controlled_joints.begin(); it != controlled_joints.end(); it++) {
@@ -188,16 +202,27 @@ void FollowJointState::updateHook()
 		ref_pose.position = actual_pose.position;
 		ref_pose.velocity = actual_pose.velocity;
 
-		// copy controlled joint to ref_pose
-		if (isValidJointStateNamePos(ref_pose_unsorted)) {
-			for(int i = 0; i < ref_pose_unsorted.name.size(); i++) {
-				JointIndexes::const_iterator found = controlled_joints.find(ref_pose_unsorted.name[i]);
-				if (found != controlled_joints.end()) {
-					// we control this joint so copy it
-					ref_pose.position[found->second.index] = ref_pose_unsorted.position[i];
-					if (ref_pose_unsorted.velocity.size()) 
-						ref_pose.velocity[found->second.index] = ref_pose_unsorted.velocity[i];
-					//TODO effort support
+		// delay actulal input processing
+		// This delay allows non-relatime components to adapt to robot pose.
+		if (os::TimeService::Instance()->secondsSince(activation_timestamp) < activation_delay) {
+			// publish pose for non-realtime controller to adjust it to current pose
+			out_joints_src_reset_port.write(actual_pose);
+		}
+		else {
+			// read port	
+			if (in_joints_ref_port.read(ref_pose_unsorted, false) == NewData) {
+				// copy controlled joint to ref_pose
+				if (isValidJointStateNamePos(ref_pose_unsorted)) {
+					for(int i = 0; i < ref_pose_unsorted.name.size(); i++) {
+						JointIndexes::const_iterator found = controlled_joints.find(ref_pose_unsorted.name[i]);
+						if (found != controlled_joints.end()) {
+							// we control this joint so copy it
+							ref_pose.position[found->second.index] = ref_pose_unsorted.position[i];
+							if (ref_pose_unsorted.velocity.size()) 
+								ref_pose.velocity[found->second.index] = ref_pose_unsorted.velocity[i];
+							//TODO effort support
+						}
+					}
 				}
 			}
 		}

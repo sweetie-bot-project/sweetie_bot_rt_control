@@ -31,8 +31,10 @@ class FollowJointState : public RTT::TaskContext
 		RTT::InputPort<sensor_msgs::JointState> in_joints_ref_port;
 		// PORTS: output
 		RTT::OutputPort<sensor_msgs::JointState> out_joints_port;
+		RTT::OutputPort<sensor_msgs::JointState> out_joints_src_reset_port;
 		// PROPERTIES
 		std::vector<std::string> controlled_chains;
+		double activation_delay;
 	protected:
 		// OPERATIONS: provides
 		bool rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp);
@@ -57,6 +59,7 @@ class FollowJointState : public RTT::TaskContext
 	protected:
 		// COMPONENT STATE
 		JointIndexes controlled_joints; // joint indexes cache
+		RTT::os::TimeService::ticks activation_timestamp;
 		// ports buffers
 		sensor_msgs::JointState ref_pose_unsorted; // buffer for input port in_joints_ref_port
 		sensor_msgs::JointState actual_fullpose; // buffer for input port in_joints_port
