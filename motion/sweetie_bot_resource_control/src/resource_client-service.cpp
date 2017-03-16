@@ -264,7 +264,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			this->stopOperationalHook = stopOperationalHook_;
 		}
 
-		bool resourceChangeRequest(const std::vector<std::string>& resources_requested)
+		unsigned long resourceChangeRequest(const std::vector<std::string>& resources_requested)
 		{
 			ResourceRequest request_msg;
 
@@ -306,7 +306,7 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 				for(ResourceSet::const_iterator i = resources.begin(); i != resources.end(); i++) log() << i->first << ", ";
 				log() << "]" << endlog();
 			}
-			return true;
+			return request_msg.request_id;
 		}
 
 		bool stopOperational()

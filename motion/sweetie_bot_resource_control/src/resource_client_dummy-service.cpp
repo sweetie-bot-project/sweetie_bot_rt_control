@@ -55,7 +55,7 @@ class ResourceClientDummyService :
 			else return ResourceClient::NONOPERATIONAL;
 		}
 
-		bool resourceChangeRequest(const std::vector<std::string>& resource_list);
+		unsigned long resourceChangeRequest(const std::vector<std::string>& resource_list);
 
 		bool stopOperational();
 
@@ -123,7 +123,7 @@ ResourceClientDummyService::ResourceClientDummyService(TaskContext* owner) :
 }
 
 
-bool ResourceClientDummyService::resourceChangeRequest(const std::vector<std::string>& resource_list)
+unsigned long ResourceClientDummyService::resourceChangeRequest(const std::vector<std::string>& resource_list)
 {
 	// potentially not real-time: malloc/free calls.
 	owned_resources.clear(); 

@@ -16,7 +16,7 @@ namespace motion {
 class ResourceClientInterface
 {
   public:
-  	 virtual bool resourceChangeRequest(const std::vector<std::string>& resource_list) = 0;
+  	 virtual unsigned long resourceChangeRequest(const std::vector<std::string>& resource_list) = 0;
   	 virtual bool stopOperational() = 0;
   	 virtual void step() = 0;
 
@@ -44,7 +44,7 @@ class ResourceClient: public RTT::ServiceRequester
 		typedef int ResourceClientState;
 
 	public:
-		RTT::OperationCaller< bool(const std::vector<std::string>&) > resourceChangeRequest;
+		RTT::OperationCaller< unsigned long(const std::vector<std::string>&) > resourceChangeRequest;
 		RTT::OperationCaller< void() > step;
 		RTT::OperationCaller< bool() > stopOperational;
 
