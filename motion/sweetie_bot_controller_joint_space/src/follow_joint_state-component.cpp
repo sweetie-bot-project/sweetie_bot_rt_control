@@ -48,6 +48,8 @@ FollowJointState::FollowJointState(std::string const& name)  :
 	// properties
 	this->addProperty("controlled_chains", controlled_chains).
 		doc("List of controlled joint groups (kinematic chains, resources).");
+	this->addProperty("period", period)
+		.doc("Discretization period (s)");
 
 	this->addProperty("activation_delay", activation_delay).
 		doc("After start wait for activation_delay seconds before start processing input and publish actual pose on out_joints_src_reset.")
@@ -101,7 +103,7 @@ bool FollowJointState::formJointIndex(const vector<string>& controlled_chains)
 	unsigned int sz = controlled_joints.size();
 	ref_pose.position.assign(sz, 0);
 	ref_pose.velocity.assign(sz, 0);
-	ref_pose.effort.assign(sz, 0);
+	//ref_pose.effort.assign(sz, 0);
 	actual_pose = ref_pose;
 
 	// set timestamp to delay actual input processing
@@ -121,6 +123,11 @@ bool FollowJointState::configureHook()
 		return false;
 	}
 	resource_client->setResourceChangeHook(boost::bind(&FollowJointState::resourceChangeHook, this));
+	// check if filter present
+	filter = getSubServiceByType<filter::TransientJointStateInterface>(this->provides().get());
+	if (filter) {
+		log(INFO) << "Trajectory Filter service is loaded." << endlog();
+	}
 	// check if RobotModel Service presents
 	if (!robot_model->ready()) {
 		log(ERROR) << "RobotModel service is not ready." << endlog();
@@ -168,8 +175,21 @@ bool FollowJointState::resourceChangeHook()
 	// Controller is able to work with arbitrary joint set.
 	// Just rebuild index and continue.
 	if (!formJointIndex(resource_client->listResources())) return false;
-	// TODO movement smoother reset.
-
+	// movement smoother reset.
+	if (filter) {
+		// get actual pose
+		in_joints_port.read(actual_fullpose);
+		// TODO remove dublicate code
+		// copy controlled joint from actual_pose
+		if (isValidJointStatePos(actual_fullpose, n_joints_fullpose)) {
+			for(JointIndexes::const_iterator it = controlled_joints.begin(); it != controlled_joints.end(); it++) {
+				actual_pose.position[it->second.index] = actual_fullpose.position[it->second.index_fullpose];
+				if (actual_fullpose.velocity.size()) actual_pose.velocity[it->second.index] = actual_fullpose.velocity[it->second.index_fullpose];
+			}
+		}
+		// reset filter
+		filter->reset(actual_pose, period);
+	}
 	return true;
 }
 
@@ -206,7 +226,7 @@ void FollowJointState::updateHook()
 		// This delay allows non-relatime components to adapt to robot pose.
 		if (os::TimeService::Instance()->secondsSince(activation_timestamp) < activation_delay) {
 			// publish pose for non-realtime controller to adjust it to current pose
-			out_joints_src_reset_port.write(actual_pose);
+			out_joints_src_reset_port.write(actual_fullpose);
 		}
 		else {
 			// read port	
@@ -228,7 +248,7 @@ void FollowJointState::updateHook()
 		}
 
 		// perform trajectory smoothing
-		// TODO smoothing
+		if (filter) filter->update(ref_pose, actual_pose);
 		
 		// publish new reference position
 		out_joints_port.write(ref_pose);
