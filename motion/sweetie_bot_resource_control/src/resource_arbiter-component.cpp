@@ -65,6 +65,7 @@ bool ResourceArbiter::configureHook()
 bool ResourceArbiter::startHook() 
 {
 	log(INFO) << "ResourceArbiter is started !" << RTT::endlog();
+	return true;
 }
 
 /* Reallocates resources when a component asks for them.
