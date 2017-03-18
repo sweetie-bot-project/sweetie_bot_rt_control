@@ -32,6 +32,7 @@ class TorqueMainSwitch : public RTT::TaskContext
 		// PROPERTIES
 		std::vector<std::string> herkulex_arrays;
 		std::vector<std::string> herkulex_scheds;
+		bool velocity_zeroing;
 	protected:
 		// OPERATIONS: provides
 		bool rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp);

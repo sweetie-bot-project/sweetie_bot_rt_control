@@ -45,6 +45,10 @@ TorqueMainSwitch::TorqueMainSwitch(std::string const& name)  :
 	this->addProperty("herkulex_arrays", herkulex_arrays)
 		.doc("List of controlled HerkulexArrays components.");
 
+	this->addProperty("velocity_zeroing", velocity_zeroing)
+		.doc("Set velocity to zero before coping it to reference pose. Can be handy if velocity measurements are noisy.")
+		.set(false);
+
 	// operations: provided
 	this->addOperation("rosSetOperational", &TorqueMainSwitch::rosSetOperational, this)
 		.doc("ROS compatible start/stop operation (std_srvs::SetBool).");
@@ -257,6 +261,8 @@ void TorqueMainSwitch::updateHook()
 	if (state & ResourceClient::OPERATIONAL) {
 		// read port
 		in_joints_port.read(actual_fullpose, true);
+		// set velocity to zero if necessary
+		if (velocity_zeroing) actual_fullpose.velocity.assign(actual_fullpose.velocity.size(), 0.0);
 		// publish new reference position
 		out_joints_port.write(actual_fullpose);
 	}
