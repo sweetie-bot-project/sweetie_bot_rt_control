@@ -33,7 +33,7 @@ def make_msg(joints, points_deg, tolerance_deg, time_tolerance):
 if __name__ == '__main__':
     rospy.init_node('test_joint_trajectory')
 
-    client = actionlib.SimpleActionClient('/motion/controller_joint_trajectory', 
+    client = actionlib.SimpleActionClient('/sweetie_bot/motion/controller/joint_trajectory', 
             control_msgs.msg.FollowJointTrajectoryAction)
     client.wait_for_server()
 
@@ -46,7 +46,7 @@ if __name__ == '__main__':
         ]
 
         print("\nSending a goal: leg2, leg3.")
-        client.send_goal(make_msg(joints, points, 15, 0.2))
+        client.send_goal(make_msg(joints, points, 30, 0.2))
         print("Wait for goal...")
         client.wait_for_result()
         print("Result: " + str(client.get_result()))
@@ -59,7 +59,7 @@ if __name__ == '__main__':
         ]
 
         print("\nSending a goal: leg1, leg4.")
-        client.send_goal(make_msg(joints, points, 15, 0.2))
+        client.send_goal(make_msg(joints, points, 30, 0.2))
         print("Wait for goal...")
         client.wait_for_result()
         print("Result: " + str(client.get_result()))
