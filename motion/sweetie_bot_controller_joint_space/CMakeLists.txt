@@ -47,13 +47,16 @@ find_package(catkin REQUIRED COMPONENTS
 # Defines the orocos_* cmake macros. See that file for additional
 # documentation.
 include( ${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake )
-include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+include_directories(include ${catkin_INCLUDE_DIRS})
 
 # Rest of the configuration is in src/
 add_subdirectory( src )
+
+#Install headers: OROCOS automatically place them in `orocos/package_name/` directory.
+orocos_install_headers(include/sweetie_bot_controller_joint_space/transient_joint_state.hpp) 
 
 #
 # Generates and installs our package. Must be the last statement such
 # that it can pick up all above settings.
 #
-orocos_generate_package(DEPENDS Boost)
+orocos_generate_package(INCLUDE_DIRS include)
