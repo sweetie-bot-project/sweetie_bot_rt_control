@@ -175,26 +175,33 @@ bool FollowJointState::resourceChangeHook()
 	// Controller is able to work with arbitrary joint set.
 	// Just rebuild index and continue.
 	if (!formJointIndex(resource_client->listResources())) return false;
-	// movement smoother reset.
+
+	// Now we are starting potion. Due to activation_delay 
+	// reference position is not available. So we have to guess it.
+	// Choice: stop in current position.
+	
+	// get actual pose
+	in_joints_port.read(actual_fullpose);
+	// copy controlled joint from actual_pose
+	if (isValidJointStatePos(actual_fullpose, n_joints_fullpose)) {
+		for(JointIndexes::const_iterator it = controlled_joints.begin(); it != controlled_joints.end(); it++) {
+			actual_pose.position[it->second.index] = actual_fullpose.position[it->second.index_fullpose];
+			if (actual_fullpose.velocity.size()) actual_pose.velocity[it->second.index] = actual_fullpose.velocity[it->second.index_fullpose];
+			else actual_pose.velocity[it->second.index] = 0.0;
+		}
+	}
+	else {
+		log(WARN) << "Actual pose is unavailable. ." << endlog();
+		actual_pose.position.assign(controlled_joints.size(), 0.0);
+		actual_pose.velocity.assign(controlled_joints.size(), 0.0);
+	}
+	// reset filter
 	if (filter) {
-		// get actual pose
-		in_joints_port.read(actual_fullpose);
-		// copy controlled joint from actual_pose
-		if (isValidJointStatePos(actual_fullpose, n_joints_fullpose)) {
-			for(JointIndexes::const_iterator it = controlled_joints.begin(); it != controlled_joints.end(); it++) {
-				actual_pose.position[it->second.index] = actual_fullpose.position[it->second.index_fullpose];
-				if (actual_fullpose.velocity.size()) actual_pose.velocity[it->second.index] = actual_fullpose.velocity[it->second.index_fullpose];
-				else actual_pose.velocity[it->second.index] = 0.0;
-			}
-		}
-		else {
-			log(WARN) << "Actual pose is unavailable. Reset filter to zero postion and velocity." << endlog();
-			actual_pose.position.assign(controlled_joints.size(), 0.0);
-			actual_pose.velocity.assign(controlled_joints.size(), 0.0);
-		}
-		// reset filter
 		filter->reset(actual_pose, period);
 	}
+	// set reference position
+	ref_pose.position = actual_pose.position;
+	ref_pose.velocity.assign(controlled_joints.size(), 0.0);
 	return true;
 }
 
@@ -224,9 +231,6 @@ void FollowJointState::updateHook()
 				}
 			}
 		}
-		// fill ref_pose with default vaules
-		ref_pose.position = actual_pose.position;
-		ref_pose.velocity = actual_pose.velocity;
 
 		// delay actulal input processing
 		// This delay allows non-relatime components to adapt to robot pose.
@@ -259,15 +263,20 @@ void FollowJointState::updateHook()
 			log() << " t = " << t << " ref: " << ref_pose << endlog();
 		}
 		// perform trajectory smoothing
-		if (filter) filter->update(ref_pose, actual_pose);
+		// actual_pose is represent state and is modified in place
+		if (filter && filter->update(actual_pose, ref_pose)){
+			// now refrence in actual_pose
+			out_joints_port.write(actual_pose);
 
-		if (log(DEBUG)) {
-			double t = os::TimeService::Instance()->secondsSince(activation_timestamp);
-			log() << " t = " << t << " filtered: " << ref_pose << endlog();
+			if (log(DEBUG)) {
+				double t = os::TimeService::Instance()->secondsSince(activation_timestamp);
+				log() << " t = " << t << " filtered: " << actual_pose << endlog();
+			}
 		}
-		
-		// publish new reference position
-		out_joints_port.write(ref_pose);
+		else {
+			// publish without smoothing
+			out_joints_port.write(ref_pose);
+		}
 	}
 	else if (state == ResourceClient::NONOPERATIONAL) {
 		log(INFO) << "FollowJointState is exiting  operational state !" << endlog();

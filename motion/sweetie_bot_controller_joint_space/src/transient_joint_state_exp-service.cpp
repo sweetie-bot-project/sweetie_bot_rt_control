@@ -21,8 +21,8 @@ class TransientJointStateExp :
 	public:
 		TransientJointStateExp(RTT::TaskContext * owner);
 
-		bool reset(const JointState& actual, double period);
-		bool update(JointState& ref, const JointState & actual);
+		bool reset(const JointState& state0, double period);
+		bool update(JointState& state, const JointState & ref);
 
 };
 
@@ -37,7 +37,7 @@ TransientJointStateExp::TransientJointStateExp(RTT::TaskContext * owner) :
 	is_configured = false;
 }
 
-bool TransientJointStateExp::reset(const JointState& actual, double T) 
+bool TransientJointStateExp::reset(const JointState& state, double T) 
 {
 	// transfer function synthesis for given transient time
 	// poles are equal and real
@@ -64,20 +64,19 @@ bool TransientJointStateExp::reset(const JointState& actual, double T)
 	return is_configured;
 }
 
-bool TransientJointStateExp::update(JointState& ref, const JointState& actual) 
+bool TransientJointStateExp::update(JointState& state, const JointState& ref) 
 {
 	if (!is_configured) return false;
 
-	int sz = actual.position.size();
-	if (actual.velocity.size() == sz && ref.position.size() == sz) {
-		ref.velocity.resize(sz, 0);
+	int sz = state.position.size();
+	if (state.velocity.size() == sz && ref.position.size() == sz && ref.velocity.size() == sz) {
 		for(int i = 0; i < sz; i++) {
-			double pos = a11*actual.position[i] + a12*actual.velocity[i] + b11*ref.position[i] + b12*ref.velocity[i];
-			double vel = a21*actual.position[i] + a22*actual.velocity[i] + b21*ref.position[i] + b22*ref.velocity[i];
-			//std::cout << actual.position[i] << " " << ref.position[i] << " " << pos << std::endl;
-			//std::cout << actual.velocity[i] << " " << ref.velocity[i] << " " << vel << std::endl;
-			ref.position[i] = pos;
-			ref.velocity[i] = vel;
+			double pos = a11*state.position[i] + a12*state.velocity[i] + b11*ref.position[i] + b12*ref.velocity[i];
+			double vel = a21*state.position[i] + a22*state.velocity[i] + b21*ref.position[i] + b22*ref.velocity[i];
+			//std::cout << state.position[i] << " " << ref.position[i] << " " << pos << std::endl;
+			//std::cout << state.velocity[i] << " " << ref.velocity[i] << " " << vel << std::endl;
+			state.position[i] = pos;
+			state.velocity[i] = vel;
 		}
 		return true;
 	}

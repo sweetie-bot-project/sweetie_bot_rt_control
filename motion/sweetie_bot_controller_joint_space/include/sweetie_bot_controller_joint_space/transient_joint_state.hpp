@@ -13,8 +13,8 @@ class TransientJointStateInterface
 		typedef sensor_msgs::JointState JointState;
 
 	public:
-		virtual bool reset(const JointState& actual, double period) = 0;
-		virtual bool update(JointState& ref, const JointState & actual) = 0;
+		virtual bool reset(const JointState& state0, double period) = 0;
+		virtual bool update(JointState& state, const JointState & ref) = 0;
 };
 
 } // namespace filter
