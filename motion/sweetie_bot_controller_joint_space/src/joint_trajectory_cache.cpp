@@ -83,7 +83,7 @@ void JointTrajectoryCache::interpolateTrajectory(const trajectory_msgs::JointTra
 	//perform interpolation
 	this->joint_splines.resize(n_joints);
 	for(int joint = 0; joint < n_joints; joint++) {
-		alglib::spline1dbuildcubic(t, joint_trajectory[joint], this->joint_splines[joint]);
+		alglib::spline1dbuildcubic(t, joint_trajectory[joint], n_samples, 1, 0.0, 1, 0.0, this->joint_splines[joint]);
 		// velocity an acceleration is ignored
 	}
 	this->goal_time = trajectory.points[n_samples-1].time_from_start.toSec();
