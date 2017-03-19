@@ -137,12 +137,12 @@ bool FollowJointState::configureHook()
 	// build joints index 
 	if (!formJointIndex(controlled_chains)) return false;
 	// allocate memory
-	actual_pose.name.resize(n_joints_fullpose);
-	actual_pose.position.resize(n_joints_fullpose);
-	actual_pose.velocity.resize(n_joints_fullpose);
+	actual_fullpose.name.resize(n_joints_fullpose);
+	actual_fullpose.position.resize(n_joints_fullpose);
+	actual_fullpose.velocity.resize(n_joints_fullpose);
 	// set ports data samples
 	out_joints_port.setDataSample(ref_pose);
-	out_joints_src_reset_port.setDataSample(actual_pose);
+	out_joints_src_reset_port.setDataSample(actual_fullpose);
 
 	log(INFO) << "FollowJointState is configured !" << endlog();
 	return true;
@@ -179,13 +179,18 @@ bool FollowJointState::resourceChangeHook()
 	if (filter) {
 		// get actual pose
 		in_joints_port.read(actual_fullpose);
-		// TODO remove dublicate code
 		// copy controlled joint from actual_pose
 		if (isValidJointStatePos(actual_fullpose, n_joints_fullpose)) {
 			for(JointIndexes::const_iterator it = controlled_joints.begin(); it != controlled_joints.end(); it++) {
 				actual_pose.position[it->second.index] = actual_fullpose.position[it->second.index_fullpose];
 				if (actual_fullpose.velocity.size()) actual_pose.velocity[it->second.index] = actual_fullpose.velocity[it->second.index_fullpose];
+				else actual_pose.velocity[it->second.index] = 0.0;
 			}
+		}
+		else {
+			log(WARN) << "Actual pose is unavailable. Reset filter to zero postion and velocity." << endlog();
+			actual_pose.position.assign(controlled_joints.size(), 0.0);
+			actual_pose.velocity.assign(controlled_joints.size(), 0.0);
 		}
 		// reset filter
 		filter->reset(actual_pose, period);
@@ -208,14 +213,15 @@ void FollowJointState::updateHook()
 	int state = resource_client->getState();
 	if (state & ResourceClient::OPERATIONAL) {
 		// read port
-		in_joints_port.read(actual_fullpose, false);
-		// copy controlled joint from actual_pose
-		if (isValidJointStatePos(actual_fullpose, n_joints_fullpose)) {
-			for(JointIndexes::const_iterator it = controlled_joints.begin(); it != controlled_joints.end(); it++) {
-				actual_pose.position[it->second.index] = actual_fullpose.position[it->second.index_fullpose];
-				if (actual_fullpose.velocity.size()) 
-					actual_pose.velocity[it->second.index] = actual_fullpose.velocity[it->second.index_fullpose];
-				//TODO effort support
+		if (in_joints_port.read(actual_fullpose, false) == NewData) {
+			// copy controlled joint from actual_pose
+			if (isValidJointStatePos(actual_fullpose, n_joints_fullpose)) {
+				for(JointIndexes::const_iterator it = controlled_joints.begin(); it != controlled_joints.end(); it++) {
+					actual_pose.position[it->second.index] = actual_fullpose.position[it->second.index_fullpose];
+					if (actual_fullpose.velocity.size()) actual_pose.velocity[it->second.index] = actual_fullpose.velocity[it->second.index_fullpose];
+					else actual_pose.velocity[it->second.index] = 0;
+					//TODO effort support
+				}
 			}
 		}
 		// fill ref_pose with default vaules
@@ -238,8 +244,8 @@ void FollowJointState::updateHook()
 						if (found != controlled_joints.end()) {
 							// we control this joint so copy it
 							ref_pose.position[found->second.index] = ref_pose_unsorted.position[i];
-							if (ref_pose_unsorted.velocity.size()) 
-								ref_pose.velocity[found->second.index] = ref_pose_unsorted.velocity[i];
+							if (ref_pose_unsorted.velocity.size()) ref_pose.velocity[found->second.index] = ref_pose_unsorted.velocity[i];
+							else ref_pose.velocity[found->second.index] = 0.0;
 							//TODO effort support
 						}
 					}
@@ -247,8 +253,18 @@ void FollowJointState::updateHook()
 			}
 		}
 
+		if (log(DEBUG)) {
+			double t = os::TimeService::Instance()->secondsSince(activation_timestamp);
+			log() << " t = " << t << " actual: " << actual_pose << endlog();
+			log() << " t = " << t << " ref: " << ref_pose << endlog();
+		}
 		// perform trajectory smoothing
 		if (filter) filter->update(ref_pose, actual_pose);
+
+		if (log(DEBUG)) {
+			double t = os::TimeService::Instance()->secondsSince(activation_timestamp);
+			log() << " t = " << t << " filtered: " << ref_pose << endlog();
+		}
 		
 		// publish new reference position
 		out_joints_port.write(ref_pose);
