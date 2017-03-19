@@ -184,7 +184,7 @@ void AnimJointTrajectory::operationalHook(bool on_target)
 			// error is not into tolerance bounds and setling_time is elasped
 			goal_result.error_code = Result::GOAL_TOLERANCE_VIOLATED;
 			goal_result.error_string = "Goal position error exceeds limit: " + actual_pose.name[invalid_joint_index];
-			action_server.succeedActive(goal_result);
+			action_server.abortActive(goal_result);
 			log(INFO) << "Goal is not achived: " << goal_result.error_string << endlog();
 			// execution is finihed
 			if (! resource_client->isPending()) resource_client->stopOperational();
