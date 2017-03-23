@@ -6,7 +6,7 @@ log4j.rootCategory=ERROR, console
 log4j.category.org.orocos.rtt=INFO
 
 # setup log level for different categories
-log4j.category.sweetie_bot=INFO, console
+log4j.category.sweetie_bot=DEBUG, console
 log4j.additivity.sweetie_bot=false
 
 # Setup console appender: print message to console
