@@ -197,7 +197,8 @@ bool FollowJointState::resourceChangeHook()
 	}
 	// reset filter
 	if (filter) {
-		filter->reset(actual_pose, period);
+		if (!filter->reset(actual_pose, period)) log(ERROR) << "JointState filter reset has failed." << endlog();
+
 	}
 	// set reference position
 	ref_pose.position = actual_pose.position;
