@@ -23,7 +23,6 @@ class TransientJointStateExp :
 
 		bool reset(const JointState& state0, double period);
 		bool update(JointState& state, const JointState & ref);
-
 };
 
 TransientJointStateExp::TransientJointStateExp(RTT::TaskContext * owner) :
@@ -86,6 +85,7 @@ bool TransientJointStateExp::update(JointState& state, const JointState& ref)
 } // namespace filter
 } // namespace sweetie_bot 
 } // namespace motion 
+
 /* For consistency reasons, it's better to name the
  * service the same as in the class above.
  */
