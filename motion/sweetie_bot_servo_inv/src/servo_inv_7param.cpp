@@ -1,0 +1,215 @@
+#include <rtt/Component.hpp>
+#include <iostream>
+#include <algorithm>
+
+#include "servo_inv_7param.hpp"
+
+using namespace RTT;
+using sweetie_bot::logger::Logger;
+
+namespace sweetie_bot {
+
+namespace motion {
+
+
+ServoInv7Param::ServoInv7Param(std::string const& name) :
+	TaskContext(name),
+	log(logger::categoryFromComponentName(name)) {
+
+	if (!log.ready()) {
+		RTT::Logger::In in("ServoInv7Param");
+		RTT::log(RTT::Error) << "Logger is not ready!" << endlog();
+		this->fatal();
+		return;
+	}
+
+	this->addEventPort("joints_fixed", in_joints_fixed)
+		.doc("Desired joints state. Order of joints should not change.");
+	this->addEventPort("servo_models", in_servo_models)
+		.doc("Port for updating list of servo's models.");
+	this->addPort("sync_step", in_sync_step)
+		.doc("Timer event indicating beginig of next control cycle.");
+	this->addEventPort("battery_state", in_battery_state)
+		.doc("Port for updating current voltage of the battery.");
+	this->addPort("goals", out_goals)
+		.doc("Position controlled servos goals.");
+
+	this->addProperty("period", period)
+		.doc("Control cycle duration (seconds).")
+		.set(0.0224);
+	this->addProperty("lead", lead)
+		.doc("Goal position lead in seconds. Goal position is equal desired position plus desired velocity multiplied by lead.")
+		.set(0.0224);
+	this->addProperty("servo_models", servo_models)
+		.doc("Vector of the models of the servos. It is automatically sorted in the order corresponding to the first message on joint_fixed port. You should not change it after this moment!");
+	this->addProperty("battery_voltage", battery_voltage)
+		.doc("Current voltage of the battery. Updating manually or from battery_state port.")
+		.set(7);
+}
+
+struct ModelFinder {
+	const std::string s;
+
+	ModelFinder(const std::string &str) : s(str) {};
+	bool operator()(const sweetie_bot_servo_model_msg::ServoModel &mdl) const {
+		return mdl.name == s;
+	}
+};
+
+bool ServoInv7Param::sort_servo_models() {
+	sweetie_bot_servo_model_msg::ServoModel eq_mdl;
+	std::vector<sweetie_bot_servo_model_msg::ServoModel> mdls;
+	std::vector<sweetie_bot_servo_model_msg::ServoModel>::iterator s_iter;
+	int i;
+
+	//this coefficient provides equal target position for model
+	eq_mdl.name = "";
+	eq_mdl.kp = 1 / battery_voltage;
+	eq_mdl.kgear = 1;
+	eq_mdl.alpha[0] = 0;
+	eq_mdl.alpha[1] = 0;
+	eq_mdl.alpha[2] = 0;
+	eq_mdl.alpha[3] = 0;
+	eq_mdl.alpha[4] = 0;
+	eq_mdl.qs = 10;
+	eq_mdl.delta = 1;
+
+	mdls.assign(joints.name.size(), eq_mdl);
+
+	for (i = 0; i < joints.name.size(); i++) {
+
+		mdls[i].name = joints.name[i];
+		s_iter = std::find_if(servo_models.begin(), servo_models.end(), ModelFinder(mdls[i].name));
+		if (s_iter != servo_models.end())
+			mdls[i] = *s_iter;
+	}
+
+	servo_models = mdls;
+
+	return true;
+}
+
+void ServoInv7Param::prepare_buffers_for_new_joints_size() {
+	unsigned int n;
+
+	n = joints.name.size();
+
+	goals.name = joints.name;
+	goals.target_pos.assign(n, 0);
+	goals.playtime.assign(n, period + lead);
+
+	velocity_prev.assign(n, 0);
+	goals_pos.assign(n, 0);
+	goals_pos_prev.assign(n, 0);
+}
+
+bool ServoInv7Param::startHook() {
+	in_joints_fixed.getDataSample(joints);
+
+	prepare_buffers_for_new_joints_size();
+
+	out_goals.setDataSample(goals);
+
+	models_vector_was_sorted = false;
+
+	log(INFO) << "Started!" << endlog();
+
+	return true;
+}
+
+void ServoInv7Param::updateHook() {
+	unsigned int i;
+	unsigned int njoints;
+	std::vector<sweetie_bot_servo_model_msg::ServoModel>::iterator s_iter;
+
+	if (in_sync_step.read(timer_id, false) == NewData) {
+		velocity_prev = joints.velocity;
+		goals_pos_prev = goals_pos;
+	}
+
+	if (in_joints_fixed.read(joints, false) == NewData) {
+
+		njoints = joints.name.size();
+
+		if (!models_vector_was_sorted) {
+
+			models_vector_was_sorted = sort_servo_models();
+			log(INFO) << "Servo models was sorted. Now you should not change it's order!" << endlog();
+			prepare_buffers_for_new_joints_size();
+		}
+
+		if (njoints != joints.position.size() || njoints != joints.velocity.size()
+							|| njoints != joints.effort.size()) {
+
+			log(WARN) << "Goal message has incorrect structure." << endlog();
+			return;
+		}
+
+		if (velocity_prev.size() != njoints) {
+
+			log(WARN) << "Number of servos was changed. Skipping and resorting servo_models." << endlog();
+			models_vector_was_sorted = false;
+			return;
+		}
+
+		for(i = 0; i < njoints; i++) {
+
+			//calculate target position using inverse model of the servo
+			goals.target_pos[i] = (
+			    servo_models[i].alpha[0] * joints.velocity[i] +
+			    servo_models[i].alpha[1] * (joints.velocity[i]-velocity_prev[i])/period +
+			    servo_models[i].alpha[2] * copysign(1, joints.velocity[i]) +
+			    servo_models[i].alpha[3] * copysign(exp(-pow(fabs(joints.velocity[i]/servo_models[i].qs),
+												servo_models[i].delta)), joints.velocity[i]) +
+			    servo_models[i].alpha[4] * joints.effort[i]
+			  ) / (servo_models[i].kp*battery_voltage) +
+			  joints.position[i];
+
+			goals.target_pos[i] *= servo_models[i].kgear;
+
+			//store goals position without lead
+			goals_pos[i] = goals.target_pos[i];
+
+			//take defined lead
+			goals.target_pos[i] += (goals.target_pos[i] - goals_pos_prev[i]) * lead / period;
+		}
+
+		out_goals.write(goals);
+	}
+
+	if (in_servo_models.read(models, false) == NewData) {
+
+		//update servo models with new data
+		for (i = 0; i < models.size(); i++) {
+			s_iter = std::find_if(servo_models.begin(), servo_models.end(), ModelFinder(models[i].name));
+			if (s_iter != servo_models.end())
+				*s_iter = models[i];
+		}
+	}
+
+	//update battery voltage rate
+	if (in_battery_state.read(battery_voltage_buf, false) == NewData)
+		battery_voltage = battery_voltage_buf.voltage;
+}
+
+void ServoInv7Param::stopHook() {
+
+	log(INFO) << "Stopped!" << endlog();
+}
+
+} // nmaespace motion
+} // namespace sweetie_bot
+
+/*
+ * Using this macro, only one component may live
+ * in one library *and* you may *not* link this library
+ * with another component library. Use
+ * ORO_CREATE_COMPONENT_TYPE()
+ * ORO_LIST_COMPONENT_TYPE(ServoInv7Param)
+ * In case you want to link with another library that
+ * already contains components.
+ *
+ * If you have put your component class
+ * in a namespace, don't forget to add it here too:
+ */
+ORO_CREATE_COMPONENT(sweetie_bot::motion::ServoInv7Param)
