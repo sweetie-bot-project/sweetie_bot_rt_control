@@ -309,7 +309,7 @@ void FollowJointState::cleanupHook()
 bool FollowJointState::rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp)
 {
 	if (req.data) {
-		resp.success = start();
+		resp.success = isRunning() || start();
 		resp.message = "start() is called.";
 	}
 	else {
