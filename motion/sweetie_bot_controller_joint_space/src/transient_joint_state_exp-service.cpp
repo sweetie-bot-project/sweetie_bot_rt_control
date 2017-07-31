@@ -1,5 +1,7 @@
 #include <sweetie_bot_controller_joint_space/transient_joint_state.hpp>
 
+#include <stdexcept>
+
 #include <rtt/Service.hpp>
 #include <rtt/plugin/ServicePlugin.hpp>
 
@@ -40,6 +42,9 @@ bool TransientJointStateExp::reset(const JointState& state, double T)
 {
 	// transfer function synthesis for given transient time
 	// poles are equal and real
+	if (transient_time <= 0.0 || T <= 0.0) {
+		throw std::invalid_argument("TransientJointStateExp: transient_time and period must be positive.");
+	}
 	// TODO MATRIX EXPONENT
 	double tau = transient_time/4.6; 
 	double l1 = -1/tau;

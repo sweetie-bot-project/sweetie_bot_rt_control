@@ -48,6 +48,9 @@ class TransientJointStateExpIndividual :
 
 TransientJointStateExpIndividual::DiscreteFilter2::DiscreteFilter2(double transient_time, double T) 
 {
+	if (transient_time <= 0.0 || T <= 0.0) {
+		throw std::invalid_argument("TransientJointStateExp: transient_time and period must be positive.");
+	}
 	// pole placment
 	double tau = transient_time/4.6; 
 	double l1 = -1/tau; 
@@ -69,7 +72,7 @@ TransientJointStateExpIndividual::DiscreteFilter2::DiscreteFilter2(double transi
 }
 
 TransientJointStateExpIndividual::TransientJointStateExpIndividual(RTT::TaskContext * owner) :
-	Service("transient_joint_state_exp", owner)
+	Service("transient_joint_state_exp_individual", owner)
 {
 	this->doc("Exponential flter with given transient time for JointState trajectory.");
 
