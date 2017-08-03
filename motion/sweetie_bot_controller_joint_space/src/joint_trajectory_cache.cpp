@@ -73,9 +73,18 @@ void JointTrajectoryCache::interpolateTrajectory(const trajectory_msgs::JointTra
 	t.setlength(n_samples);
 	for(int joint = 0; joint < n_joints; joint++) joint_trajectory[joint].setlength(n_samples);
 	//copy trajectory data
+	const double t_fix_step = 0.001; // default step if incorrect time sequence is supplied
+	double t_prev = -t_fix_step;
 	for(int k = 0; k < n_samples; k++) {
+		//check joint number
 		if (trajectory.points[k].positions.size() != n_joints) throw::std::invalid_argument("JointTrajectoryCache: malformed trajectory_msgs::JointTrajectory.");
+		//copy time
 		t[k] = trajectory.points[k].time_from_start.toSec();
+		// fix incorrect time
+		//TODO is there any better way to handle trajectories with zero execution time?
+		if (t_prev >= t[k]) t[k] = t_prev + t_fix_step;
+		t_prev = t[k];
+		// copy joint postions
 		for(int joint = 0; joint < n_joints; joint++) {
 			joint_trajectory[joint][k] = trajectory.points[k].positions[joint];
 		}
