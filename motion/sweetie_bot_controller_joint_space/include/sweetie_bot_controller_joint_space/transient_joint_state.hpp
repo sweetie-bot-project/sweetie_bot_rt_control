@@ -14,7 +14,7 @@ class TransientJointStateInterface
 
 	public:
 		virtual bool reset(const JointState& state0, double period) = 0;
-		virtual bool update(JointState& state, const JointState & ref) = 0;
+		virtual bool update(const JointState& state, const JointState & ref, JointState& new_state) = 0;
 };
 
 } // namespace filter

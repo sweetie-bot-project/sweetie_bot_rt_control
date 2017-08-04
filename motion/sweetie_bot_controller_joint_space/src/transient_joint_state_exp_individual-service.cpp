@@ -42,7 +42,7 @@ class TransientJointStateExpIndividual :
 		TransientJointStateExpIndividual(RTT::TaskContext * owner);
 
 		bool reset(const JointState& state0, double period);
-		bool update(JointState& state, const JointState & ref);
+		bool update(const JointState& state, const JointState & ref, JointState& new_state);
 
 };
 
@@ -112,7 +112,7 @@ bool TransientJointStateExpIndividual::reset(const JointState& state, double T)
 	return is_configured;
 }
 
-bool TransientJointStateExpIndividual::update(JointState& state, const JointState& ref) 
+bool TransientJointStateExpIndividual::update(const JointState& state, const JointState& ref, JointState& new_state) 
 {
 	if (!is_configured) return false;
 
@@ -121,8 +121,8 @@ bool TransientJointStateExpIndividual::update(JointState& state, const JointStat
 		for(int i = 0; i < sz; i++) {
 			double pos = filters[i].a11 * state.position[i] + filters[i].a12 * state.velocity[i] + filters[i].b11 * ref.position[i] + filters[i].b12 * ref.velocity[i];
 			double vel = filters[i].a21 * state.position[i] + filters[i].a22 * state.velocity[i] + filters[i].b21 * ref.position[i] + filters[i].b22 * ref.velocity[i];
-			state.position[i] = pos;
-			state.velocity[i] = vel;
+			new_state.position[i] = pos;
+			new_state.velocity[i] = vel;
 		}
 		return true;
 	}

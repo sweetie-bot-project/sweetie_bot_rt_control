@@ -198,7 +198,6 @@ bool FollowJointState::resourceChangeHook()
 	// reset filter
 	if (filter) {
 		if (!filter->reset(actual_pose, period)) log(ERROR) << "JointState filter reset has failed." << endlog();
-
 	}
 	// set reference position
 	ref_pose.position = actual_pose.position;
@@ -264,8 +263,8 @@ void FollowJointState::updateHook()
 			log() << " t = " << t << " ref: " << ref_pose << endlog();
 		}
 		// perform trajectory smoothing
-		// actual_pose is represent state and is modified in place
-		if (filter && filter->update(actual_pose, ref_pose)){
+		// actual_pose represents state and is modified in place
+		if (filter && filter->update(actual_pose, ref_pose, actual_pose)){
 			// now refrence in actual_pose
 			out_joints_port.write(actual_pose);
 

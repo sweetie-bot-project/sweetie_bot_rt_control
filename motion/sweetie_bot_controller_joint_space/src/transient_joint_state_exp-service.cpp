@@ -24,7 +24,7 @@ class TransientJointStateExp :
 		TransientJointStateExp(RTT::TaskContext * owner);
 
 		bool reset(const JointState& state0, double period);
-		bool update(JointState& state, const JointState & ref);
+		bool update(const JointState& state, const JointState & ref, JointState& new_state);
 };
 
 TransientJointStateExp::TransientJointStateExp(RTT::TaskContext * owner) :
@@ -68,7 +68,7 @@ bool TransientJointStateExp::reset(const JointState& state, double T)
 	return is_configured;
 }
 
-bool TransientJointStateExp::update(JointState& state, const JointState& ref) 
+bool TransientJointStateExp::update(const JointState& state, const JointState& ref, JointState& new_state) 
 {
 	if (!is_configured) return false;
 
@@ -79,8 +79,8 @@ bool TransientJointStateExp::update(JointState& state, const JointState& ref)
 			double vel = a21*state.position[i] + a22*state.velocity[i] + b21*ref.position[i] + b22*ref.velocity[i];
 			//std::cout << state.position[i] << " " << ref.position[i] << " " << pos << std::endl;
 			//std::cout << state.velocity[i] << " " << ref.velocity[i] << " " << vel << std::endl;
-			state.position[i] = pos;
-			state.velocity[i] = vel;
+			new_state.position[i] = pos;
+			new_state.velocity[i] = vel;
 		}
 		return true;
 	}
