@@ -10,6 +10,7 @@
 #include <sweetie_bot_logger/logger.hpp>
 #include <sweetie_bot_resource_control/resource_client.hpp>
 #include <sweetie_bot_robot_model/robot_model-simple.hpp>
+#include <sweetie_bot_controller_joint_space/transient_joint_state.hpp>
 
 #include "joint_trajectory_cache.hpp"
 
@@ -42,18 +43,18 @@ class AnimJointTrajectoryBase : public RTT::TaskContext
 		int n_joints_fullpose; /**< number of joints in full robot pose. */
 		// SERVICES: internal interface
 		sweetie_bot::motion::ResourceClientInterface * resource_client; //< resource client
-		// sweetie_bot::filters::TransientJointStateInterface * filter; //< trajectory smoother
+		sweetie_bot::motion::filter::TransientJointStateInterface * filter; // trajectory smoother
 
 	protected:
 		// COMPONENT STATE
 		//
 		double time_from_start; /**< time elasped from movement start */
 		std::shared_ptr<JointTrajectoryCache> goal_active; //< current active goal cache
+		std::shared_ptr<JointTrajectoryCache> goal_pending; //< goal expecting activation
 		// ports buffers
 		JointState actual_fullpose; //< buffer for input port in_joints_port
 		JointState actual_pose; //< controlled joints actual positions
 		JointState ref_pose; //< controlled joints reference positions
-		//JointState ref_pose_smoothed; //< controlled joints reference positions after smoothing filter
 		
 #ifdef SWEETIEBOT_LOGGER
 		sweetie_bot::logger::SWEETIEBOT_LOGGER log;

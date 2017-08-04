@@ -58,6 +58,11 @@ bool AnimJointTrajectoryBase::configureHook()
 		return false;
 	}
 	this->n_joints_fullpose = robot_model->listJoints("").size();
+	// check if filter present
+	filter = getSubServiceByType<filter::TransientJointStateInterface>(this->provides().get());
+	if (filter) {
+		log(INFO) << "Trajectory Filter service is loaded." << endlog();
+	}
 	// reset time
 	time_from_start = 0;
 	return true;
@@ -65,7 +70,17 @@ bool AnimJointTrajectoryBase::configureHook()
 
 bool AnimJointTrajectoryBase::startHook()
 {
-	in_joints_port.getDataSample(actual_fullpose);
+	in_joints_port.read(actual_fullpose, true);
+	// reset filter
+	if (filter) {
+		bool filter_reset = false;
+		if (isValidJointStateNamePos(actual_fullpose, n_joints_fullpose) && this->goal_pending) {
+			goal_pending->prepareJointStateBuffer(actual_pose);
+			this->goal_pending->selectJoints(actual_fullpose, actual_pose);
+			filter_reset = filter->reset(actual_pose, period);
+		}
+		if (!filter_reset) log(ERROR) << "JointState filter reset has failed (no pending goal, pose unavailable or filter internal error). " << endlog();
+	}
 	// clear sync port buffer
 	RTT::os::Timer::TimerId timer_id;
 	sync_port.readNewest(timer_id);
@@ -97,9 +112,18 @@ void AnimJointTrajectoryBase::updateHook()
 		}
 		// get desired pose	
 		bool on_goal = this->goal_active->getJointState(time_from_start, ref_pose);
-		// perform trajectory smoothing
-		// TODO smoothing
-	
+		if (log(DEBUG)) {
+			log() << " t = " << time_from_start << " actual: " << actual_pose << endlog();
+			log() << " t = " << time_from_start << " ref: " << ref_pose << endlog();
+		}
+
+		// perform trajectory smoothing and put result in ref_pose
+		if (filter && filter->update(actual_pose, ref_pose, ref_pose)) {
+			if (log(DEBUG)) {
+				log() << " t = " << time_from_start << " filtered: " << ref_pose << endlog();
+			}
+		}
+
 		// call implementation dependent code
 		operationalHook(on_goal);
 		

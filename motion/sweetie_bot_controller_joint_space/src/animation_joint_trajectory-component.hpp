@@ -29,7 +29,6 @@ class AnimJointTrajectory : public AnimJointTrajectoryBase
 		// active goal is being canceled
 		void cancelGoalHook();
 		// buffers (also can be created dynamically)
-		shared_ptr<JointTrajectoryCache> goal_pending; 
 		Result goal_result;
 		Feedback goal_feedback;
 
