@@ -13,6 +13,7 @@
 orocos_component(servo_inv_lead servo_inv_lead.hpp servo_inv_lead.cpp) # ...you may add multiple source files
 orocos_component(servo_inv_7param servo_inv_7param.hpp servo_inv_7param.cpp) # ...you may add multiple source files
 orocos_component(player_joint_state player_joint_state.hpp player_joint_state.cpp) # ...you may add multiple source files
+orocos_component(servo_ident servo_ident.hpp servo_ident.cpp) # ...you may add multiple source files
 #
 # You may add multiple orocos_component statements.
 
