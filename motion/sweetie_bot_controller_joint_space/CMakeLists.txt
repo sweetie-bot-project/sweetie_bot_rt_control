@@ -31,7 +31,7 @@ else()
 endif()
 
 # Dependes: system
-find_path(alglib_INCLUDE_DIR interpolation.h PATH_SUFFIXES alglib )
+find_path(alglib_INCLUDE_DIR interpolation.h PATH_SUFFIXES libalglib )
 find_library(alglib_LIBRARY NAMES alglib)
 if (NOT (alglib_INCLUDE_DIR AND alglib_LIBRARY))
 	message (FATAL_ERROR "\nCould not find alglib library.")
@@ -47,7 +47,7 @@ find_package(catkin REQUIRED COMPONENTS
 # Defines the orocos_* cmake macros. See that file for additional
 # documentation.
 include( ${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake )
-include_directories(include ${catkin_INCLUDE_DIRS})
+include_directories(include ${catkin_INCLUDE_DIRS} ${alglib_INCLUDE_DIR})
 
 # Rest of the configuration is in src/
 add_subdirectory( src )
