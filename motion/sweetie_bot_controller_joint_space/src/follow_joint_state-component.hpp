@@ -14,7 +14,7 @@
 #include <sweetie_bot_logger/logger.hpp>
 #include <sweetie_bot_resource_control/resource_client.hpp>
 #include <sweetie_bot_robot_model/robot_model-simple.hpp>
-#include <sweetie_bot_controller_joint_space/transient_joint_state.hpp>
+#include <sweetie_bot_controller_joint_space/filter_joint_state.hpp>
 
 namespace sweetie_bot {
 namespace motion {
@@ -47,7 +47,7 @@ class FollowJointState : public RTT::TaskContext
 		int n_joints_fullpose;
 		// SERVICES: internal interface
 		sweetie_bot::motion::ResourceClientInterface * resource_client; // resource client
-		sweetie_bot::motion::filter::TransientJointStateInterface * filter; // trajectory smoother
+		sweetie_bot::motion::filter::FilterJointStateInterface * filter; // trajectory smoother
 
 	protected:
 		struct JointIndex {

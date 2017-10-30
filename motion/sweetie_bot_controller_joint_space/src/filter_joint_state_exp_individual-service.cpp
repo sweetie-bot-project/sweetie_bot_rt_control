@@ -1,4 +1,4 @@
-#include <sweetie_bot_controller_joint_space/transient_joint_state.hpp>
+#include <sweetie_bot_controller_joint_space/filter_joint_state.hpp>
 
 #include <string>
 #include <vector>
@@ -11,8 +11,8 @@ namespace sweetie_bot {
 namespace motion {
 namespace filter {
 
-class TransientJointStateExpIndividual : 
-	public TransientJointStateInterface, public RTT::Service 
+class FilterJointStateExpIndividual : 
+	public FilterJointStateInterface, public RTT::Service 
 {
 	protected:
 		/**
@@ -39,17 +39,17 @@ class TransientJointStateExpIndividual :
 		std::vector<DiscreteFilter2> filters;	
 		bool is_configured;
 	public:
-		TransientJointStateExpIndividual(RTT::TaskContext * owner);
+		FilterJointStateExpIndividual(RTT::TaskContext * owner);
 
 		bool reset(const JointState& state0, double period);
 		bool update(const JointState& state, const JointState & ref, JointState& new_state);
 
 };
 
-TransientJointStateExpIndividual::DiscreteFilter2::DiscreteFilter2(double transient_time, double T) 
+FilterJointStateExpIndividual::DiscreteFilter2::DiscreteFilter2(double transient_time, double T) 
 {
 	if (transient_time <= 0.0 || T <= 0.0) {
-		throw std::invalid_argument("TransientJointStateExp: transient_time and period must be positive.");
+		throw std::invalid_argument("FilterJointStateExp: transient_time and period must be positive.");
 	}
 	// pole placment
 	double tau = transient_time/4.6; 
@@ -71,8 +71,8 @@ TransientJointStateExpIndividual::DiscreteFilter2::DiscreteFilter2(double transi
 	b22 = a12*(-l1-l2);
 }
 
-TransientJointStateExpIndividual::TransientJointStateExpIndividual(RTT::TaskContext * owner) :
-	Service("transient_joint_state_exp_individual", owner)
+FilterJointStateExpIndividual::FilterJointStateExpIndividual(RTT::TaskContext * owner) :
+	Service("filter_joint_state_exp_individual", owner)
 {
 	this->doc("Exponential flter with given transient time for JointState trajectory.");
 
@@ -88,13 +88,13 @@ TransientJointStateExpIndividual::TransientJointStateExpIndividual(RTT::TaskCont
 	is_configured = false;
 }
 
-bool TransientJointStateExpIndividual::reset(const JointState& state, double T) 
+bool FilterJointStateExpIndividual::reset(const JointState& state, double T) 
 {
 	// load individual filters
 	if (joints_override.size() != transient_time_override.size()) {
 		is_configured = false;
 		return is_configured;
-		//throw std::invalid_argument("TransientJointStateExpIndividual: sizes of joints_override and transient_time_override sre not same");
+		//throw std::invalid_argument("FilterJointStateExpIndividual: sizes of joints_override and transient_time_override sre not same");
 	}
 	// init filters
 	DiscreteFilter2 default_filter = DiscreteFilter2(transient_time, T);
@@ -112,7 +112,7 @@ bool TransientJointStateExpIndividual::reset(const JointState& state, double T)
 	return is_configured;
 }
 
-bool TransientJointStateExpIndividual::update(const JointState& state, const JointState& ref, JointState& new_state) 
+bool FilterJointStateExpIndividual::update(const JointState& state, const JointState& ref, JointState& new_state) 
 {
 	if (!is_configured) return false;
 
@@ -137,4 +137,4 @@ bool TransientJointStateExpIndividual::update(const JointState& state, const Joi
 /* For consistency reasons, it's better to name the
  * service the same as in the class above.
  */
-ORO_SERVICE_NAMED_PLUGIN(sweetie_bot::motion::filter::TransientJointStateExpIndividual, "transient_joint_state_exp_individual")
+ORO_SERVICE_NAMED_PLUGIN(sweetie_bot::motion::filter::FilterJointStateExpIndividual, "filter_joint_state_exp_individual")

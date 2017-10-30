@@ -1,4 +1,4 @@
-#include <sweetie_bot_controller_joint_space/transient_joint_state.hpp>
+#include <sweetie_bot_controller_joint_space/filter_joint_state.hpp>
 
 #include <stdexcept>
 
@@ -9,8 +9,8 @@ namespace sweetie_bot {
 namespace motion {
 namespace filter {
 
-class TransientJointStateExp : 
-	public TransientJointStateInterface, public RTT::Service 
+class FilterJointStateExp : 
+	public FilterJointStateInterface, public RTT::Service 
 {
 	protected:
 		// SERVICE INTERFACE
@@ -21,29 +21,29 @@ class TransientJointStateExp :
 		double a11, a12, a21, a22, b11, b12, b21, b22;
 		bool is_configured;
 	public:
-		TransientJointStateExp(RTT::TaskContext * owner);
+		FilterJointStateExp(RTT::TaskContext * owner);
 
 		bool reset(const JointState& state0, double period);
 		bool update(const JointState& state, const JointState & ref, JointState& new_state);
 };
 
-TransientJointStateExp::TransientJointStateExp(RTT::TaskContext * owner) :
-	Service("transient_joint_state_exp", owner)
+FilterJointStateExp::FilterJointStateExp(RTT::TaskContext * owner) :
+	Service("filter_joint_state_exp", owner)
 {
-	this->doc("Exponential flter with critical damping for JointState trajectory.");
+	this->doc("Exponential filter with critical damping for JointState trajectory.");
 
 	this->addProperty("transient_time", transient_time)
-		.doc("Transient time in seconds of exponential filter.");
+		.doc("Filter time in seconds of exponential filter.");
 
 	is_configured = false;
 }
 
-bool TransientJointStateExp::reset(const JointState& state, double T) 
+bool FilterJointStateExp::reset(const JointState& state, double T) 
 {
 	// transfer function synthesis for given transient time
 	// poles are equal and real
 	if (transient_time <= 0.0 || T <= 0.0) {
-		throw std::invalid_argument("TransientJointStateExp: transient_time and period must be positive.");
+		throw std::invalid_argument("FilterJointStateExp: transient_time and period must be positive.");
 	}
 	// TODO MATRIX EXPONENT
 	double tau = transient_time/4.6; 
@@ -68,7 +68,7 @@ bool TransientJointStateExp::reset(const JointState& state, double T)
 	return is_configured;
 }
 
-bool TransientJointStateExp::update(const JointState& state, const JointState& ref, JointState& new_state) 
+bool FilterJointStateExp::update(const JointState& state, const JointState& ref, JointState& new_state) 
 {
 	if (!is_configured) return false;
 
@@ -94,4 +94,4 @@ bool TransientJointStateExp::update(const JointState& state, const JointState& r
 /* For consistency reasons, it's better to name the
  * service the same as in the class above.
  */
-ORO_SERVICE_NAMED_PLUGIN(sweetie_bot::motion::filter::TransientJointStateExp, "transient_joint_state_exp")
+ORO_SERVICE_NAMED_PLUGIN(sweetie_bot::motion::filter::FilterJointStateExp, "filter_joint_state_exp")

@@ -1,5 +1,5 @@
-#ifndef  TRANSIENT_JOINT_STATE_HPP
-#define  TRANSIENT_JOINT_STATE_HPP
+#ifndef  FILTER_JOINT_STATE_HPP
+#define  FILTER_JOINT_STATE_HPP
 
 #include <orocos/sensor_msgs/typekit/JointState.h>
 
@@ -7,7 +7,7 @@ namespace sweetie_bot {
 namespace motion {
 namespace filter {
 
-class TransientJointStateInterface 
+class FilterJointStateInterface 
 {
 	public:
 		typedef sensor_msgs::JointState JointState;
@@ -22,4 +22,4 @@ class TransientJointStateInterface
 } // namespace motion 
 
 
-#endif  /*TRANSIENT_JOINT_STATE_HPP*/
+#endif  /*FILTER_JOINT_STATE_HPP*/

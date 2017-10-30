@@ -53,7 +53,7 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${alglib_INCLUDE_DIR})
 add_subdirectory( src )
 
 #Install headers: OROCOS automatically place them in `orocos/package_name/` directory.
-orocos_install_headers(include/sweetie_bot_controller_joint_space/transient_joint_state.hpp) 
+orocos_install_headers(include/sweetie_bot_controller_joint_space/filter_joint_state.hpp) 
 
 #
 # Generates and installs our package. Must be the last statement such

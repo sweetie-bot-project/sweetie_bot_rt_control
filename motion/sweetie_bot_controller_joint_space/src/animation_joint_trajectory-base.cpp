@@ -59,7 +59,7 @@ bool AnimJointTrajectoryBase::configureHook()
 	}
 	this->n_joints_fullpose = robot_model->listJoints("").size();
 	// check if filter present
-	filter = getSubServiceByType<filter::TransientJointStateInterface>(this->provides().get());
+	filter = getSubServiceByType<filter::FilterJointStateInterface>(this->provides().get());
 	if (filter) {
 		log(INFO) << "Trajectory Filter service is loaded." << endlog();
 	}
@@ -112,17 +112,9 @@ void AnimJointTrajectoryBase::updateHook()
 		}
 		// get desired pose	
 		bool on_goal = this->goal_active->getJointState(time_from_start, ref_pose);
-		if (log(DEBUG)) {
-			log() << " t = " << time_from_start << " actual: " << actual_pose << endlog();
-			log() << " t = " << time_from_start << " ref: " << ref_pose << endlog();
-		}
 
 		// perform trajectory smoothing and put result in ref_pose
-		if (filter && filter->update(actual_pose, ref_pose, ref_pose)) {
-			if (log(DEBUG)) {
-				log() << " t = " << time_from_start << " filtered: " << ref_pose << endlog();
-			}
-		}
+		if (filter) filter->update(actual_pose, ref_pose, ref_pose);
 
 		// call implementation dependent code
 		operationalHook(on_goal);

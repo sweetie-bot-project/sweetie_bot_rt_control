@@ -124,7 +124,7 @@ bool FollowJointState::configureHook()
 	}
 	resource_client->setResourceChangeHook(boost::bind(&FollowJointState::resourceChangeHook, this));
 	// check if filter present
-	filter = getSubServiceByType<filter::TransientJointStateInterface>(this->provides().get());
+	filter = getSubServiceByType<filter::FilterJointStateInterface>(this->provides().get());
 	if (filter) {
 		log(INFO) << "Trajectory Filter service is loaded." << endlog();
 	}
