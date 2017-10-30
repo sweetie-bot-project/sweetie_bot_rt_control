@@ -8,3 +8,5 @@ orocos_component(torque_main_switch torque_main_switch-component.cpp) # ...you m
 orocos_service(filter_joint_state_exp_service filter_joint_state_exp-service.cpp) # only one service per library!
 
 orocos_service(filter_joint_state_exp_individual_service filter_joint_state_exp_individual-service.cpp) # only one service per library!
+
+orocos_service(transient_joint_state_exp_individual_service transient_joint_state_exp_individual-service.cpp) # only one service per library!
