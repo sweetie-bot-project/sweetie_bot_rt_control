@@ -51,6 +51,10 @@ bool PlayerJointState::configureHook()
 	std::istringstream ss;
 	std::string line, skip;
 	sample_index = 0;
+	trajectory_pos.resize(0);
+	trajectory_vel.resize(0);
+	trajectory_effort.resize(0);
+
 	while (getline(file, line)) {
 		double value;
 			
