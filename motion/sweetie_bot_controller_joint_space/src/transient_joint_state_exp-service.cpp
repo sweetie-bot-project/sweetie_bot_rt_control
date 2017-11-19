@@ -31,7 +31,7 @@ class TransientJointStateExp :
 };
 
 TransientJointStateExp::TransientJointStateExp(RTT::TaskContext * owner) :
-	Service("filter_joint_state_exp", owner)
+	Service("transient_joint_state_exp", owner)
 {
 	this->doc("Exponential transient filter with critical damping for JointState trajectory. It reacts only on inial state.");
 
