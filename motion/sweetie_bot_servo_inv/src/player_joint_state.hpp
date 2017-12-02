@@ -7,7 +7,7 @@
 
 #include <sweetie_bot_logger/logger.hpp>
 
-#include <orocos/sensor_msgs/typekit/JointState.h>
+#include <sensor_msgs/typekit/JointState.h>
 
 namespace sweetie_bot 
 {
