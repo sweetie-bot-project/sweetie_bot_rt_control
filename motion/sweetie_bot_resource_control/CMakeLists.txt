@@ -10,9 +10,10 @@ cmake_minimum_required(VERSION 2.6.3)
 #
 project(sweetie_bot_resource_control)
 
+### c++11 support ###
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
 
-# Logger selection
+### SweetieBot Logger configuration ###
 set(LOGGER_DEFAULT "" CACHE STRING "Default logger for all packages (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
 set(LOGGER_RESOURCE_CONTROL "" CACHE STRING "Logger for herkulex package (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
 
@@ -24,30 +25,26 @@ else()
 	add_definitions(-DSWEETIEBOT_LOGGER=LoggerRTT)
 endif()
 
-# depends
-find_package(catkin REQUIRED COMPONENTS sweetie_bot_logger)
+### ROS Dependencies ###
+# Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
+find_package(catkin REQUIRED COMPONENTS rtt_ros)
 include_directories(include ${catkin_INCLUDE_DIRS})
 
-# Use 'source orocos_toolchain/env.sh' if the command below fails:
-find_package(OROCOS-RTT QUIET)
-if (NOT OROCOS-RTT_FOUND)
-  message (FATAL_ERROR "\nCould not find Orocos. Please use the shell command\n 'source orocos_toolchain/env.sh' and then run cmake again.")
-endif()
+### Orocos Dependencies ###
+# Note that orocos_use_package() does not need to be called for any dependency
+# listed in the package.xml file
+include_directories(${USE_OROCOS_INCLUDE_DIRS})
 
-# Defines the orocos_* cmake macros. See that file for additional
-# documentation.
-include( ${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake )
+### Orocos Targets ###
 
-#Install headers: OROCOS automatically place them in `orocos/package_name/` directory.
-orocos_install_headers(include/sweetie_bot_resource_control/resource_client.hpp) 
-
-# Rest of the configuration is in src/
+# Include src/ directory.
 add_subdirectory( src )
 
-#
-# Generates and installs our package. Must be the last statement such
-# that it can pick up all above settings.
-#
-orocos_generate_package(
-  INCLUDE_DIRS include
-  )
+### Orocos Package Exports and Install Targets ###
+
+# Generate install targets for header files
+orocos_install_headers(DIRECTORY include/${PROJECT_NAME})
+
+# Export package information (replaces catkin_package() macro) 
+orocos_generate_package(INCLUDE_DIRS include DEPENDS rtt_ros)
+

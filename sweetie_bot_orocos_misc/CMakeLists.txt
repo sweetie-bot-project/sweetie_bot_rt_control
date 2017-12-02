@@ -10,31 +10,30 @@ cmake_minimum_required(VERSION 2.6.3)
 #
 project(sweetie_bot_orocos_misc)
 
-# Use 'source orocos_toolchain/env.sh' if the command below fails:
-find_package(OROCOS-RTT QUIET)
-if (NOT OROCOS-RTT_FOUND)
-  message (FATAL_ERROR "\nCould not find Orocos. Please use the shell command\n 'source orocos_toolchain/env.sh' and then run cmake again.")
-endif()
+### c++11 support ###
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
 
-#Catkin support
-find_package(catkin REQUIRED)
-catkin_package(CATKIN_DEPENDS actionlib rtt_actionlib INCLUDE_DIRS include)
+### ROS Dependencies ###
+# Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
+find_package(catkin REQUIRED COMPONENTS rtt_ros)
 include_directories(include ${catkin_INCLUDE_DIRS})
 
-# Defines the orocos_* cmake macros. See that file for additional
-# documentation.
-include( ${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake )
+### Orocos Dependencies ###
+# Note that orocos_use_package() does not need to be called for any dependency
+# listed in the package.xml file
+include_directories(${USE_OROCOS_INCLUDE_DIRS})
 
-#Install headers: OROCOS automatically place them in `orocos/package_name/` directory.
-orocos_install_headers(include/sweetie_bot_orocos_misc/simple_action_server.hpp include/sweetie_bot_orocos_misc/get_subservice_by_type.hpp include/sweetie_bot_orocos_misc/joint_state_check.hpp)
+### Orocos Targets ###
 
-#Libraries: only .so modules from root CMakeLists are added to *.pc file.
-orocos_library(sweetie_bot_orocos_misc src/joint_state_check.cpp) # ...you may add multiple source files
-
-# Rest of the configuration is in src/
+# Libraries: only .so modules from root CMakeLists are added to *.pc file.
+orocos_library(sweetie_bot_orocos_misc src/joint_state_check.cpp) 
+# Include src/ directory.
 add_subdirectory( src )
-#
-# Generates and installs our package. Must be the last statement such
-# that it can pick up all above settings.
-#
-orocos_generate_package()
+
+### Orocos Package Exports and Install Targets ###
+
+# Generate install targets for header files
+orocos_install_headers(DIRECTORY include/${PROJECT_NAME})
+
+# Export package information (replaces catkin_package() macro) 
+orocos_generate_package(INCLUDE_DIRS include DEPENDS rtt_ros)

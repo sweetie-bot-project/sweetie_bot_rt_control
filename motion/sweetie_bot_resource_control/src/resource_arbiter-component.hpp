@@ -5,13 +5,13 @@
 
 #include <rtt/RTT.hpp>
 
-#include <orocos/sweetie_bot_resource_control_msgs/typekit/ResourceRequest.h>
-#include <orocos/sweetie_bot_resource_control_msgs/typekit/ResourceRequesterState.h>
-#include <orocos/sweetie_bot_resource_control_msgs/typekit/ResourceAssignment.h>
-#include <orocos/sweetie_bot_resource_control_msgs/typekit/ControllerState.h>
+#include <sweetie_bot_resource_control_msgs/typekit/ResourceRequest.h>
+#include <sweetie_bot_resource_control_msgs/typekit/ResourceRequesterState.h>
+#include <sweetie_bot_resource_control_msgs/typekit/ResourceAssignment.h>
+#include <sweetie_bot_resource_control_msgs/typekit/ControllerState.h>
 
 #include <sweetie_bot_logger/logger.hpp>
-#include <sweetie_bot_resource_control/resource_client.hpp>
+#include "sweetie_bot_resource_control/resource_client.hpp"
 
 namespace sweetie_bot {
 
