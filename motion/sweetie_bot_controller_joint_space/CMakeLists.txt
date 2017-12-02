@@ -10,15 +10,10 @@ cmake_minimum_required(VERSION 2.6.3)
 #
 project(sweetie_bot_controller_joint_space)
 
+### c++11 support ###
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
 
-# Use 'source orocos_toolchain/env.sh' if the command below fails:
-find_package(OROCOS-RTT QUIET)
-if (NOT OROCOS-RTT_FOUND)
-  message (FATAL_ERROR "\nCould not find Orocos. Please use the shell command\n 'source orocos_toolchain/env.sh' and then run cmake again.")
-endif()
-
-# Logger selection
+### SweetieBot Logger configuration ###
 set(LOGGER_DEFAULT "" CACHE STRING "Default logger for all packages (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
 set(LOGGER_CONTROLLER_JOINT_SPACE "" CACHE STRING "Logger for ${PROJECT_NAME} (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
 
@@ -30,33 +25,37 @@ else()
 	add_definitions(-DSWEETIEBOT_LOGGER=LoggerRTT)
 endif()
 
-# Dependes: system
+### General dependencies ###
 find_path(alglib_INCLUDE_DIR interpolation.h PATH_SUFFIXES libalglib )
 find_library(alglib_LIBRARY NAMES alglib)
 if (NOT (alglib_INCLUDE_DIR AND alglib_LIBRARY))
 	message (FATAL_ERROR "\nCould not find alglib library.")
 endif()
-# Dependes: OROCOS
-# Depends: catkin
-find_package(catkin REQUIRED COMPONENTS 
-	sweetie_bot_logger
-	sweetie_bot_orocos_misc)
-
 #find_package(Boost REQUIRED COMPONENTS graph filesystem system thread regex)
 
-# Defines the orocos_* cmake macros. See that file for additional
-# documentation.
-include( ${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake )
-include_directories(include ${catkin_INCLUDE_DIRS} ${alglib_INCLUDE_DIR})
+### ROS Dependencies ###
+# Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
+find_package(catkin REQUIRED COMPONENTS rtt_ros)
+include_directories(include ${catkin_INCLUDE_DIRS})
 
-# Rest of the configuration is in src/
+### Orocos Dependencies ###
+# Note that orocos_use_package() does not need to be called for any dependency
+# listed in the package.xml file
+include_directories(${USE_OROCOS_INCLUDE_DIRS})
+
+### Orocos Targets ###
+
+# Include src/ directory.
 add_subdirectory( src )
+
+### Orocos Package Exports and Install Targets ###
 
 #Install headers: OROCOS automatically place them in `orocos/package_name/` directory.
 orocos_install_headers(include/sweetie_bot_controller_joint_space/filter_joint_state.hpp) 
+# Scripts installation
+install(DIRECTORY scripts
+	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
-#
-# Generates and installs our package. Must be the last statement such
-# that it can pick up all above settings.
-#
-orocos_generate_package(INCLUDE_DIRS include)
+# Export package information (replaces catkin_package() macro) 
+orocos_generate_package(INCLUDE_DIRS include DEPENDS rtt_ros)
+
