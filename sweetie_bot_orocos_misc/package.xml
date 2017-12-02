@@ -1,0 +1,32 @@
+<package format="2">
+  <name>sweetie_bot_orocos_misc</name>
+  <version>1.0.0</version>
+  <description>Different support libraries for SweetiBot.</description>
+  <maintainer email="goncharovoi@yandex.ru">disRecord</maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">https://gitlab.com/sweetie-bot/sweetie_doc/wikis</url>
+  <!-- <url type="bugtracker"></url> -->
+
+  <author>disRecord</author>
+
+  <!-- ROS and OROCOS packages -->
+  <depend>catkin</depend>
+  <depend>rtt</depend>
+  <depend>actionlib</depend>
+  <depend>rtt_actionlib</depend>
+  <!-- ROS and OROCOS datatypes -->
+  <depend>sweetie_bot_herkulex_msgs</depend>
+  <!-- SWEETIEBOT packages -->
+  <!-- SWEETIEBOT datatypes -->
+  <depend>sweetie_bot_herkulex_msgs_rtt</depend>
+
+  <export>
+	  <rtt_ros>
+		  <!-- Plugin deps are loaded automatically by the rtt_ros import service -->
+		  <plugin_depend>rtt_sensor_msgs</plugin_depend>
+		  <plugin_depend>sweetie_bot_herkulex_msgs_rtt</plugin_depend>
+	  </rtt_ros>
+  </export>
+</package>

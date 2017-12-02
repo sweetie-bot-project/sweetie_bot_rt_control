@@ -1,0 +1,6 @@
+<launch>
+	<node name="motion" pkg="rtt_ros" type="rttlua" output="screen"
+		launch-prefix="$(find sweetie_bot_resource_client_usage_example)/scripts/cwd $(find sweetie_bot_resource_client_usage_example)/scripts/ "
+		args="-i $(find sweetie_bot_resource_client_usage_example)/scripts/test_resource_control.lua" 
+	  />
+</launch>

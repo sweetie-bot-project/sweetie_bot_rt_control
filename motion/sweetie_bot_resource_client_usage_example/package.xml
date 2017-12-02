@@ -1,0 +1,36 @@
+<package format="2">
+  <name>sweetie_bot_resource_client_usage_example</name>
+  <version>1.0.0</version>
+  <description>This package is an example of using resource_control client plugin.</description>
+  <maintainer email="rovboma@gmail.com">Maxim Rovbo</maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">https://gitlab.com/sweetie-bot/sweetie_doc/wikis</url>
+  <!-- <url type="bugtracker"></url> -->
+
+  <author>Maxim Rovbo</author>
+  <author>disRecord</author>
+
+  <!-- ROS and OROCOS packages -->
+  <depend>rtt</depend>
+  <depend>actionlib</depend>
+  <depend>rtt_actionlib</depend>
+  <!-- ROS and OROCOS datatypes -->
+  <depend>rtt_std_srvs</depend>
+  <!-- SWEETIEBOT packages -->
+  <depend>sweetie_bot_logger</depend>
+  <depend>sweetie_bot_orocos_misc</depend> <!-- actionlib client, find subservice -->
+  <depend>sweetie_bot_resource_control</depend>
+  <!-- SWEETIEBOT datatypes -->
+  <depend>rtt_sweetie_bot_resource_control_msgs</depend>
+
+  <export>
+	  <rtt_ros>
+		  <!-- Plugin deps are loaded automatically by the rtt_ros import service -->
+		  <plugin_depend>rtt_sweetie_bot_resource_control_msgs</plugin_depend>
+		  <plugin_depend>rtt_std_srvs</plugin_depend>
+		  <plugin_depend>rtt_actionlib</plugin_depend>
+	  </rtt_ros>
+  </export>
+</package>
