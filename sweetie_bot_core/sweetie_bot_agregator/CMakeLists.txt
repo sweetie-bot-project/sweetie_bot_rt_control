@@ -10,6 +10,7 @@ cmake_minimum_required(VERSION 2.6.3)
 #
 project(sweetie_bot_agregator)
 
+### c++11 support ###
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 
 # Logger selection
@@ -24,34 +25,26 @@ else()
         add_definitions(-DSWEETIEBOT_LOGGER=LoggerRTT)
 endif()
 
-find_package(orocos_kdl REQUIRED)
-find_package(catkin REQUIRED COMPONENTS
-  rtt_ros
-  sensor_msgs
-  sweetie_bot_logger
-  sweetie_bot_orocos_misc)
+### ROS Dependencies ###
+# Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
+find_package(catkin REQUIRED COMPONENTS rtt_ros)
+include_directories(${catkin_INCLUDE_DIRS})
 
-# Use 'source orocos_toolchain/env.sh' if the command below fails:
-find_package(OROCOS-RTT QUIET)
-if (NOT OROCOS-RTT_FOUND)
-  message (FATAL_ERROR "\nCould not find Orocos. Please use the shell command\n 'source orocos_toolchain/env.sh' and then run cmake again.")
-endif()
+### Orocos Dependencies ###
+# Note that orocos_use_package() does not need to be called for any dependency
+# listed in the package.xml file
+include_directories(${USE_OROCOS_INCLUDE_DIRS})
 
-# Defines the orocos_* cmake macros. See that file for additional
-# documentation.
-include( ${OROCOS-RTT_USE_FILE_PATH}/UseOROCOS-RTT.cmake )
+### Orocos Targets ###
 
-include_directories(include ${catkin_INCLUDE_DIRS})
-
-# Rest of the configuration is in src/
+# Include src/ directory.
 add_subdirectory( src )
 
-#
-# Generates and installs our package. Must be the last statement such
-# that it can pick up all above settings.
-#
-orocos_generate_package(DEPENDS sweetie_bot_robot_model)
+### Orocos Package Exports and Install Targets ###
 
 # Scripts installation
 install(DIRECTORY scripts
 	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+
+# Export package information (replaces catkin_package() macro) 
+orocos_generate_package(DEPENDS rtt_ros)

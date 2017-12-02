@@ -1,39 +1,40 @@
-<package>
+<package format="2">
   <name>sweetie_bot_agregator</name>
   <version>1.0.0</version>
-  <description>This package contains the components of the sweetie_bot_agregator package</description>
-  <maintainer email="unknown@maintainer.com">Unknown Author</maintainer>
+  <description>Full robot pose agregator component for SweetieBot robot project.</description>
+  <maintainer email="fsdfur@gmail.com">mutronics</maintainer>
 
-  <license>Unknown</license>
+  <license>BSD</license>
 
-  <url type="sweetiebot.net"></url>
+  <url type="website">https://gitlab.com/sweetie-bot/sweetie_doc/wikis</url>
   <!-- <url type="bugtracker"></url> -->
 
   <author>mutronics</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <build_depend>rtt</build_depend>
-  <build_depend>orogen</build_depend>
-  <build_depend>rtt_ros</build_depend>
-  <build_depend>orocos_kdl</build_depend>
-  <build_depend>rtt_sensor_msgs</build_depend>
-  <build_depend>sweetie_bot_robot_model</build_depend>
-  <build_depend>sweetie_bot_logger</build_depend>
-  <build_depend>sweetie_bot_orocos_misc</build_depend>
+  <!-- ROS and OROCOS packages -->
+  <depend>rtt</depend>
+  <depend>rtt_ros</depend>
+  <depend>orocos_kdl</depend>
+  <!-- ROS and OROCOS datatypes -->
+  <depend>sensor_msgs</depend>
+  <depend>rtt_sensor_msgs</depend>
+  <!-- SWEETIEBOT packages -->
+  <depend>sweetie_bot_logger</depend>
+  <depend>sweetie_bot_robot_model</depend>
+  <depend>sweetie_bot_orocos_misc</depend>
+  <!-- SWEETIEBOT datatypes -->
+  <depend>sweetie_bot_herkulex_msgs</depend>
+  <depend>sweetie_bot_herkulex_msgs_rtt</depend>
 
-  <run_depend>rtt</run_depend>
-  <run_depend>rtt_ros</run_depend>
-  <run_depend>rtt_rosnode</run_depend>
-  <run_depend>rtt_roscomm</run_depend>
-  <run_depend>rtt_rosparam</run_depend>
-  <run_depend>rtt_std_msgs</run_depend>
-  <run_depend>rtt_sensor_msgs</run_depend>
-  <run_depend>orocos_kdl</run_depend>
-  <run_depend>rtt_sensor_msgs</run_depend>
-  <run_depend>sweetie_bot_robot_model</run_depend>
-  <run_depend>sweetie_bot_description_proto2</run_depend>
-  <run_depend>sweetie_bot_logger</run_depend>
+  <!-- <run_depend>sweetie_bot_description_proto2</run_depend>
+  <run_depend>sweetie_bot_logger</run_depend> -->
+
   <export>
+	  <rtt_ros>
+		  <!-- Plugin deps are loaded automatically by the rtt_ros import service -->
+		  <plugin_depend>rtt_sensor_msgs</plugin_depend>
+	  </rtt_ros>
   </export>
 </package>

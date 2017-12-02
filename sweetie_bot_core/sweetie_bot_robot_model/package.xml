@@ -1,36 +1,35 @@
-<package>
+<package format="2">
   <name>sweetie_bot_robot_model</name>
   <version>1.0.0</version>
-  <description>This package contains the components of the sweetie_bot_robot_model package</description>
+  <description>Robot joint semantic service: kinematic chains, joints order and etc</description>
   <maintainer email="fsdfur@gmail.com">mutronics</maintainer>
 
-  <license>Unknown</license>
+  <license>BSD</license>
 
-  <url type="http://sweetiebot.net"></url>
+  <url type="website">https://gitlab.com/sweetie-bot/sweetie_doc/wikis</url>
+  <url type="website">sweetiebot.net</url>
   <!-- <url type="bugtracker"></url> -->
 
   <author>mutronics</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <build_depend>rtt</build_depend>
-  <build_depend>orogen</build_depend>
-  <build_depend>rtt_ros</build_depend>
-  <build_depend>orocos_kdl</build_depend>
-  <build_depend>kdl_parser</build_depend>
-  <build_depend>rtt_sensor_msgs</build_depend>
-  <build_depend>sweetie_bot_logger</build_depend>
-
-  <run_depend>rtt</run_depend>
-  <run_depend>rtt_ros</run_depend>
-  <run_depend>rtt_rosnode</run_depend>
-  <run_depend>rtt_roscomm</run_depend>
-  <run_depend>rtt_rosparam</run_depend>
-  <run_depend>orocos_kdl</run_depend>
-  <run_depend>kdl_parser</run_depend>
-  <run_depend>rtt_sensor_msgs</run_depend>
-  <run_depend>sweetie_bot_logger</run_depend>
+  <!-- ROS and OROCOS packages -->
+  <depend>rtt</depend>
+  <depend>orogen</depend>
+  <depend>rtt_ros</depend>
+  <depend>orocos_kdl</depend>
+  <depend>kdl_parser</depend>
+  <!-- ROS and OROCOS datatypes -->
+  <depend>rtt_sensor_msgs</depend>
+  <!-- SWEETIEBOT packages -->
+  <depend>sweetie_bot_logger</depend>
+  <!-- SWEETIEBOT datatypes -->
 
   <export>
- </export>
+	  <rtt_ros>
+		  <!-- Plugin deps are loaded automatically by the rtt_ros import service -->
+		  <plugin_depend>rtt_sensor_msgs</plugin_depend>
+	  </rtt_ros>
+  </export>
 </package>
