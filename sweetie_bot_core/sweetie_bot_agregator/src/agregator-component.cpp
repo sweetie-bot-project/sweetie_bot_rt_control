@@ -21,11 +21,11 @@ Agregator::Agregator(string const& name) : TaskContext(name),
    .doc( "Port publishes full robot pose buffered by component. It is sorted by kinematics chains." );
 
   this->ports()->addEventPort( sync_port_ )
-   .doc("Timer event indicating beginig of next control cycle.");
+   .doc("Timer event indicating the beginning of next control cycle.");
 
   robot_model_ = getProvider<RobotModel>("robot_model"); // It tries to load the service if it is not loaded.
   robot_model_interface_ = boost::dynamic_pointer_cast<RobotModelInterface>(this->provides()->getService("robot_model"));
-  this->log(INFO) << "constructed." <<endlog();
+  this->log(INFO) << "Agregator is constructed." <<endlog();
 }
 
 bool Agregator::configureHook(){
@@ -40,14 +40,14 @@ bool Agregator::configureHook(){
   output_joint_state_.position.assign(joint_names_.size(), 0.0);
   output_joint_state_.velocity.assign(joint_names_.size(), 0.0);
   output_joint_state_.effort.assign(joint_names_.size(), 0.0);
-  this->log(INFO) << "configured." <<endlog();
+  this->log(INFO) << "Agregator is configured." <<endlog();
   return true;
 }
 
 bool Agregator::startHook(){
   RTT::os::Timer::TimerId timer_id;
   sync_port_.readNewest(timer_id);
-  this->log(INFO) << "started." <<endlog();
+  this->log(INFO) << "Agregator is started." <<endlog();
   return true;
 }
 
@@ -82,7 +82,7 @@ void Agregator::updateHook(){
     }
   } 
 
-  // Check synk port
+  // Check sync port
   RTT::os::Timer::TimerId timer_id;
   if (sync_port_.read(timer_id) == NewData) publish_state=true;
 
@@ -98,11 +98,11 @@ void Agregator::updateHook(){
 }
 
 void Agregator::stopHook() {
-  this->log(INFO) << "stoped." <<endlog();
+  this->log(INFO) << "Agregator stoped." <<endlog();
 }
 
 void Agregator::cleanupHook() {
-  this->log(INFO) << "cleaning up." <<endlog();
+  this->log(INFO) << "Agregator cleaning up." <<endlog();
 }
 
 } // namespace motion
