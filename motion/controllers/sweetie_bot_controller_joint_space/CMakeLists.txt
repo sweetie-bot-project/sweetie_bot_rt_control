@@ -52,9 +52,6 @@ add_subdirectory( src )
 
 #Install headers: OROCOS automatically place them in `orocos/package_name/` directory.
 orocos_install_headers(include/sweetie_bot_controller_joint_space/filter_joint_state.hpp) 
-# Scripts installation
-install(DIRECTORY scripts
-	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
 # Export package information (replaces catkin_package() macro) 
 orocos_generate_package(INCLUDE_DIRS include DEPENDS rtt_ros)
