@@ -24,7 +24,7 @@ loadService("sweetie_bot_kinematics","rosparam");
 loadService("sweetie_bot_kinematics","marshalling"); # Поддержка исполнения скриптов и загрузки xml/cpf файлов
 
 # Загружаем параметры из xml файла.
-sweetie_bot_kinematics.marshalling.loadProperties(ros.find("sweetie_bot_description_proto2") + "/robots/chains.cpf");
+sweetie_bot_kinematics.marshalling.loadProperties(ros.find("sweetie_bot_proto2_description") + "/robots/chains.cpf");
 sweetie_bot_kinematics.rosparam.getParam("/", "robot_model");
 
 # Create ROS mapping

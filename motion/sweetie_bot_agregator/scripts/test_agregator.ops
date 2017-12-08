@@ -31,7 +31,7 @@ var double TIMER_PERIOD = 0.023;
 herk_timer.startTimer(0, TIMER_PERIOD);
 
 # Загружаем параметры из xml файла.
-sweetie_bot_agregator.marshalling.loadProperties(ros.find("sweetie_bot_description_proto2") + "/robots/chains.cpf");
+sweetie_bot_agregator.marshalling.loadProperties(ros.find("sweetie_bot_proto2_description") + "/robots/chains.cpf");
 sweetie_bot_agregator.rosparam.getParam("/", "robot_model")
 
 # Create ROS mapping 

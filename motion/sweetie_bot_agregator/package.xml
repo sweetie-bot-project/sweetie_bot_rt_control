@@ -28,7 +28,7 @@
   <depend>sweetie_bot_herkulex_msgs</depend>
   <depend>sweetie_bot_herkulex_msgs_rtt</depend>
 
-  <!-- <run_depend>sweetie_bot_description_proto2</run_depend>
+  <!-- <run_depend>sweetie_bot_proto2_description</run_depend>
   <run_depend>sweetie_bot_logger</run_depend> -->
 
   <export>
