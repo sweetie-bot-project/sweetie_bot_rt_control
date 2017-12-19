@@ -26,7 +26,7 @@ else()
 endif()
 
 ### General dependencies ###
-find_path(alglib_INCLUDE_DIR interpolation.h PATH_SUFFIXES libalglib )
+find_path(alglib_INCLUDE_DIR interpolation.h PATH_SUFFIXES libalglib alglib)
 find_library(alglib_LIBRARY NAMES alglib)
 if (NOT (alglib_INCLUDE_DIR AND alglib_LIBRARY))
 	message (FATAL_ERROR "\nCould not find alglib library.")
@@ -36,7 +36,7 @@ endif()
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
 find_package(catkin REQUIRED COMPONENTS rtt_ros)
-include_directories(include ${catkin_INCLUDE_DIRS})
+include_directories(include ${catkin_INCLUDE_DIRS} ${alglib_INCLUDE_DIR})
 
 ### Orocos Dependencies ###
 # Note that orocos_use_package() does not need to be called for any dependency
