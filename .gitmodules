@@ -1,6 +1,8 @@
 [submodule "herkulex"]
 	path = herkulex
 	url = git@gitlab.com:sweetie-bot/sweetie_bot_herkulex.git
+	branch = master
 [submodule "sweetie_bot_logger"]
 	path = sweetie_bot_logger
 	url = git@gitlab.com:sweetie-bot/sweetie_bot_logger.git
+	branch = master
