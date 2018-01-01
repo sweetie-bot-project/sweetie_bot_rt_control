@@ -120,7 +120,7 @@ bool TorqueMainSwitch::configureHook()
 		joints.insert(joints.end(), new_joints.begin(), new_joints.end());
 	}
 	// form list of necessary resources
-	controlled_chains = robot_model->getJointChains(joints);
+	controlled_chains = robot_model->getJointsChains(joints);
 
 	// check HerkulexSched
 	for(auto sched_name = herkulex_scheds.begin(); sched_name != herkulex_scheds.end(); sched_name++) {

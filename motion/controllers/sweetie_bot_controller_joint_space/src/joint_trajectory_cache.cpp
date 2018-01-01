@@ -23,7 +23,7 @@ JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajec
 		if (index_fullpose[i] < 0) throw std::invalid_argument("JointTrajectoryCache: Unknown joint: " + this->names[i]);
 	}
 	// get chains list for subsequent resource requests.
-	this->chains = robot_model->getJointChains(this->names);
+	this->chains = robot_model->getJointsChains(this->names);
 	// now extract and interpolate trajectory
 	interpolateTrajectory(goal.trajectory);
 	// cache tolerance: speed and acceleration is ignored
