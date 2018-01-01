@@ -1,23 +1,14 @@
-# Pose agregator component
+Pose aggregator component
+========================
+
 This package is part of [Sweetie Bot project](http://sweetiebot.net). 
 See complete specification [here (Rus)](https://gitlab.com/sweetie-bot/sweetie_doc/wikis/components-agregator-gait).
 
-This component constricts full robot pose in joint space from partial pose messages (`in_joints` port).
-Full pose is published on each pose update but at least one time per control cycle.
-Joints are sorted according its natural order described by `robot_model`.
+This component composes full robot pose in joint space from partial pose messages (`in_joints` port, `sensor_msgs::JointState`).
+Result pose is published on each update (`publish_on_event` property is set) or/and if timer synchronization message is received 
+on `sync` port.(`publish_on_timer` property is set).
 
-### Input ports
-
-`in_joints` (`JointState`, `EventPort`) --- partial robot pose in joint space.
-`sync` (`int`, `EventPort`) --- timer syncronization port.
-
-### Output ports
-
-`out_joints_sorted` (`JointState`) --- full robot pose in joint space.
-
-### Plugins
-
-Requires: `robot_model` service --- robots kinematics chains description.
+Joints are sorted according its natural order described by `robot_model` service.
 
 ## Testing
 

@@ -1,28 +1,32 @@
-SWEETIE BOT CONTROLLER SWITCHING INFRASRUCTURE 
-==============================================
+Sweetie Bot motion controllers' switching infrastructure 
+========================================================
 
-This infrastructure allows motions controllers to avoid resource conflicts when they are lauched concurrenly.
-Resources are represented by strings which coresponds to hardware parts of robot, i.t. `leg1`, `tail`.
-When controller is being activated it request necessary resources. ResourcesArbiter forms resource assigment
-between controllers and broadcast it. If controller is disagree with resource assigment it can deactivate itself.
+This package contains resource management subsystem. It allows multiply motion controllers to be running concurrently 
+without conflicts.  This package is part of [Sweetie Bot project](http://sweetiebot.net). 
+See complete specification [here (Rus)](https://gitlab.com/sweetie-bot/sweetie_doc/wikis/components-agregator-gait).
 
-Now implemented the most simple srategy: resource goes to the last requster. So basically during activation
-controller hijacks resources from operational controllers. If any of them is unable to function without 
-hijacked resources they deactivate itself.
+Resources represents different robot hardware, i.t. `leg1`, `tail`.
+When controller is being activated it request necessary resources. ResourcesArbiter forms resource assignment
+between controllers and broadcast it. If controller is disagree with resource assignment it can deactivate itself.
+
+Now the most simple strategy resource assignment strategy is implemented: resource goes to the last requester. 
+So during activation phase controller hijacks resources from other operational controllers. If any of them is unable 
+to function without hijacked resources they deactivate itself. Controversially if one controller is deactivated 
+resources return to previous owner if it is still active.
 
 
 ### Package content
 
-1. `ResourceArbiter` component. It process resource requests from controller and publish resource assigments.
+1. `ResourceArbiter` component. It process resource requests from controller and publish resource assignments.
 
 2. `resource_client` service can be loaded into controller and performs interaction with `ResourceArbiter`.
-	See deatiled description below. (TODO)
+	It provides interface to request arbiter for resources and to process it replies.
 
-3. `resource_client_dummy` service always belives it own all necessary resources. It does not intearct with 
+	See `sweetie_bot_resource_client_usage_example` package for usage example.
+
+3. `resource_client_dummy` service always believes it owns all necessary resources. It does not interact with 
     `ResourceArbiter`. It can be used for testing purpose.
 
-4. `OrocosSimpleActionServer` class simplifies implementation of actionlib based components. 
-    See detailed description below. (TODO)
 
 ### Usage
 
