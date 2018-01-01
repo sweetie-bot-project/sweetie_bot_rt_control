@@ -16,21 +16,26 @@
 namespace sweetie_bot {
 namespace motion {
 
-class Agregator : public RTT::TaskContext{
-
-    boost::shared_ptr<RobotModel> robot_model_;
-    boost::shared_ptr<RobotModelInterface> robot_model_interface_;
-
+class Agregator : public RTT::TaskContext
+{
+  protected:
+	//COMPONENT INTERFACE
+	// ports
     RTT::InputPort<sensor_msgs::JointState> input_port_joint_state_;
     RTT::OutputPort<sensor_msgs::JointState> output_port_joint_state_;
-
     RTT::InputPort<RTT::os::Timer::TimerId> sync_port_;
+	// properties
+	bool publish_on_timer_;
+	bool publish_on_event_;
+	// subservice
+    boost::shared_ptr<RobotModel> robot_model_;
 
+	// COMPONENT STATE
+	// ports buffers
     sensor_msgs::JointState input_joint_state_;
     sensor_msgs::JointState output_joint_state_;
-
-    std::vector<std::string> chain_names_;
-    std::vector<std::string> joint_names_;
+	// indexes of joints in full pose
+    std::map< std::string, int > joint_index_;
 
     // logging
 #ifdef SWEETIEBOT_LOGGER
