@@ -20,6 +20,13 @@ bool isValidJointState(const sensor_msgs::JointState& msg, int sz = -1);
 bool isValidJointStatePos(const sensor_msgs::JointState& msg, int sz = -1);
 
 /**
+ * Checks if all nonzero length fields of JointState have equal sizes. Fields @a position and @a velocity must present. Does not check @a effort.
+ * If @a sz is provided additinally check if their size is equal to @a sz.
+ * @param sz expected number of joints
+ */
+bool isValidJointStatePosVel(const sensor_msgs::JointState& msg, int sz = -1);
+
+/**
  * Checks if all nonzero length fields of JointState have equal sizes. Fields @a name and @a position must present. Does not check @a effort.
  * If @a sz is provided additinally check if their size is equal to @a sz.
  * @param sz expected number of joints
