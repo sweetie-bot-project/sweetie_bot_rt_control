@@ -11,10 +11,10 @@
 # and installs in the directory lib/orocos/sweetie_bot_kinematics/
 #
 orocos_component(kinematics kinematics-component.hpp kinematics-component.cpp) # ...you may add multiple source files
-#
-# You may add multiple orocos_component statements.
 target_link_libraries(kinematics ${catkin_LIBRARIES})
 
+orocos_component(kinematics_fwd kinematics_fwd-component.hpp kinematics_fwd-component.cpp) # ...you may add multiple source files
+target_link_libraries(kinematics_fwd ${catkin_LIBRARIES})
 #
 # Additional headers:
 #

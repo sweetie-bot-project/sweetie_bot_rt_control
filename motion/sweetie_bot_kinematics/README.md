@@ -1,39 +1,27 @@
 # Sweetie Bot kinematic solver component
-This package is part of [Sweetie Bot project](http://sweetiebot.net). See complete specification [here (Rus)](https://gitlab.com/sweetie-bot/sweetie_doc/wikis/components-kinematics).
 
-This component provides kinematics solvers (forward, reverse, instantaneous).
-It provides various interfaces: ports, operations.
+This package provides kinematics solver components.  It is part of [Sweetie Bot project](http://sweetiebot.net). 
+See complete specification [here (Rus)](https://gitlab.com/sweetie-bot/sweetie_doc/wikis/components-kinematics).
 
-## Input ports
-### Direct kinematics
+* `kinematics_fwd`  provides KDL-based forward kinematics. Component receives full robot pose in joint space via `in_joints_sorted` port 
+    and calculates positions and velocities of the end segments of the kinematic chains listed in `kinematic_chains` property. 
+	Calculated poses and velocities are published on `out_limbs` port (LimbState). All coordinates are relateve to chains' base link.
 
-`in_joints_sorted` (`JointState`) --- state of the robot in the corner SC (sorted).
+	Component is missing following capabilities: 
+	* ROS `tf` calculation and publishing. 
+	* Jacobian publishing
+	
+* `kinematics` is an old version of kinematic solving component. Can solve forward and inverse kinematics problem at the same time.
+    * Forward kinematics: input port is `in_joints_sorted` (JointState), output port is `out_limbs`. KDL recursive solver is used.
+	* Inverse kinematics: input port is `in_limbs` (LimbsState), output port is `out_joints`. Full joint space pose received on 
+	    `in_joints_seed_sorted` is used as starting point for inverse kinematics algorithm. This componet uses trac_ik solver.
 
-### Inverse kinematics
+	Not implemented:
+    1. Global solver parameters
+    2. Operations
 
-`in_joints_seed_sorted` (`JointState`) --- initial state of the robot in the polar coordinate system (sorted).
+Components depend on `robot_model` service which provides URDF robot model and list of registered kinematic chains.
 
-`in_limbs` (`CartesianState`) --- state of the robot in a cartesian coordinate system (real or desired by the sensors).
-
-## Output ports
-
-### Direct kinematics
-
-`out_limbs` (`CartesianState`) --- state of the robot in a cartesian coordinate system (real or desired by the sensors).
-
-### Inverse kinematics
-
-`out_joints` (`JointState`) --- state of the robot in the polar coordinate system (real or desired by the sensors).
-
-### Plugins
-
-Requires: `robot_model`
-
-### Not implemented yet
-
-1. Global solver parameters
-
-2. Operations
 
 ## Testing
 

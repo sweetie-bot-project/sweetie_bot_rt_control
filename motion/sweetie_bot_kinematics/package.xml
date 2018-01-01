@@ -21,6 +21,7 @@
   <depend>rtt_sensors_msgs</depend>
   <!-- SWEETIEBOT packages -->
   <depend>sweetie_bot_logger</depend>
+  <depend>sweetie_bot_orocos_misc</depend> <!-- actionlib client, JointState checks, find subservice -->
   <depend>sweetie_bot_robot_model</depend>
   <!-- SWEETIEBOT datatypes -->
   <depend>rtt_sweetie_bot_kinematics_msgs</depend>
