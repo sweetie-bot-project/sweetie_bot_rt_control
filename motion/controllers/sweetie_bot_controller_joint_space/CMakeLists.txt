@@ -31,6 +31,7 @@ find_library(alglib_LIBRARY NAMES alglib)
 if (NOT (alglib_INCLUDE_DIR AND alglib_LIBRARY))
 	message (FATAL_ERROR "\nCould not find alglib library.")
 endif()
+include_directories(include ${alglib_INCLUDE_DIR})
 #find_package(Boost REQUIRED COMPONENTS graph filesystem system thread regex)
 
 ### ROS Dependencies ###
