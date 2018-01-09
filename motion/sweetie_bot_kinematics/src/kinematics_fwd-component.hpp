@@ -3,7 +3,6 @@
 
 #include <unordered_map>
 
-#include <kdl/chain.hpp>
 #include <kdl/chainfksolver.hpp>
 #include <kdl/chainfksolvervel_recursive.hpp>
 
@@ -11,6 +10,7 @@
 #include <rtt/Logger.hpp>
 
 #include <trac_ik/trac_ik.hpp>
+#include <orocos/sensor_msgs/typekit/JointState.h>
 
 #include <sweetie_bot_robot_model/robot_model.hpp>
 #include <sweetie_bot_kinematics_msgs/typekit/RigidBodyState.h>
@@ -44,7 +44,7 @@ class KinematicsFwd : public RTT::TaskContext
 		// properties
 		std::vector<std::string> chain_names;
 		// subservices
-		RobotModelInterface * robot_model;
+		RobotModel * robot_model;
 
 		// COMPONENT STATE
 		// buffers

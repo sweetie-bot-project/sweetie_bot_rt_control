@@ -25,19 +25,18 @@ KinematicsFwd::KinematicsFwd(string const& name) :
 	this->addProperty( "kinematic_chains", chain_names )
 		.doc( "List of chains which poses are calculated");
 
-	getProvider<RobotModel>("robot_model"); // It tries to load the service if it is not loaded.
+	// Service: reqires
+	robot_model = new sweetie_bot::motion::RobotModel(this);
+	this->requires()->addServiceRequester(ServiceRequester::shared_ptr(robot_model));
+
 	this->log(INFO) << "KinematicsFwd is constructed." << endlog();
 }
 
 bool KinematicsFwd::configureHook()
 {
-	robot_model = getSubServiceByType<RobotModelInterface>(this->provides().get());
-	if (! robot_model) {
-		this->log(ERROR) << "Can't load robot_model!" << endlog();
-		return false;
-	}
-	if(!robot_model->configure()) {
-		this->log(ERROR) << "Can't configure robot_model!" << endlog();
+	// check if RobotModel Service presents
+	if (!robot_model->ready() && robot_model->isConfigured()) {
+		log(ERROR) << "RobotModel service is not ready." << endlog();
 		return false;
 	}
 
@@ -46,24 +45,25 @@ bool KinematicsFwd::configureHook()
 	chain_data.clear();
 	limbs.name.clear();
 	for(auto &name: chain_names) {
-		Chain * chain = robot_model->getChain(name);
-		if (chain == nullptr) {
+		KinematicChainData data;
+		// add information about chain
+		// get kinematic chain
+		Chain chain = robot_model->getKDLChain(name);
+		if (chain.segments.size() == 0) {
 			this->log(ERROR) << "Kinematic chain " << name << " does not exist." << endlog();
 			continue;
 		}
-		// add information about chain
-		KinematicChainData data;
 		data.name = name;
 		//joint induces
-		//TODO make induces alculation more effective 
+		//TODO make induces calculation more effective 
 		//TODO remove redundancy
 		vector<string> chain_joints = robot_model->listJoints(name);
 		data.index_begin = robot_model->getJointIndex(chain_joints.front());
 		data.size = chain_joints.size();
 		data.jnt_array_vel.resize(data.size);
 		// solvers
-		// data.fk_solver = make_shared<ChainFkSolverPos_recursive>(*chain);
-		data.fk_vel_solver = make_shared<ChainFkSolverVel_recursive>(*chain);
+		// data.fk_solver = make_shared<ChainFkSolverPos_recursive>(chain);
+		data.fk_vel_solver = make_shared<ChainFkSolverVel_recursive>(chain);
 		// save data
 		chain_data.push_back(data);
 		// add chain to output list buffer
