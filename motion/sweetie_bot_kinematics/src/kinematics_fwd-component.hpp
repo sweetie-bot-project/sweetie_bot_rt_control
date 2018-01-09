@@ -13,7 +13,7 @@
 #include <trac_ik/trac_ik.hpp>
 
 #include <sweetie_bot_robot_model/robot_model.hpp>
-#include <sweetie_bot_kinematics_msgs/typekit/LimbState.h>
+#include <sweetie_bot_kinematics_msgs/typekit/RigidBodyState.h>
 
 #include <sweetie_bot_logger/logger.hpp>
 
@@ -25,6 +25,7 @@ class KinematicsFwd : public RTT::TaskContext
 	protected:
 		// TODO use Tree solver ?
 		// TODO It needs Tree kdl model.
+		// TODO Jacobian calculation.
 		// Support ащк base connected joints?
 		struct KinematicChainData {
 			string name; /**< Kinematic chain name */
@@ -39,7 +40,7 @@ class KinematicsFwd : public RTT::TaskContext
 		// COMPONENT INTERFACE 
 		// ports
 		RTT::InputPort<sensor_msgs::JointState> in_joints_port;
-		RTT::OutputPort<sweetie_bot_kinematics_msgs::LimbState> out_limbs_port;
+		RTT::OutputPort<sweetie_bot_kinematics_msgs::RigidBodyState> out_limbs_port;
 		// properties
 		std::vector<std::string> chain_names;
 		// subservices
@@ -48,7 +49,7 @@ class KinematicsFwd : public RTT::TaskContext
 		// COMPONENT STATE
 		// buffers
 		sensor_msgs::JointState joints;
-		sweetie_bot_kinematics_msgs::LimbState limbs;
+		sweetie_bot_kinematics_msgs::RigidBodyState limbs;
 		// struct array with solvers and information about chains
 		std::vector<KinematicChainData> chain_data;
 		int n_joints;

@@ -2,11 +2,9 @@
 
 #include <rtt/Component.hpp>
 #include <iostream>
-#include <kdl_conversions/kdl_msg.h>
 
 #include <sweetie_bot_orocos_misc/joint_state_check.hpp>
 #include <sweetie_bot_orocos_misc/get_subservice_by_type.hpp>
-
 
 using sweetie_bot::logger::Logger;
 using namespace RTT;
@@ -75,8 +73,8 @@ bool KinematicsFwd::configureHook()
 	n_joints = robot_model->listJoints("").size();
 		
 	// init port data
-	limbs.pose.resize(limbs.name.size());
-	limbs.speed.resize(limbs.name.size());
+	limbs.frame.resize(limbs.name.size());
+	limbs.twist.resize(limbs.name.size());
 	joints.name.resize(n_joints);
 	joints.position.resize(n_joints);
 	joints.velocity.resize(n_joints);
@@ -108,6 +106,8 @@ void KinematicsFwd::updateHook()
 				KDL::SetToZero(data.jnt_array_vel.qdot);
 			}
 			// calculate chain pose in absolute coordinates
+			// TODO add Jacobian calulation
+			// TODO exclude extra copy
 			KDL::FrameVel frame_vel;
 			int ret = data.fk_vel_solver->JntToCart(data.jnt_array_vel, frame_vel);
 			if (ret < 0){
@@ -115,8 +115,8 @@ void KinematicsFwd::updateHook()
 				continue;
 			}
 			// fill message
-			tf::poseKDLToMsg(frame_vel.value(), limbs.pose[k]);
-			tf::twistKDLToMsg(frame_vel.deriv(), limbs.speed[k]);
+			limbs.frame[k] = frame_vel.value();
+			limbs.twist[k] = frame_vel.deriv();
 		}
 		// publish message
 		out_limbs_port.write(limbs);
