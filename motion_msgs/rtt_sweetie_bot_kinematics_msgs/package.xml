@@ -32,6 +32,8 @@
   <run_depend>rtt_std_msgs</run_depend>
   <build_depend>rtt_geometry_msgs</build_depend>
   <run_depend>rtt_geometry_msgs</run_depend>
+  <build_depend>rtt_kdl_msgs</build_depend>
+  <run_depend>rtt_kdl_msgs</run_depend>
 
 
   <export>
@@ -39,7 +41,7 @@
       <plugin_depend>rtt_roscomm</plugin_depend>
       <plugin_depend>rtt_std_msgs</plugin_depend>
       <plugin_depend>rtt_geometry_msgs</plugin_depend>
-
+      <plugin_depend>rtt_kdl_msgs</plugin_depend>
     </rtt_ros>
   </export>
 

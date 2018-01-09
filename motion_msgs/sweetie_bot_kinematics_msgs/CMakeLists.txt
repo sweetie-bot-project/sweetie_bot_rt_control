@@ -6,6 +6,7 @@ project(sweetie_bot_kinematics_msgs)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
+  kdl_msgs
   message_generation
   std_msgs
 )
@@ -47,6 +48,8 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   LimbState.msg
+  RigidBodyState.msg
+  SupportState.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -66,7 +69,7 @@ add_message_files(
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
-  geometry_msgs   std_msgs
+  geometry_msgs   std_msgs    kdl_msgs
 )
 
 ################################################
@@ -101,7 +104,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES sweetie_bot_kinematics_msgs
- CATKIN_DEPENDS geometry_msgs message_runtime std_msgs
+ CATKIN_DEPENDS geometry_msgs message_runtime std_msgs kdl_msgs
 #  DEPENDS system_lib
 )
 
