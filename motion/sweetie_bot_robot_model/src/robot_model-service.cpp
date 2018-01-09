@@ -49,6 +49,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 		// joint groups
 		vector<ChainInfo> chains_info_; 
 		// index to speed up joint search
+		// TODO remove indexes
 		map<string, int> joints_index_;
 		map<string, int> chains_index_;
 		// KDL kinematic model
@@ -80,10 +81,10 @@ class RobotModelService : public RobotModelInterface, public Service {
 					 "\t\t\t    ...\n"
 					 "\t\t\t}");
 
-			this->addOperation("getOwnerName", &RobotModelService::getOwnerName, this)
-				.doc("Returns this service owner name.");
 			this->addOperation("configure", &RobotModelService::configure, this, OwnThread)
 				.doc("Configures service: read parameters, construct kdl tree.");
+			this->addOperation("isConfigured", &RobotModelService::isConfigured, this, ClientThread)
+				.doc("Return true if service contains a valid robot model.");
 			this->addOperation("getRobotDescription", &RobotModelService::getRobotDescription, this, ClientThread)
 				.doc("Return robot description string (URDF model).");
 			this->addOperation("listChains", &RobotModelService::listChains, this, ClientThread)
@@ -100,13 +101,11 @@ class RobotModelService : public RobotModelInterface, public Service {
 			this->addOperation("getJointIndex", &RobotModelService::getJointIndex, this, ClientThread)
 				.doc("Returns position (index) of the given joint in full pose sorted by chains and joints.")
 				.arg("joint", "Joint name");
-			this->addOperation("extractChain", &RobotModelService::extractChain, this, ClientThread)
-				.doc("Extracts (copy) chain parameters from JointState message to JntArrays. Can form out_of_range exception.");
-			this->addOperation("packChain", &RobotModelService::packChain, this, ClientThread)
-				.doc("Compose JointState message from JntArrays. Can form out_of_range exception.");
 
-			//this->addOperation("getChain", &RobotModelService::getChainImpl, this, ClientThread)
-				//.doc("Get KDL::Chain object. Can form out_of_range exception.");
+			this->addOperation("getKDLChain", &RobotModelService::getKDLChain, this, ClientThread)
+				.doc("Get KDL::Chain object. Can form out_of_range exception.");
+			this->addOperation("getKDLTree", &RobotModelService::getKDLTree, this, ClientThread)
+				.doc("Get KDL::Chain object. Can form out_of_range exception.");
 		}
 
 		~RobotModelService()
@@ -276,20 +275,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 			return (iterator == joints_index_.end()) ? -1 : iterator->second;
 		}
 
-		Chain * getChain(const string& name)
-		{
-			auto iterator = chains_index_.find(name);
-			if ( iterator == chains_index_.end() ) {
-				// limb not found
-				return nullptr;
-			}
-			else { 
-				// found
-				return & chains_info_[iterator->second].kdl_chain;
-			}
-		}
-
-		/*Chain getChainImpl(const string& name)
+		Chain getKDLChain(const string& name)
 		{
 			auto iterator = chains_index_.find(name);
 			if ( iterator == chains_index_.end() ) {
@@ -297,73 +283,14 @@ class RobotModelService : public RobotModelInterface, public Service {
 				return Chain();
 			}
 			else { 
-				// found
+				//f ound
 				return chains_info_[iterator->second].kdl_chain;
 			}
-		}*/
-
-		bool mapChain(const string& name, sensor_msgs::JointState& joint_state, JntArray& position, JntArray& velocity, JntArray& effort)
-		{
-			if(!equal( joint_names_.begin(), joint_names_.end(), joint_state.name.begin() )) return false;
-			char chain_begin, chain_size;
-			const ChainInfo& chain_info = chains_info_[ chains_index_.at(name) ];
-			if(joint_state.name.size() == joint_state.position.size() ) {
-				// map buffer to JntddArray
-				new (&position.data) Eigen::Map<VectorXd>( &joint_state.position[ chain_info.index_begin ], chain_info.size );
-			}
-			if(joint_state.name.size() == joint_state.velocity.size() ) {
-				// map buffer to JntArray
-				new (&velocity.data) Eigen::Map<VectorXd>( &joint_state.velocity[ chain_info.index_begin ], chain_info.size );
-			}
-			if(joint_state.name.size() == joint_state.effort.size() ) {
-				// map buffer to JntArray
-				new (&effort.data)   Eigen::Map<VectorXd>( &joint_state.effort  [ chain_info.index_begin ], chain_info.size );
-			}
-			return true;
 		}
-
-		bool extractChain(const string& name, const sensor_msgs::JointState& joint_state, JntArray& position, JntArray& velocity, JntArray& effort)
+		
+		Tree getKDLTree()
 		{
-			if(!equal( joint_names_.begin(), joint_names_.end(), joint_state.name.begin() )) return false;
-			const ChainInfo& chain_info = chains_info_[ chains_index_.at(name) ];
-			if(joint_state.name.size() == joint_state.position.size() ) {
-				// copy buffer to JntArray
-				position.data = VectorXd::Map( &joint_state.position[ chain_info.index_begin ], chain_info.size );
-			}
-			if(joint_state.name.size() == joint_state.velocity.size() ) {
-				// copy buffer to JntArray
-				velocity.data = VectorXd::Map( &joint_state.velocity[ chain_info.index_begin ], chain_info.size );
-			}
-			if(joint_state.name.size() == joint_state.effort.size() ) {
-				// copy buffer to JntArray
-				effort.data = VectorXd::Map( &joint_state.effort   [ chain_info.index_begin ], chain_info.size );
-			}
-			return true;
-		}
-
-		bool packChain(const string& name, JntArray& position, JntArray& velocity, JntArray& effort, sensor_msgs::JointState& joint_state)
-		{
-			Chain chain;
-			if(!equal( joint_names_.begin(), joint_names_.end(), joint_state.name.begin() )) return false;
-
-			const ChainInfo& chain_info = chains_info_[ chains_index_.at(name) ];
-
-			if(( position.rows() > 0 ) and ( position.rows() == chain_info.size )) {
-				std::copy_n( &position.data[0], chain_info.size, joint_state.position.begin() + chain_info.index_begin );
-			}
-			if(( velocity.rows() > 0 ) and ( velocity.rows() == chain_info.size )) {
-				std::copy_n( &velocity.data[0], chain_info.size, joint_state.velocity.begin() + chain_info.index_begin );
-			}
-			if(( effort.rows() > 0 ) and ( effort.rows() == chain_info.size )) {
-				std::copy_n( &effort.data[0],   chain_info.size, joint_state.effort.begin() + chain_info.index_begin );
-			}
-			return true;
-		}
-
-		string getOwnerName() {
-			// getOwner() returns the TaskContext pointer we got in
-			// the constructor:
-			return getOwner()->getName();
+			return tree_;
 		}
 };
 

@@ -35,15 +35,12 @@ Standard usage pattern: load plugin into aggregator component or GlobalService a
 1. `string getJointChain(string joint)` (`ClientThread`) --- return chain name to which belongs given joint.
 1. `strings getJointsChains(strings joints)` (`ClientThread`) --- return chains' names to which belong given joints.
 
-Additional operations may be implemented later:
 1. `KDL::Tree getKDLTree()`
 1. `KDL::Chain getKDLChain(string name)`
-1. `pair<int,int> getChainIndexAndSize(string name)` 
-Those operations cannot be used from lua or ops scripts.
 
-Deprecated operations and methods: 
-1. `KDL::Chain * getChain(string name)` --- Reason: usage patterns of KDL solvers does not requires fast access to chain in realtime.
-2. `extractChain`, `packChain`, `mapChain` --- Reason: it is simpler to use joint induces to extract and pack JntArray to JointState message.
+Additional operations may be implemented later:
+1. `pair<int,int> getChainIndexAndSize(string name)` 
+This operation cannot be used from lua or ops scripts.
 
 ## Usage examples 
 

@@ -21,7 +21,6 @@
   <depend>orocos_kdl</depend>
   <depend>kdl_parser</depend>
   <!-- ROS and OROCOS datatypes -->
-  <depend>rtt_sensor_msgs</depend>
   <!-- SWEETIEBOT packages -->
   <depend>sweetie_bot_logger</depend>
   <!-- SWEETIEBOT datatypes -->
@@ -29,7 +28,6 @@
   <export>
 	  <rtt_ros>
 		  <!-- Plugin deps are loaded automatically by the rtt_ros import service -->
-		  <plugin_depend>rtt_sensor_msgs</plugin_depend>
 	  </rtt_ros>
   </export>
 </package>

@@ -3,8 +3,10 @@
 
 #include <rtt/RTT.hpp>
 #include <rtt/plugin/PluginLoader.hpp>
+//#include <rtt/typekit/Types.hpp>
 
 #include <kdl/chain.hpp>
+#include <kdl/tree.hpp>
 
 namespace sweetie_bot {
 namespace motion {
@@ -21,14 +23,15 @@ class RobotModelInterface
         virtual std::string getJointChain(const std::string& name) = 0;
         virtual std::vector<std::string> getJointsChains(const std::vector<std::string>& name) = 0;
         virtual int getJointIndex(const std::string& name) = 0;
-        virtual KDL::Chain * getChain(const std::string& name) = 0; // DEPRECATED
-        virtual std::string getOwnerName() = 0; // DEPRECATED
+        virtual KDL::Chain getKDLChain(const std::string& name) = 0;
+        virtual KDL::Tree getKDLTree() = 0;
 };
 
 
 class RobotModel : public RTT::ServiceRequester {
     public:
         RTT::OperationCaller<bool()> configure;
+        RTT::OperationCaller<bool()> isConfigured;
         RTT::OperationCaller<std::string()> getRobotDescription;
         RTT::OperationCaller<std::vector<std::string>()> listChains;
         RTT::OperationCaller<std::vector<std::string>(const std::string&)> listJoints;
@@ -38,6 +41,7 @@ class RobotModel : public RTT::ServiceRequester {
         RobotModel(RTT::TaskContext * owner) :
             RTT::ServiceRequester("robot_model", owner),
             configure("configure"),
+            isConfigured("isConfigured"),
             getRobotDescription("getRobotDescription"),
             listChains("listChains"),
             listJoints("listJoints"),
@@ -46,6 +50,7 @@ class RobotModel : public RTT::ServiceRequester {
             getJointIndex("getJointIndex")
         {
             addOperationCaller(configure);
+            addOperationCaller(isConfigured);
             addOperationCaller(getRobotDescription);
             addOperationCaller(listChains);
             addOperationCaller(listJoints);
