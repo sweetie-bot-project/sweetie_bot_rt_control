@@ -9,7 +9,7 @@
 
 #include <sweetie_bot_orocos_misc/joint_state_check.hpp>
 
-#include <sensor_msgs/JointState.h>
+#include <sensor_msgs/typekit/JointState.h>
 
 #include <sweetie_bot_logger/logger.hpp>
 

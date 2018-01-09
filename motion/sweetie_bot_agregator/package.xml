@@ -6,8 +6,8 @@
 
   <license>BSD</license>
 
+  <url type="website">https://sweetiebot.net</url>
   <url type="website">https://gitlab.com/sweetie-bot/sweetie_doc/wikis</url>
-  <!-- <url type="bugtracker"></url> -->
 
   <author>mutronics</author>
 
@@ -25,11 +25,6 @@
   <depend>sweetie_bot_robot_model</depend>
   <depend>sweetie_bot_orocos_misc</depend>
   <!-- SWEETIEBOT datatypes -->
-  <depend>sweetie_bot_herkulex_msgs</depend>
-  <depend>sweetie_bot_herkulex_msgs_rtt</depend>
-
-  <!-- <run_depend>sweetie_bot_proto2_description</run_depend>
-  <run_depend>sweetie_bot_logger</run_depend> -->
 
   <export>
 	  <rtt_ros>
