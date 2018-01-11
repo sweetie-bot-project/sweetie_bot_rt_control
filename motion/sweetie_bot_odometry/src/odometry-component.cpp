@@ -97,6 +97,8 @@ bool Odometry::startHook()
 	support_state.name.clear();
 	support_state.support.clear();
 	support_port.read(support_state, true); // get OldState if it is available
+	// display WARN again
+	trottle_too_few_contact_warn = false;
 
 	log(INFO) << "Odometry started !" << endlog();
 	return true;
@@ -151,9 +153,11 @@ bool Odometry::integrateBodyPose()
 	}
 	log(DEBUG) << "Total " << contact_points.size() << " contact points are registered." << endlog();
 	if (contact_points.size() < 3) {
-		log(WARN) << "To few contact points. Skip iteration." << endlog();
+		if (!trottle_too_few_contact_warn) log(WARN) << "Too few contact points. Skip iterations." << endlog();
+		trottle_too_few_contact_warn = true;
 		return false;
 	}
+	else trottle_too_few_contact_warn = false;
 	// calculate centroid 
 	int n_points = contact_points.size();
 	center_point = center_point / n_points;
@@ -176,6 +180,7 @@ bool Odometry::integrateBodyPose()
 	// translation
 	T.p = center_point_prev - T.M*center_point;
 	// pose calculation
+	// TODO pose and quaernion sanity checks
 	body_pose.frame[0] = body_anchor * T;
 	if (contact_set_changed) body_anchor = body_pose.frame[0];
 	return true;
