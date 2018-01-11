@@ -40,6 +40,13 @@ Odometry::Odometry(std::string const& name) :
 	this->addProperty("contact_points", contact_points_prop).
 		doc("Default position of contact points in end effector coordinates. Format: [ x1, y1, z1, x2, y2, z3, ...].").
 		set(vector<double>({ 0.0, 0.0, 0.0 }));
+	this->addProperty("odometry_frame", odometry_frame)
+		.doc("Stationary frame name (header.frame_id field value in publised tf messages).")
+		.set("odom_combined");
+	this->addProperty("tf_prefix", base_link_tf_prefix)
+		.doc("tf_prefix for base_link in output tf messages.")
+		.set("");
+
 
 	log(INFO) << "Odometry constructed !" << endlog();
 }
@@ -65,8 +72,9 @@ bool Odometry::configureHook()
 	body_pose.twist.resize(1);
 	body_pose.name[0] = "base_link";
 	body_tf.transforms.resize(1);
-	body_tf.transforms[0].header.frame_id = "odom_combined";
-	body_tf.transforms[0].child_frame_id = "base_link";
+	body_tf.transforms[0].header.frame_id = odometry_frame;
+	if (base_link_tf_prefix != "") body_tf.transforms[0].child_frame_id = base_link_tf_prefix + "/base_link";
+	else body_tf.transforms[0].child_frame_id = "base_link";
 	// initialization is finished
 	log(INFO) << "Odometry configured !" << endlog();
 	return true;

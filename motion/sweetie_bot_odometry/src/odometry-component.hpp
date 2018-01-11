@@ -30,6 +30,8 @@ class Odometry : public RTT::TaskContext
 		// PROPERTIES
 		std::vector<std::string> legs;
 		std::vector<double> contact_points_prop; // KDL::Vector defined as vector<double> for ROS parameter compatibility
+		std::string odometry_frame;
+		std::string base_link_tf_prefix;
 	protected:
 		// OPERATIONS: provides
 		// OPERATIONS: requires
