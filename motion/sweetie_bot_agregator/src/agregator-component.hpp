@@ -4,14 +4,13 @@
 #include <rtt/RTT.hpp>
 #include <rtt/os/Timer.hpp>
 
-#include <kdl/chain.hpp>
-#include <sweetie_bot_robot_model/robot_model-simple.hpp>
-
-#include <sweetie_bot_orocos_misc/joint_state_check.hpp>
-
 #include <sensor_msgs/typekit/JointState.h>
 
 #include <sweetie_bot_logger/logger.hpp>
+#include <sweetie_bot_robot_model/robot_model-simple.hpp>
+#include <sweetie_bot_orocos_misc/joint_state_check.hpp>
+
+#include <sweetie_bot_kinematics_msgs/typekit/SupportState.h>
 
 namespace sweetie_bot {
 namespace motion {
@@ -22,8 +21,10 @@ class Agregator : public RTT::TaskContext
 	//COMPONENT INTERFACE
 	// ports
     RTT::InputPort<sensor_msgs::JointState> input_port_joint_state_;
-    RTT::OutputPort<sensor_msgs::JointState> output_port_joint_state_;
+    RTT::InputPort<sweetie_bot_kinematics_msgs::SupportState> input_port_support_state_;
     RTT::InputPort<RTT::os::Timer::TimerId> sync_port_;
+    RTT::OutputPort<sensor_msgs::JointState> output_port_joint_state_;
+    RTT::OutputPort<sweetie_bot_kinematics_msgs::SupportState> output_port_support_state_;
 	// properties
 	bool publish_on_timer_;
 	bool publish_on_event_;
@@ -34,8 +35,11 @@ class Agregator : public RTT::TaskContext
 	// ports buffers
     sensor_msgs::JointState input_joint_state_;
     sensor_msgs::JointState output_joint_state_;
+	sweetie_bot_kinematics_msgs::SupportState input_support_state_;
+	sweetie_bot_kinematics_msgs::SupportState output_support_state_;
 	// indexes of joints in full pose
     std::map< std::string, int > joint_index_;
+    std::map< std::string, int > chain_index_;
 
     // logging
 #ifdef SWEETIEBOT_LOGGER
