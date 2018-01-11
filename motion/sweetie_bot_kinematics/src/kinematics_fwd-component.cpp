@@ -14,16 +14,16 @@ namespace sweetie_bot {
 namespace motion {
 
 KinematicsFwd::KinematicsFwd(string const& name) : 
-	TaskContext(name),
+	TaskContext(name, PreOperational),
 	log(logger::categoryFromComponentName(name))
 {
 	this->addEventPort( "in_joints_sorted", in_joints_port )
-		.doc( "Full robot pose to perform foeward kinematic calculation." );
-	this->addPort( out_limbs_port )
-		.doc( "Cain top element poses and velocities in cartesian coordinates." );
+		.doc( "Full robot pose to perform forward kinematics calculation." );
+	this->addPort( "out_limbs_fixed", out_limbs_port )
+		.doc( "Kinematic chains' end segments poses and velocities in cartesian coordinates." );
 
 	this->addProperty( "kinematic_chains", chain_names )
-		.doc( "List of chains which poses are calculated");
+		.doc( "List of kinematic chains for which poses are calculated.");
 
 	// Service: reqires
 	robot_model = new sweetie_bot::motion::RobotModel(this);
