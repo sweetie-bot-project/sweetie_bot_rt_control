@@ -8,7 +8,6 @@
 
 #include <sweetie_bot_logger/logger.hpp>
 #include <sweetie_bot_robot_model/robot_model-simple.hpp>
-#include <sweetie_bot_orocos_misc/joint_state_check.hpp>
 
 #include <sweetie_bot_kinematics_msgs/typekit/SupportState.h>
 
@@ -51,6 +50,9 @@ class Agregator : public RTT::TaskContext
     const unsigned int max_requests_per_cycle = 10;
 
   public:
+	// OPERATIONS
+	bool setSupportState(std::vector<string> limbs);
+
     Agregator(std::string const& name);
     bool configureHook();
     bool startHook();

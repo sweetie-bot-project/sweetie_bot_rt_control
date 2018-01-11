@@ -3,6 +3,8 @@
 #include <rtt/Component.hpp>
 #include <iostream>
 
+#include <sweetie_bot_orocos_misc/joint_state_check.hpp>
+
 using namespace std;
 using namespace RTT;
 
@@ -30,6 +32,10 @@ Agregator::Agregator(string const& name) : TaskContext(name),
     .doc("Publish robot pose when sync port message is received.").set(true);
   this->addProperty("publish_on_event", publish_on_event_)
     .doc("Publish robot pose when partial pose is received.").set(true);
+  // opertaions
+  this->addOperation("setSupportState", &Agregator::setSupportState, this, OwnThread)
+	.doc("Change buffered SupportState. Set listed kinematic chains as support. Return false if unknown chains present.")
+	.arg("chains", "List of kinematic chains to mark as support. Others chains is marked free.");
   // Load robot model service
   robot_model_ = getProvider<RobotModel>("robot_model"); // It tries to load the service if it is not loaded.
   this->log(INFO) << "Agregator is constructed." <<endlog();
@@ -64,6 +70,26 @@ bool Agregator::configureHook()
 
   this->log(INFO) << "Agregator is configured." << endlog();
   return true;
+}
+
+
+bool Agregator::setSupportState(std::vector<string> limbs)
+{
+	if (!this->isConfigured()) return false;
+	// mark all chains as free	
+	output_support_state_.support.assign(output_support_state_.support.size(), 0.0);
+	// mark metioned chains as support
+	bool success = true;
+	for ( std::string& name : limbs ) {
+		auto it = chain_index_.find(name);
+		if (it != chain_index_.end()) {
+			output_support_state_.support[it->second] = 1.0;
+		}
+		else success = false;
+	}
+	//publish it
+	output_port_support_state_.write(output_support_state_);
+	return success;
 }
 
 bool Agregator::startHook()
