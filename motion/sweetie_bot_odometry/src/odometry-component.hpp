@@ -65,7 +65,7 @@ class Odometry : public RTT::TaskContext
 		std::vector<KDL::Vector> contact_points;
 		std::vector<KDL::Vector> contact_points_prev;
 		KDL::Frame body_anchor;
-		bool trottle_too_few_contact_warn;
+		unsigned int too_few_contact_warn_counter;
 		// ports buffers
 		sweetie_bot_kinematics_msgs::RigidBodyState limb_poses; 
 		sweetie_bot_kinematics_msgs::RigidBodyState body_reset_pose; 

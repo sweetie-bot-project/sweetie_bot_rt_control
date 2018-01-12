@@ -98,7 +98,7 @@ bool Odometry::startHook()
 	support_state.support.clear();
 	support_port.read(support_state, true); // get OldState if it is available
 	// display WARN again
-	trottle_too_few_contact_warn = false;
+	too_few_contact_warn_counter = 0;
 
 	log(INFO) << "Odometry started !" << endlog();
 	return true;
@@ -152,12 +152,17 @@ bool Odometry::integrateBodyPose()
 		log(INFO) << "Contact set has changed." << endlog();
 	}
 	log(DEBUG) << "Total " << contact_points.size() << " contact points are registered." << endlog();
-	if (contact_points.size() < 3) {
-		if (!trottle_too_few_contact_warn) log(WARN) << "Too few contact points. Skip iterations." << endlog();
-		trottle_too_few_contact_warn = true;
+	if (contact_points.size() < 3 ) {
+		if (contact_points.size()) {
+			// warn if we have only one or two points
+			if (!(too_few_contact_warn_counter % 20)) log(WARN) << "Too few contact points. Skiped iterations: " << too_few_contact_warn_counter+1 << endlog();
+			too_few_contact_warn_counter += 1;
+		}
+		// move achron: without konowing pose ther is no better options
+		if (contact_set_changed) body_anchor = body_pose.frame[0];
 		return false;
 	}
-	else trottle_too_few_contact_warn = false;
+	else too_few_contact_warn_counter = 0;
 	// calculate centroid 
 	int n_points = contact_points.size();
 	center_point = center_point / n_points;
@@ -172,6 +177,17 @@ bool Odometry::integrateBodyPose()
 	}
 	// SVD decomposition
 	JacobiSVD<Matrix3d> svd(H, ComputeFullU | ComputeFullV);
+	double eps = 1e-3 * svd.singularValues().norm();
+	Array3d V = svd.singularValues();
+	if ( (abs(svd.singularValues().array()) <= eps).any() ) {
+		// marix is rank-deficent
+		if (!(too_few_contact_warn_counter % 20)) log(WARN) << "H matirx is rank-deficient. Need more contact points. Skipped iterations: " << too_few_contact_warn_counter+1 << endlog();
+		too_few_contact_warn_counter += 1;
+		// move achron: without konowing pose ther is no better options
+		if (contact_set_changed) body_anchor = body_pose.frame[0];
+		return false;
+	}
+	else too_few_contact_warn_counter = 0;
 	// calculate trasform
 	Frame T;
 	// rotation
