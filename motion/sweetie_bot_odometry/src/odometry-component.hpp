@@ -5,6 +5,7 @@
 
 #include <kdl/frames.hpp>
 #include <tf2_msgs/typekit/TFMessage.h>
+#include <geometry_msgs/typekit/TwistStamped.h>
 #include <orocos/kdl_typekit/typekit/Types.hpp>
 
 #include <sweetie_bot_logger/logger.hpp>
@@ -27,6 +28,7 @@ class Odometry : public RTT::TaskContext
 		// PORTS: output
 		RTT::OutputPort<sweetie_bot_kinematics_msgs::RigidBodyState> body_port;
 		RTT::OutputPort<tf2_msgs::TFMessage> tf_port;
+		//RTT::OutputPort<geometry_msgs::TwistStamped> twist_port;
 		// PROPERTIES
 		std::vector<std::string> legs;
 		std::vector<double> contact_points_prop; // KDL::Vector defined as vector<double> for ROS parameter compatibility
@@ -72,6 +74,7 @@ class Odometry : public RTT::TaskContext
 		sweetie_bot_kinematics_msgs::SupportState support_state;
 		sweetie_bot_kinematics_msgs::RigidBodyState body_pose; 
 		tf2_msgs::TFMessage body_tf;
+		//geometry_msgs::TwistStamped body_twist;
 
 	public:
 		Odometry(std::string const& name);

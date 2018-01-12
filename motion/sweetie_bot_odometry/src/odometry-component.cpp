@@ -1,12 +1,13 @@
 #include "odometry-component.hpp"
 
+#include <cmath>
+
 #include <Eigen/Core>
 #include <Eigen/SVD>
 
 #include <rtt/Component.hpp>
 #include <kdl_conversions/kdl_msg.h>
 #include <ros/time.h>
-
 
 using namespace RTT;
 using namespace KDL;
@@ -34,6 +35,8 @@ Odometry::Odometry(std::string const& name) :
 		doc("Position of robot `base_link` relative it pose at start.");
 	this->addPort("out_tf", tf_port).
 		doc("Publish position of robot base for ROS components.");
+	/*this->addPort("out_twist", twist_port).
+		doc("Publish twist of robot base for ROS components.");*/
 	// PROPERTIES
 	this->addProperty("legs", legs).
 		doc("List of end effectors which can be in contact. (Kinematic chains names, legs)."); 
@@ -75,6 +78,7 @@ bool Odometry::configureHook()
 	body_tf.transforms[0].header.frame_id = odometry_frame;
 	if (base_link_tf_prefix != "") body_tf.transforms[0].child_frame_id = base_link_tf_prefix + "/base_link";
 	else body_tf.transforms[0].child_frame_id = "base_link";
+	// body_twist.header.frame_id = odometry_frame;
 	// initialization is finished
 	log(INFO) << "Odometry configured !" << endlog();
 	return true;
@@ -111,6 +115,8 @@ bool Odometry::integrateBodyPose()
 	contact_points_prev.clear();
 	Vector center_point = Vector::Zero();
 	Vector center_point_prev = Vector::Zero();
+	Twist avg_body_twist = Twist::Zero();
+	int n_contact_limbs = 0;
 	// iterate over end effectors which is possible in contact
 	bool contact_set_changed = false;
 	for(int ind = 0; ind < limbs.size(); ind++) {
@@ -139,9 +145,11 @@ bool Odometry::integrateBodyPose()
 				center_point_prev += contact_points_prev.back();
 				contact_points.push_back( limb_current_pose * point );
 				center_point += contact_points.back();
-				// TODO twist
-
 			}
+			// simplificated twist calculation: assumes that contact fixes end effector
+			// TODO rewrite twist calculaton correctly
+			avg_body_twist -= limb_poses.twist[ind];
+			n_contact_limbs++;
 		}
 		// update contact state
 		limbs[ind].was_in_contact = is_in_contact;
@@ -151,7 +159,11 @@ bool Odometry::integrateBodyPose()
 		for(int ind = 0; ind < limbs.size(); ind++) limbs[ind].previous_pose = limb_poses.frame[ind];
 		log(INFO) << "Contact set has changed." << endlog();
 	}
-	log(DEBUG) << "Total " << contact_points.size() << " contact points are registered." << endlog();
+	if (log(DEBUG)) {
+		log() << "Total " << contact_points.size() << " contact points are registered." << std::endl;
+		for ( Vector& v : contact_points ) log() << v.x() << " " << v.y() << " " << v.z() << std::endl;
+		log() << endlog();
+	}
 	if (contact_points.size() < 3 ) {
 		if (contact_points.size()) {
 			// warn if we have only one or two points
@@ -167,6 +179,8 @@ bool Odometry::integrateBodyPose()
 	int n_points = contact_points.size();
 	center_point = center_point / n_points;
 	center_point_prev = center_point_prev / n_points;
+	// twist averaging
+	avg_body_twist = avg_body_twist / n_contact_limbs;
 	// calculate H matrix
 	Eigen::Matrix3d H = Matrix3d::Zero();
 	for (int k = 0; k < n_points; k++) {
@@ -177,17 +191,6 @@ bool Odometry::integrateBodyPose()
 	}
 	// SVD decomposition
 	JacobiSVD<Matrix3d> svd(H, ComputeFullU | ComputeFullV);
-	double eps = 1e-3 * svd.singularValues().norm();
-	Array3d V = svd.singularValues();
-	if ( (abs(svd.singularValues().array()) <= eps).any() ) {
-		// marix is rank-deficent
-		if (!(too_few_contact_warn_counter % 20)) log(WARN) << "H matirx is rank-deficient. Need more contact points. Skipped iterations: " << too_few_contact_warn_counter+1 << endlog();
-		too_few_contact_warn_counter += 1;
-		// move achron: without konowing pose ther is no better options
-		if (contact_set_changed) body_anchor = body_pose.frame[0];
-		return false;
-	}
-	else too_few_contact_warn_counter = 0;
 	// calculate trasform
 	Frame T;
 	// rotation
@@ -196,9 +199,16 @@ bool Odometry::integrateBodyPose()
 	// translation
 	T.p = center_point_prev - T.M*center_point;
 	// pose calculation
-	// TODO pose and quaernion sanity checks
 	body_pose.frame[0] = body_anchor * T;
+	body_pose.twist[0] = body_pose.frame[0]*avg_body_twist;
 	if (contact_set_changed) body_anchor = body_pose.frame[0];
+
+	/*if (log(DEBUG)) {
+		geometry_msgs::Transform t;
+		log() << "U = " << svd.matrixU() << std::endl << "V = " << svd.matrixV() << "S = " << svd.singularValues() <<  std::endl << "T.M = " << R << std::endl << " T.p = " << Map<Vector3d>(T.p.data) << endlog();
+		tf::transformKDLToMsg(body_pose.frame[0], t);
+		log(DEBUG) << "body_frame.M = " << Map< Matrix<double,3,3,RowMajor> >(body_pose.frame[0].M.data) << std::endl << "body_frame.p = " << Map<Vector3d>(body_pose.frame[0].p.data) << std::endl  << "tf = " << t << endlog();
+	}*/
 	return true;
 }
 
@@ -215,6 +225,11 @@ static inline bool isValidSupportState(const sweetie_bot_kinematics_msgs::Suppor
 	else if (sz != msg.name.size()) return false;
 	if (sz != msg.support.size()) return false;
 	return true;
+}
+
+static inline void normalizeQuaternionMsg(geometry_msgs::Quaternion& q) {
+	auto s = std::sqrt(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w);
+	q.x /= s; q.y /= s; q.z /= s; q.w /= s;
 }
 
 void Odometry::updateHook()
@@ -271,12 +286,20 @@ void Odometry::updateHook()
 
 	// pose is publised unconditionally
 	// TODO trottle if not updated?
+	ros::Time stamp = ros::Time::now();
 	// RigidBodyState message
+	body_pose.header.stamp = stamp;
 	body_port.write(body_pose);
 	// tf message
-	body_tf.transforms[0].header.stamp = ros::Time::now();
+	body_tf.transforms[0].header.stamp = stamp;
 	tf::transformKDLToMsg(body_pose.frame[0], body_tf.transforms[0].transform);
+	// fix for incorrect kdl::Rotation::GetQuaternion conversation
+	normalizeQuaternionMsg(body_tf.transforms[0].transform.rotation);
 	tf_port.write(body_tf);
+	// twist message
+	/*body_twist.header.stamp = stamp;
+	tf::twistKDLToMsg(body_pose.twist[0], body_twist.twist);
+	twist_port.write(body_twist);*/
 }
 
 void Odometry::stopHook() 
