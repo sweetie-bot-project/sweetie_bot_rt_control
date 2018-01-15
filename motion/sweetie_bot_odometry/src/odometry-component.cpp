@@ -25,7 +25,7 @@ Odometry::Odometry(std::string const& name) :
 		RTT::log(RTT::Error) << "Logger is not ready!" << RTT::endlog();
 	}
 	// PORTS
-	this->addPort("in_support_fixed", support_port).
+	this->addPort("in_supports_fixed", support_port).
 		doc("List of end effectors which are in contact. `point` fields are ignored. ");
 	this->addEventPort("in_limbs_fixed", limbs_port).
 		doc("Positions of robot end effectors relative to the base.");
