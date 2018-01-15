@@ -17,14 +17,15 @@ class RobotModelInterface
         virtual bool isConfigured() = 0;
         virtual bool configure() = 0;
         virtual void cleanup() = 0;
-        virtual std::string getRobotDescription() = 0;
-        virtual std::vector<std::string> listChains() = 0;
-        virtual std::vector<std::string> listJoints(const std::string& name) = 0;
-        virtual std::string getJointChain(const std::string& name) = 0;
+        virtual const std::string& getRobotDescription() const = 0;
+        virtual std::vector<std::string> listChains() const = 0;
+        virtual std::vector<std::string> listJoints(const std::string& name) const = 0;
+        virtual std::string getJointChain(const std::string& name) const  = 0;
         virtual std::vector<std::string> getJointsChains(const std::vector<std::string>& name) = 0;
-        virtual int getJointIndex(const std::string& name) = 0;
-        virtual KDL::Chain getKDLChain(const std::string& name) = 0;
-        virtual KDL::Tree getKDLTree() = 0;
+        virtual int getChainIndex(const std::string& name) const = 0;
+        virtual int getJointIndex(const std::string& name) const = 0;
+        virtual KDL::Chain getKDLChain(const std::string& name) const = 0;
+        virtual KDL::Tree getKDLTree() const = 0;
 };
 
 
@@ -32,11 +33,12 @@ class RobotModel : public RTT::ServiceRequester {
     public:
         RTT::OperationCaller<bool()> configure;
         RTT::OperationCaller<bool()> isConfigured;
-        RTT::OperationCaller<std::string()> getRobotDescription;
+        RTT::OperationCaller<const std::string&()> getRobotDescription;
         RTT::OperationCaller<std::vector<std::string>()> listChains;
         RTT::OperationCaller<std::vector<std::string>(const std::string&)> listJoints;
         RTT::OperationCaller<std::string(const std::string&)> getJointChain;
         RTT::OperationCaller<std::vector<std::string>(const std::vector<std::string>&)> getJointsChains;
+        RTT::OperationCaller<int(const std::string&)> getChainIndex;
         RTT::OperationCaller<int(const std::string&)> getJointIndex;
         RobotModel(RTT::TaskContext * owner) :
             RTT::ServiceRequester("robot_model", owner),
@@ -47,6 +49,7 @@ class RobotModel : public RTT::ServiceRequester {
             listJoints("listJoints"),
             getJointChain("getJointChain"),
             getJointsChains("getJointsChains"),
+            getChainIndex("getChainIndex"),
             getJointIndex("getJointIndex")
         {
             addOperationCaller(configure);
@@ -56,6 +59,7 @@ class RobotModel : public RTT::ServiceRequester {
             addOperationCaller(listJoints);
             addOperationCaller(getJointChain);
             addOperationCaller(getJointsChains);
+            addOperationCaller(getChainIndex);
             addOperationCaller(getJointIndex);
         }
 };

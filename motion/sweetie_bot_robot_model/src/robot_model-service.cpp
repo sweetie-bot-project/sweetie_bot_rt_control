@@ -98,6 +98,9 @@ class RobotModelService : public RobotModelInterface, public Service {
 			this->addOperation("getJointsChains", &RobotModelService::getJointsChains, this, ClientThread)
 				.doc("Returns list of chains names to which the given joints are belongs.")
 				.arg("joints", "List of joints names.");
+			this->addOperation("getChainIndex", &RobotModelService::getJointIndex, this, ClientThread)
+				.doc("Returns position (index) of the given chain in full pose sorted by chains.")
+				.arg("chain", "Chain");
 			this->addOperation("getJointIndex", &RobotModelService::getJointIndex, this, ClientThread)
 				.doc("Returns position (index) of the given joint in full pose sorted by chains and joints.")
 				.arg("joint", "Joint name");
@@ -217,12 +220,12 @@ class RobotModelService : public RobotModelInterface, public Service {
 			return true;
 		}
 
-		string getRobotDescription() 
+		const string& getRobotDescription() const
 		{
 			return robot_description_;
 		}
 
-		vector<string> listChains()
+		vector<string> listChains() const
 		{
 			vector<string> names;
 			for ( const ChainInfo& chain_info : chains_info_ ) {
@@ -231,7 +234,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 			return names;
 		}
 
-		vector<string> listJoints(const string& name)
+		vector<string> listJoints(const string& name) const
 		{
 			// if chain name is empty return all joints
 			if(name == "") return joint_names_;
@@ -243,7 +246,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 			return vector<string>(joint_names_.begin() + chain_info.index_begin, joint_names_.begin() + chain_info.index_begin + chain_info.size);
 		}
 
-		string getJointChain(const string& name)
+		string getJointChain(const string& name) const
 		{
 			auto it = joints_index_.find(name);
 			if (it == joints_index_.end()) return ""; // joint not found!
@@ -269,13 +272,19 @@ class RobotModelService : public RobotModelInterface, public Service {
 			return vector<string>(chain_names.begin(), chain_names.end());
 		}
 
-		int getJointIndex(const string& name)
+		int getChainIndex(const string& name) const
+		{
+			auto iterator = chains_index_.find(name);
+			return (iterator == chains_index_.end()) ? -1 : iterator->second;
+		}
+
+		int getJointIndex(const string& name) const
 		{
 			auto iterator = joints_index_.find(name);
 			return (iterator == joints_index_.end()) ? -1 : iterator->second;
 		}
 
-		Chain getKDLChain(const string& name)
+		Chain getKDLChain(const string& name) const
 		{
 			auto iterator = chains_index_.find(name);
 			if ( iterator == chains_index_.end() ) {
@@ -288,7 +297,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 			}
 		}
 		
-		Tree getKDLTree()
+		Tree getKDLTree() const
 		{
 			return tree_;
 		}
