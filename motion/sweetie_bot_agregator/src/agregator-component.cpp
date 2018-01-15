@@ -20,9 +20,9 @@ Agregator::Agregator(string const& name) : TaskContext(name),
   this->addPort("out_joints_sorted", output_port_joint_state_)
    .doc( "Port publishes full robot pose buffered by component. It is sorted by kinematics chains." );
 
-  this->addPort("in_support", input_port_support_state_)
+  this->addPort("in_supports", input_port_support_state_)
    .doc( "Messages received on this port is used to update the contact list. Only present limbs is updated." );
-  this->addPort("out_support_sorted", output_port_support_state_ )
+  this->addPort("out_supports_sorted", output_port_support_state_ )
    .doc( "Port publishes full contact list. List is publised only after updated." );
 
   this->addEventPort("sync_step", sync_port_)
