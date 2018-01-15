@@ -102,6 +102,7 @@ bool AnimJointTrajectory::resourceChangedHook()
 				time_from_start = 0;
 				goal_active->prepareJointStateBuffer(ref_pose);
 				goal_active->prepareJointStateBuffer(actual_pose);
+				goal_active->prepareSupportStateBuffer(support_state);
 				log(INFO) << "resourceChangedHook: pending goal is accepted."  << endlog();
 				return true;
 			}
@@ -164,7 +165,9 @@ void AnimJointTrajectory::operationalHook(bool on_target)
 		for(auto it = ref_pose.position.begin(); it != ref_pose.position.end(); it++) log() << *it << ", ";
 		log() << "] actual [ ";
 		for(auto it = actual_pose.position.begin(); it != actual_pose.position.end(); it++) log() << *it << ", ";
-		log() << "]" << endlog();
+		log() << "] supports: ";
+		for(int i = 0; i < support_state.name.size(); i++) log() << support_state.name[i] << ": " << support_state.support[i] << ", ";
+		log() << endlog();
 	}
 	// we in operational state and have valid active goal
 	// check tolearnce and post feedback

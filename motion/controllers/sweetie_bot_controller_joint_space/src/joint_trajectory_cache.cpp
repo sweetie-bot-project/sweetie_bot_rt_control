@@ -13,19 +13,95 @@ JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajec
 {
 	if (!robot_model || !robot_model->ready()) throw std::invalid_argument("JointTrajectoryCache: RobotModel is not ready");
 
-	int n_joints = goal.trajectory.joint_names.size();
-	// exract names
-	this->names = goal.trajectory.joint_names;
-	// build index
-	this->index_fullpose.resize(names.size());
-	for(int i = 0; i < names.size(); i++) {
-		index_fullpose[i] = robot_model->getJointIndex(names[i]);
-		if (index_fullpose[i] < 0) throw std::invalid_argument("JointTrajectoryCache: Unknown joint: " + this->names[i]);
+	// split received joints in two groups: actual robot jointa and support points names, prepended with substring "support".
+	// support points are market by true in support_flags
+	std::vector<bool> support_flags(goal.trajectory.joint_names.size());
+	for(int i = 0; i < goal.trajectory.joint_names.size(); i++) {
+		const std::string& name = goal.trajectory.joint_names[i];
+		if (0 == name.compare(0, 8, "support/")) {
+			// this joint contains support state information
+			support_names.push_back(name.substr(8));
+			support_flags[i] = true;;
+		}
+		else {
+			// ordinary joint
+			int index = robot_model->getJointIndex(name);
+			if (index < 0) throw std::invalid_argument("JointTrajectoryCache: Unknown joint: " + name);
+			names.push_back(name);
+			index_fullpose.push_back(index);
+			support_flags[i] = false;
+		}
 	}
 	// get chains list for subsequent resource requests.
+	// TODO add supports to the list
 	this->chains = robot_model->getJointsChains(this->names);
 	// now extract and interpolate trajectory
-	interpolateTrajectory(goal.trajectory);
+	loadTrajectory(goal.trajectory, support_flags);
+	// get tolerances from message
+	getJointTolerance(goal);
+}
+
+/**
+ * interpolate trajectory and cache support state buffer
+ */
+void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags) 
+{
+	int n_joints = names.size();
+	int n_supports = support_names.size();
+	int n_samples = trajectory.points.size();
+	if (n_samples < 2) throw::std::invalid_argument("JointTrajectoryCache: trajectory must contains at least 2 samples.");
+	if (trajectory.points[0].time_from_start.toSec() != 0) throw::std::invalid_argument("JointTrajectoryCache: trajectory start time is not equal to zero.");
+
+	alglib::real_1d_array t;
+	std::vector<alglib::real_1d_array> joint_trajectory(n_joints);
+	//allocate memory
+	t.setlength(n_samples);
+	for(int joint = 0; joint < n_joints; joint++) joint_trajectory[joint].setlength(n_samples);
+	this->support_points.resize(n_samples);
+	for(int i = 0; i < n_samples; i++) support_points[i].support.resize(n_supports);
+	//copy trajectory data
+	const double t_fix_step = 0.001; // default step if incorrect time sequence is supplied
+	double t_prev = -t_fix_step;
+	for(int k = 0; k < n_samples; k++) {
+		//check joint number
+		if (trajectory.points[k].positions.size() != trajectory.joint_names.size()) throw::std::invalid_argument("JointTrajectoryCache: malformed trajectory_msgs::JointTrajectory.");
+		//copy time
+		t[k] = trajectory.points[k].time_from_start.toSec();
+		// fix incorrect time
+		//TODO is there any better way to handle trajectories with zero execution time?
+		if (t_prev >= t[k]) t[k] = t_prev + t_fix_step;
+		t_prev = t[k];
+		// copy joint postions
+		int joint = 0;
+		int support = 0;
+		support_points[k].t = t[k];
+		for(int i = 0; i < trajectory.joint_names.size(); i++) {
+			if (support_flags[i]) {
+				support_points[k].support[support] = trajectory.points[k].positions[i];
+				support++;
+			}
+			else {
+				joint_trajectory[joint][k] = trajectory.points[k].positions[i];
+				joint++;
+			}
+		}
+	}
+	//perform interpolation
+	this->joint_splines.resize(n_joints);
+	for(int joint = 0; joint < n_joints; joint++) {
+		// alglib::spline1dbuildcubic(t, joint_trajectory[joint], n_samples, 1, 0.0, 1, 0.0, this->joint_splines[joint]);
+		alglib::spline1dbuildakima(t, joint_trajectory[joint], this->joint_splines[joint]);
+		// velocity an acceleration is ignored
+	}
+	this->goal_time = trajectory.points[n_samples-1].time_from_start.toSec();
+}
+
+/**
+ * get trajectory tolerance
+ */
+void JointTrajectoryCache::getJointTolerance(const FollowJointTrajectoryGoal& goal)
+{
+	int n_joints = names.size();
 	// cache tolerance: speed and acceleration is ignored
 	this->goal_tolerance.resize(n_joints);
 	this->path_tolerance.resize(n_joints);
@@ -55,48 +131,6 @@ JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajec
 	this->goal_time_tolerance = goal.goal_time_tolerance.toSec();
 	if (this->goal_time_tolerance == 0.0) this->goal_time_tolerance = 1.0; // sane value TODO: default tolerance parameteres
 	else if (this->goal_time_tolerance < 0.0) this->goal_time_tolerance = std::numeric_limits<double>::max(); // effective infifnity
-}
-
-/**
- * interpolate trajectory ans set goal time
- */
-void JointTrajectoryCache::interpolateTrajectory(const trajectory_msgs::JointTrajectory& trajectory) 
-{
-	int n_joints = trajectory.joint_names.size();
-	int n_samples = trajectory.points.size();
-	if (n_samples < 2) throw::std::invalid_argument("JointTrajectoryCache: trajectory must contains at least 2 samples.");
-	if (trajectory.points[0].time_from_start.toSec() != 0) throw::std::invalid_argument("JointTrajectoryCache: trajectory start time is not equal to zero.");
-
-	alglib::real_1d_array t;
-	std::vector<alglib::real_1d_array> joint_trajectory(n_joints);
-	//allocate memory
-	t.setlength(n_samples);
-	for(int joint = 0; joint < n_joints; joint++) joint_trajectory[joint].setlength(n_samples);
-	//copy trajectory data
-	const double t_fix_step = 0.001; // default step if incorrect time sequence is supplied
-	double t_prev = -t_fix_step;
-	for(int k = 0; k < n_samples; k++) {
-		//check joint number
-		if (trajectory.points[k].positions.size() != n_joints) throw::std::invalid_argument("JointTrajectoryCache: malformed trajectory_msgs::JointTrajectory.");
-		//copy time
-		t[k] = trajectory.points[k].time_from_start.toSec();
-		// fix incorrect time
-		//TODO is there any better way to handle trajectories with zero execution time?
-		if (t_prev >= t[k]) t[k] = t_prev + t_fix_step;
-		t_prev = t[k];
-		// copy joint postions
-		for(int joint = 0; joint < n_joints; joint++) {
-			joint_trajectory[joint][k] = trajectory.points[k].positions[joint];
-		}
-	}
-	//perform interpolation
-	this->joint_splines.resize(n_joints);
-	for(int joint = 0; joint < n_joints; joint++) {
-		// alglib::spline1dbuildcubic(t, joint_trajectory[joint], n_samples, 1, 0.0, 1, 0.0, this->joint_splines[joint]);
-		alglib::spline1dbuildakima(t, joint_trajectory[joint], this->joint_splines[joint]);
-		// velocity an acceleration is ignored
-	}
-	this->goal_time = trajectory.points[n_samples-1].time_from_start.toSec();
 }
 
 void JointTrajectoryCache::prepareJointStateBuffer(JointState& joints) const
@@ -166,6 +200,23 @@ void JointTrajectoryCache::selectJoints(const JointState& in_sorted, JointState&
 		if (in_sorted.position.size() != 0) out.position[joint] = in_sorted.position[index_fullpose[joint]];
 		if (in_sorted.velocity.size() != 0) out.velocity[joint] = in_sorted.velocity[index_fullpose[joint]];
 	}
+}
+
+void JointTrajectoryCache::prepareSupportStateBuffer(SupportState& support) const
+{
+	support.name = support_names;
+	support.support.resize(support_names.size());
+}
+
+void JointTrajectoryCache::getSupportState(double t, SupportState& support) const
+{
+	// find index of the last element which is less then t
+	int index;
+	auto it = upper_bound(support_points.begin(), support_points.end(), t, [](double t, const SupportPoint& p) { return t < p.t; });
+	if (it == support_points.begin()) index = 0;
+	else index = it - support_points.begin() - 1;
+	// copy support state
+	copy(support_points[index].support.begin(), support_points[index].support.end(), support.support.begin());
 }
 
 } // namespace controller

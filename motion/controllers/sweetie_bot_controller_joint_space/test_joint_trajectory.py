@@ -22,8 +22,8 @@ def deg2rad(angle):
 def make_msg(joints, points_deg, tolerance_deg, time_tolerance):
     goal = control_msgs.msg.FollowJointTrajectoryGoal
     goal.goal_time_tolerance = Duration(time_tolerance)
-    goal.path_tolerance = [ control_msgs.msg.JointTolerance(j, deg2rad(tolerance_deg), 0, 0) for j in joints ]
-    goal.goal_tolerance = [ control_msgs.msg.JointTolerance(j, deg2rad(tolerance_deg), 0, 0) for j in joints ]
+    goal.path_tolerance = [ control_msgs.msg.JointTolerance(j, deg2rad(tolerance_deg), 0, 0) for j in joints if j[:8] != 'support/' ]
+    goal.goal_tolerance = [ control_msgs.msg.JointTolerance(j, deg2rad(tolerance_deg), 0, 0) for j in joints if j[:8] != 'support/' ]
     header = std_msgs.msg.Header()
     header.stamp = rospy.Time.now()
     points = [ trajectory_msgs.msg.JointTrajectoryPoint([deg2rad(p) for p in pos], [], [], [], Duration(time)) for time, pos in points_deg ]
@@ -37,12 +37,12 @@ if __name__ == '__main__':
             control_msgs.msg.FollowJointTrajectoryAction)
     client.wait_for_server()
 
-    for k in range(0,10):
-        joints = ['joint12', 'joint13', 'joint14', 'joint42', 'joint43', 'joint44',]
+    for k in range(0,5):
+        joints = ['joint12', 'joint13', 'joint14', 'joint42', 'joint43', 'joint44', 'support/leg1', 'support/leg2', 'support/leg3', 'support/leg4',]
         points = [ 
-            [ 0.0, [ 0, 0, 0,  0, 0, 0] ],
-            [ 1.0, [ 45, -90, 45, 45, -90, 45] ],
-            [ 2.0, [ 0, 0, 0,  0, 0, 0] ],
+            [ 0.0, [ 0, 0, 0,  0, 0, 0, 0, 1, 1, 0] ],
+            [ 1.0, [ 45, -90, 45, 45, -90, 45, 0, 1, 1, 0] ],
+            [ 2.0, [ 0, 0, 0,  0, 0, 0, 1, 1, 1, 1] ],
         ]
 
         print("\nSending a goal: leg2, leg3.")
@@ -51,11 +51,11 @@ if __name__ == '__main__':
         client.wait_for_result()
         print("Result: " + str(client.get_result()))
 
-        joints = ['joint22', 'joint23', 'joint24', 'joint32', 'joint33', 'joint34',]
+        joints = ['joint22', 'joint23', 'joint24', 'joint32', 'joint33', 'joint34', 'support/leg1', 'support/leg2', 'support/leg3', 'support/leg4',]
         points = [ 
-            [ 0.0, [ 0, 0, 0,  0, 0, 0] ],
-            [ 1.0, [ 45, -90, 45, 45, -90, 45] ],
-            [ 2.0, [ 0, 0, 0,  0, 0, 0] ],
+            [ 0.0, [ 0, 0, 0,  0, 0, 0, 0, 1, 1, 0] ],
+            [ 1.0, [ 45, -90, 45, 45, -90, 45, 0, 1, 1, 0] ],
+            [ 2.0, [ 0, 0, 0,  0, 0, 0, 1, 1, 1, 1] ],
         ]
 
         print("\nSending a goal: leg1, leg4.")
