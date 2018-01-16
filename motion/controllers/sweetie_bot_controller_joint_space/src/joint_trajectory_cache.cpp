@@ -2,6 +2,7 @@
 
 #include <limits>
 #include <cstddef>
+#include <bitset>
 
 #include "sweetie_bot_robot_model/robot_model-simple.hpp"
 
@@ -11,17 +12,27 @@ namespace controller {
 
 JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajectoryGoal& goal, RobotModel * robot_model)
 {
+
 	if (!robot_model || !robot_model->ready()) throw std::invalid_argument("JointTrajectoryCache: RobotModel is not ready");
 
-	// split received joints in two groups: actual robot jointa and support points names, prepended with substring "support".
-	// support points are market by true in support_flags
-	std::vector<bool> support_flags(goal.trajectory.joint_names.size());
+	// get list of kinematic chains
+	const unsigned int max_chains = 32;
+	const std::vector<std::string> chains_list = robot_model->listChains();
+	if (chains_list.size() >= max_chains) throw std::invalid_argument("JointTrajectoryCache: too many kineamtic chains (more then 32)");
+
+	// split received joints in two groups: actual robot joint and support points names, prepended with substring "support".
+	std::vector<bool> support_flags(goal.trajectory.joint_names.size());	// support points are market by true 
+	std::bitset<max_chains> support_chains_flags; // support chains set
+
 	for(int i = 0; i < goal.trajectory.joint_names.size(); i++) {
 		const std::string& name = goal.trajectory.joint_names[i];
 		if (0 == name.compare(0, 8, "support/")) {
 			// this joint contains support state information
+			int index = robot_model->getChainIndex(name.substr(8));
+			if (index < 0) throw std::invalid_argument("JointTrajectoryCache: unknown chain in support state: " + name);
+			support_chains_flags.set(index, true);
 			support_names.push_back(name.substr(8));
-			support_flags[i] = true;;
+			support_flags[i] = true;
 		}
 		else {
 			// ordinary joint
@@ -33,13 +44,37 @@ JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajec
 		}
 	}
 	// get chains list for subsequent resource requests.
-	// TODO add supports to the list
-	this->chains = robot_model->getJointsChains(this->names);
+	{ 
+		 // get controlled chains from joint list
+		this->chains = robot_model->getJointsChains(this->names);
+		std::bitset<max_chains> controlled_chains_flags; // controlled chains market by true
+		for ( const string& name : this->chains) {
+			std::cout << "name: " << name << " index: " << robot_model->getChainIndex(name) << std::endl;
+			controlled_chains_flags.set(robot_model->getChainIndex(name), true);
+		}
+
+		std::cout << "controlled_chains_flags: " << controlled_chains_flags << " support_chains_flags: " << support_chains_flags << std::endl;
+
+		std::bitset<max_chains> common_chains_flags = controlled_chains_flags & support_chains_flags;
+		// now add support chains to controlled chains list
+		support_chains_flags ^= common_chains_flags;
+
+		// then add controlled chains to support states
+		controlled_chains_flags ^= common_chains_flags;
+
+		std::cout << "controlled_chains_flags: " << controlled_chains_flags << " support_chains_flags: " << support_chains_flags << " common_chains_flags: " << common_chains_flags << std::endl;
+	
+		for(int i = 0; i < chains_list.size(); i++) {
+			if (support_chains_flags[i]) this->chains.push_back(chains_list[i]);
+			if (controlled_chains_flags[i]) this->support_names.push_back(chains_list[i]);
+		}
+	}
 	// now extract and interpolate trajectory
 	loadTrajectory(goal.trajectory, support_flags);
 	// get tolerances from message
 	getJointTolerance(goal);
 }
+
 
 /**
  * interpolate trajectory and cache support state buffer
@@ -58,7 +93,6 @@ void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory
 	t.setlength(n_samples);
 	for(int joint = 0; joint < n_joints; joint++) joint_trajectory[joint].setlength(n_samples);
 	this->support_points.resize(n_samples);
-	for(int i = 0; i < n_samples; i++) support_points[i].support.resize(n_supports);
 	//copy trajectory data
 	const double t_fix_step = 0.001; // default step if incorrect time sequence is supplied
 	double t_prev = -t_fix_step;
@@ -71,10 +105,11 @@ void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory
 		//TODO is there any better way to handle trajectories with zero execution time?
 		if (t_prev >= t[k]) t[k] = t_prev + t_fix_step;
 		t_prev = t[k];
+		support_points[k].t = t[k];
 		// copy joint postions
 		int joint = 0;
 		int support = 0;
-		support_points[k].t = t[k];
+		support_points[k].support.resize(n_supports);
 		for(int i = 0; i < trajectory.joint_names.size(); i++) {
 			if (support_flags[i]) {
 				support_points[k].support[support] = trajectory.points[k].positions[i];
@@ -85,6 +120,8 @@ void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory
 				joint++;
 			}
 		}
+		// pad supports with zeros
+		for(; support < n_supports; support++) support_points[k].support[support] = 0.0;
 	}
 	//perform interpolation
 	this->joint_splines.resize(n_joints);
