@@ -98,7 +98,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 			this->addOperation("getJointsChains", &RobotModelService::getJointsChains, this, ClientThread)
 				.doc("Returns list of chains names to which the given joints are belongs.")
 				.arg("joints", "List of joints names.");
-			this->addOperation("getChainIndex", &RobotModelService::getJointIndex, this, ClientThread)
+			this->addOperation("getChainIndex", &RobotModelService::getChainIndex, this, ClientThread)
 				.doc("Returns position (index) of the given chain in full pose sorted by chains.")
 				.arg("chain", "Chain");
 			this->addOperation("getJointIndex", &RobotModelService::getJointIndex, this, ClientThread)
