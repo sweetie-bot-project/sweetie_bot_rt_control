@@ -50,7 +50,6 @@ Odometry::Odometry(std::string const& name) :
 		.doc("tf_prefix for base_link in output tf messages.")
 		.set("");
 
-
 	log(INFO) << "Odometry constructed !" << endlog();
 }
 
@@ -181,34 +180,48 @@ bool Odometry::integrateBodyPose()
 	center_point_prev = center_point_prev / n_points;
 	// twist averaging
 	avg_body_twist = avg_body_twist / n_contact_limbs;
-	// calculate H matrix
-	Eigen::Matrix3d H = Matrix3d::Zero();
-	for (int k = 0; k < n_points; k++) {
-		// outer product
-		contact_points[k] -= center_point;
-		contact_points_prev[k] -= center_point_prev;
-		H += Map<Vector3d>(contact_points[k].data) * Map<Vector3d>(contact_points_prev[k].data).transpose();
-	}
-	// SVD decomposition
-	JacobiSVD<Matrix3d> svd(H, ComputeFullU | ComputeFullV);
 	// calculate trasform
-	Frame T;
-	// rotation
-	Map< Matrix<double,3,3,Eigen::RowMajor> > R(T.M.data);
-	R = svd.matrixV() * svd.matrixU().transpose();
-	// translation
-	T.p = center_point_prev - T.M*center_point;
-	// pose calculation
-	body_pose.frame[0] = body_anchor * T;
-	body_pose.twist[0] = body_pose.frame[0]*avg_body_twist;
-	if (contact_set_changed) body_anchor = body_pose.frame[0];
+	// ATTENTION: if set limbs is changed but archon is the same 
+	// then large error can be introduced to the movement estimate.
+	// We simple skip this iteration
+	// TODO produce correct estimate
+	if (!contact_set_changed) {
+		Frame T;
+		// calculate H matrix
+		Eigen::Matrix3d H = Matrix3d::Zero();
+		for (int k = 0; k < n_points; k++) {
+			// outer product
+			contact_points[k] -= center_point;
+			contact_points_prev[k] -= center_point_prev;
+			H += Map<Vector3d>(contact_points[k].data) * Map<Vector3d>(contact_points_prev[k].data).transpose();
+		}
+		// SVD decomposition
+		JacobiSVD<Matrix3d> svd(H, ComputeFullU | ComputeFullV);
+		// rotation
+		Map< Matrix<double,3,3,Eigen::RowMajor> > R(T.M.data);
+		R = svd.matrixV() * svd.matrixU().transpose();
+		// translation
+		T.p = center_point_prev - T.M*center_point;
 
-	/*if (log(DEBUG)) {
+		if (log(DEBUG)) {
+			log() << "U = " << svd.matrixU() << std::endl << "V = " << svd.matrixV() << "S = " << svd.singularValues() <<  std::endl << "T.M = " << R << std::endl << " T.p = " << Map<Vector3d>(T.p.data) << endlog();
+		}
+		// pose calculation
+		body_pose.frame[0] = body_anchor * T;
+	}
+	else {
+		// pose remains the same
+		// anchro ismoved to new position
+		body_anchor = body_pose.frame[0];
+	}
+	// twist calculation
+	body_pose.twist[0] = body_pose.frame[0]*avg_body_twist;
+
+	if (log(DEBUG)) {
 		geometry_msgs::Transform t;
-		log() << "U = " << svd.matrixU() << std::endl << "V = " << svd.matrixV() << "S = " << svd.singularValues() <<  std::endl << "T.M = " << R << std::endl << " T.p = " << Map<Vector3d>(T.p.data) << endlog();
 		tf::transformKDLToMsg(body_pose.frame[0], t);
-		log(DEBUG) << "body_frame.M = " << Map< Matrix<double,3,3,RowMajor> >(body_pose.frame[0].M.data) << std::endl << "body_frame.p = " << Map<Vector3d>(body_pose.frame[0].p.data) << std::endl  << "tf = " << t << endlog();
-	}*/
+		log() << "body_frame.M = " << Map< Matrix<double,3,3,RowMajor> >(body_pose.frame[0].M.data) << std::endl << "body_frame.p = " << Map<Vector3d>(body_pose.frame[0].p.data) << std::endl  << "tf = " << t << endlog();
+	}
 	return true;
 }
 
