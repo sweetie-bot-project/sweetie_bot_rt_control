@@ -50,6 +50,9 @@ Odometry::Odometry(std::string const& name) :
 		.doc("tf_prefix for base_link in output tf messages.")
 		.set("");
 
+	this->addOperation("setIdentity", &Odometry::setIdentity, this)
+		.doc("Set body transform to Identity.");
+
 	log(INFO) << "Odometry constructed !" << endlog();
 }
 
@@ -243,6 +246,28 @@ static inline bool isValidSupportState(const sweetie_bot_kinematics_msgs::Suppor
 static inline void normalizeQuaternionMsg(geometry_msgs::Quaternion& q) {
 	auto s = std::sqrt(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w);
 	q.x /= s; q.y /= s; q.z /= s; q.w /= s;
+}
+
+bool Odometry::setIdentity() 
+{
+	if (!isValidRigidBodyStateNameFrame(limb_poses) || limb_poses.name.size() < limbs.size()) {
+		log(ERROR) << "Incorrect RigidBodyState message on limbs_port: its is too small or field size is inconsistent. msg.name.size = " << limb_poses.name.size() << endlog();
+		return false;
+	}
+	if (!isValidSupportState(support_state) || support_state.name.size() < limbs.size()) {
+		log(ERROR) << "SupportState is unknown." << endlog();
+		return false;
+	}
+	// reset odometry result
+	body_anchor = Frame::Identity();
+	body_pose.frame[0] = Frame::Identity();
+	body_pose.twist[0] = Twist::Zero();
+	// update stored limb state and contact list
+	for(int ind = 0; ind < limbs.size(); ind++) {
+		limbs[ind].was_in_contact = support_state.support[ind] > 0.0;	
+		limbs[ind].previous_pose = limb_poses.frame[ind];
+	}
+	return true;
 }
 
 void Odometry::updateHook()

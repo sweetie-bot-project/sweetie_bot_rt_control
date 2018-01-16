@@ -81,6 +81,9 @@ class Odometry : public RTT::TaskContext
 
 		bool integrateBodyPose();
 
+		// OPERATIONS
+		bool setIdentity();
+
 		bool configureHook();
 		bool startHook();
 		void updateHook();
