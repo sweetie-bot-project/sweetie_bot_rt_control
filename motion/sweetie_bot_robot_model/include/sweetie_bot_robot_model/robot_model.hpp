@@ -26,6 +26,7 @@ class RobotModelInterface
 		// joint groups (kinematic chains)
         virtual std::vector<std::string> listChains() const = 0;
         virtual int getChainIndex(const std::string& name) const = 0;
+		virtual std::string getChainDefaultContact(const std::string& chain) const = 0;
 
 		// joints
         virtual std::vector<std::string> listJoints(const std::string& name) const = 0;
@@ -45,12 +46,13 @@ class RobotModel : public RTT::ServiceRequester {
         RTT::OperationCaller<bool()> configure;
         RTT::OperationCaller<bool()> isConfigured;
 
-        RTT::OperationCaller<std::string()> getRobotDescription;
+        RTT::OperationCaller<const std::string&()> getRobotDescription;
         RTT::OperationCaller<KDL::Chain(const std::string&)> getKDLChain;
         RTT::OperationCaller<KDL::Tree()> getKDLTree;
 
         RTT::OperationCaller<std::vector<std::string>()> listChains;
         RTT::OperationCaller<int(const std::string&)> getChainIndex;
+		RTT::OperationCaller<std::string(const std::string&)> getChainDefaultContact;
 
         RTT::OperationCaller<std::vector<std::string>(const std::string&)> listJoints;
         RTT::OperationCaller<int(const std::string&)> getJointIndex;
@@ -73,11 +75,12 @@ class RobotModel : public RTT::ServiceRequester {
 			// joint groups
             listChains("listChains"),
             getChainIndex("getChainIndex"),
+            getChainDefaultContact("getChainDefaultContact"),
 			// joints
             listJoints("listJoints"),
+            getJointIndex("getJointIndex"),
             getJointChain("getJointChain"),
             getJointsChains("getJointsChains"),
-            getJointIndex("getJointIndex"),
 			// contacts 
 			listContacts("listContacts"),
 			getContactPoints("getContactPoints"),
@@ -92,6 +95,7 @@ class RobotModel : public RTT::ServiceRequester {
 			// joint groups
             addOperationCaller(listChains);
             addOperationCaller(getChainIndex);
+            addOperationCaller(getChainDefaultContact);
 			// joints
             addOperationCaller(listJoints);
             addOperationCaller(getJointChain);

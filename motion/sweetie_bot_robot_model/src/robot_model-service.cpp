@@ -31,6 +31,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 			int index_begin; // index of the first joint in group
 			int size; // chain length
 			KDL::Chain kdl_chain; // KDL chain model
+			string default_contact;
 		};
 		struct ContactInfo {
 			//string name; // contact point name
@@ -83,7 +84,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 			this->addProperty("chains", chains_prop_)
 				.doc("Joint groups (kinematics chains) descriptions (PropertuBag). Format: \n"
 					 "\t\t\t{\n"
-					 "\t\t\t    PropertyBag chain_name1 { string first_link, string last_link },\n"
+					 "\t\t\t    PropertyBag chain_name1 { string first_link, string last_link, string default_contact },\n"
 					 "\t\t\t    PropertyBag chain_name2 { ... }\n"
 					 "\t\t\t    ...\n"
 					 "\t\t\t}");
@@ -99,10 +100,19 @@ class RobotModelService : public RobotModelInterface, public Service {
 				.doc("Configures service: read parameters, construct kdl tree.");
 			this->addOperation("isConfigured", &RobotModelService::isConfigured, this, ClientThread)
 				.doc("Return true if service contains a valid robot model.");
+
 			this->addOperation("getRobotDescription", &RobotModelService::getRobotDescription, this, ClientThread)
 				.doc("Return robot description string (URDF model).");
+
 			this->addOperation("listChains", &RobotModelService::listChains, this, ClientThread)
 				.doc("Return the list of known kinematic chains.");
+			this->addOperation("getChainIndex", &RobotModelService::getChainIndex, this, ClientThread)
+				.doc("Returns position (index) of the given chain in full pose sorted by chains.")
+				.arg("chain", "Chain");
+			this->addOperation("getChainDefaultContact", &RobotModelService::getChainDefaultContact, this, ClientThread)
+				.doc("Get default contact name for the chain. Return empty string if no default contact supplied.")
+				.arg("chain", "Chain name");
+
 			this->addOperation("listJoints", &RobotModelService::listJoints, this, ClientThread)
 				.doc("Return the list of joints in given kinematic chain. If chain name is empty return all joints.")
 				.arg("chain", "Chain name.");
@@ -112,9 +122,6 @@ class RobotModelService : public RobotModelInterface, public Service {
 			this->addOperation("getJointsChains", &RobotModelService::getJointsChains, this, ClientThread)
 				.doc("Returns list of chains names to which the given joints are belongs.")
 				.arg("joints", "List of joints names.");
-			this->addOperation("getChainIndex", &RobotModelService::getChainIndex, this, ClientThread)
-				.doc("Returns position (index) of the given chain in full pose sorted by chains.")
-				.arg("chain", "Chain");
 			this->addOperation("getJointIndex", &RobotModelService::getJointIndex, this, ClientThread)
 				.doc("Returns position (index) of the given joint in full pose sorted by chains and joints.")
 				.arg("joint", "Joint name");
@@ -157,14 +164,15 @@ class RobotModelService : public RobotModelInterface, public Service {
 				cleanup();
 				return false;
 			}
-			// Get kinematics chains from properties
-			if (!readChains()) {
+
+			// Get contacts from properties
+			if (!readContacts()) {
 				cleanup();	
 				return false;
 			}
 
 			// Get kinematics chains from properties
-			if (!readContacts()) {
+			if (!readChains()) {
 				cleanup();	
 				return false;
 			}
@@ -189,7 +197,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 
 		bool readChains()
 		{	
-			Property<std::string> first_link, last_link;
+			Property<std::string> first_link, last_link, default_contact;
 			char joint_num = 0;
 			// clear all buffers
 			joint_names_.clear();
@@ -216,8 +224,13 @@ class RobotModelService : public RobotModelInterface, public Service {
 					log(ERROR) << "Incorrect last_link property." << endlog();
 					return false;
 				}
+				default_contact = chain_bag.rvalue().getProperty("default_contact");
+				if (default_contact.ready() && contacts_info_.find(default_contact.rvalue()) == contacts_info_.end()) {
+					log(ERROR) << "Unknown contact name: default_contact = " << default_contact.rvalue() << endlog();
+					return false;
+				}
 
-				this->log(DEBUG) << " " << chain_bag.getName() << "{ first_link = \"" << first_link.rvalue() << "\", last_link = \"" << last_link.rvalue() << "\" }" << endlog();
+				this->log(DEBUG) << chain_bag.getName() << "{ first_link = \"" << first_link.rvalue() << "\", last_link = \"" << last_link.rvalue() << "\" <<\", default_contact = \"" << default_contact.rvalue() << "\" }" << endlog();
 
 				// add chain to index and check dublicates
 				if (chains_index_.find(chain_bag.getName()) != chains_index_.end()) {
@@ -231,6 +244,8 @@ class RobotModelService : public RobotModelInterface, public Service {
 				ChainInfo& chain_info = chains_info_.back();
 				// set name
 				chain_info.name = chain_bag.getName();
+				// set default contact if present
+				if (default_contact.ready()) chain_info.default_contact = default_contact.rvalue();
 				// get kdl_chain
 				if (!tree_.getChain( first_link, last_link, chain_info.kdl_chain )) {
 					this->log(ERROR) << "Unable to construct chain " << chain_bag.getName() << "{ first_link = \"" << first_link.rvalue() << "\", last_link = \"" << last_link.rvalue() << "\" }" << endlog();
@@ -337,6 +352,12 @@ class RobotModelService : public RobotModelInterface, public Service {
 		{
 			auto iterator = chains_index_.find(name);
 			return (iterator == chains_index_.end()) ? -1 : iterator->second;
+		}
+
+		string getChainDefaultContact(const string& name) const
+		{
+			auto iterator = chains_index_.find(name);
+			return (iterator == chains_index_.end()) ? "" : chains_info_[iterator->second].default_contact;
 		}
 
 		int getJointIndex(const string& name) const

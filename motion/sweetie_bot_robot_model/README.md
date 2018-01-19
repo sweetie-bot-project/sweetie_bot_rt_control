@@ -24,6 +24,7 @@ Standard usage pattern: load plugin into aggregator component or GlobalService a
         PropertyBag chain_name1 
             string first_link
             string last_link
+			string default_contact (optional)
         PropertyBag chain_name2
 		    ...
 		...
@@ -45,9 +46,11 @@ Contacts and chains properties can be loaded from .cpf file.
 1. `isConfigured()` (`ClientThread`) --- check if plugin is ready to use. Should be checked before any use.
 
 1. `strings listChains()` (`ClientThread`) --- get list of registered kinematic chains.
+1. `int getChainIndex(const string& name)` --- returns position of the given chain in full sorted pose or -1 if chain does not exists.
+1. `string getChainDefaultContact(const string& name)` --- returns default contact name (from property).
+
 1. `vector<string> listJoint(const string& name)` --- return list of joints' names in given kinematic chain. If name is empty strings return full list of known joints.
 1. `int getJointIndex(const string& name)` --- returns position of the given joint in full sorted pose.
-
 1. `string getJointChain(string joint)` (`ClientThread`) --- return chain name to which belongs given joint.
 1. `strings getJointsChains(strings joints)` (`ClientThread`) --- return chains' names to which belong given joints.
 
@@ -56,7 +59,8 @@ Contacts and chains properties can be loaded from .cpf file.
 1. `bool getContactPoints(string name, KDL.Vector[]& buffer)` (`ClientThread`) --- add equivalent contact points to buffer. Return false if contact does no exists.
 
 1. `KDL::Tree getKDLTree()`
-1. `KDL::Chain getKDLChain(string name)`
+1. `KDL::Chain getKDLChain(string name)` (`ClientThread`)
+1. `const string& getRobotDescription()` (`ClientThread`) --- return URDF robot model.
 
 Additional operations may be implemented later:
 1. `pair<int,int> getChainIndexAndSize(string name)` 
