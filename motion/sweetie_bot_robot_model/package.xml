@@ -20,6 +20,7 @@
   <depend>rtt_ros</depend>
   <depend>orocos_kdl</depend>
   <depend>kdl_parser</depend>
+  <depend>kdl_typekit</depend>
   <!-- ROS and OROCOS datatypes -->
   <!-- SWEETIEBOT packages -->
   <depend>sweetie_bot_logger</depend>
@@ -28,6 +29,7 @@
   <export>
 	  <rtt_ros>
 		  <!-- Plugin deps are loaded automatically by the rtt_ros import service -->
+		  <plugin_depend>kdl_typekit</plugin_depend>
 	  </rtt_ros>
   </export>
 </package>

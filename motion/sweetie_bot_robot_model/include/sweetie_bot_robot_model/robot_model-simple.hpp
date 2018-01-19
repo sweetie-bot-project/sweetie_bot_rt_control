@@ -24,6 +24,9 @@ class RobotModelInterface
         virtual std::vector<std::string> getJointsChains(const std::vector<std::string>& name) = 0;
         virtual int getChainIndex(const std::string& name) const = 0;
         virtual int getJointIndex(const std::string& name) const = 0;
+		virtual vector<string> listContacts() const = 0;
+		virtual vector<KDL::Vector> getContactPoints(const string& name) const = 0;
+		virtual int addContactPointsToBuffer(const string& name, vector<KDL::Vector>& buffer) const = 0;
         virtual KDL::Chain getKDLChain(const std::string& name) const = 0;
         virtual KDL::Tree getKDLTree() const = 0;
 };
@@ -40,6 +43,7 @@ class RobotModel : public RTT::ServiceRequester {
         RTT::OperationCaller<std::vector<std::string>(const std::vector<std::string>&)> getJointsChains;
         RTT::OperationCaller<int(const std::string&)> getChainIndex;
         RTT::OperationCaller<int(const std::string&)> getJointIndex;
+
         RobotModel(RTT::TaskContext * owner) :
             RTT::ServiceRequester("robot_model", owner),
             configure("configure"),

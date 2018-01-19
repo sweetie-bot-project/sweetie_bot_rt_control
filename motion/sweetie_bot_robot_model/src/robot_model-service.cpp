@@ -2,13 +2,12 @@
 
 #include <unordered_map>
 
-#include <Eigen/Dense>
-#include <kdl/jntarray.hpp>
-#include <kdl/chain.hpp>
-#include <kdl_parser/kdl_parser.hpp>
-
 #include <rtt/RTT.hpp>
 #include <rtt/plugin/ServicePlugin.hpp>
+
+#include <kdl_parser/kdl_parser.hpp>
+#include <kdl_typekit/typekit/Types.hpp>
+
 #include <sensor_msgs/typekit/JointState.h>
 
 #include <sweetie_bot_logger/logger.hpp>
@@ -18,7 +17,6 @@
 using namespace std;
 using namespace RTT;
 using namespace KDL;
-using namespace Eigen;
 
 namespace sweetie_bot {
 namespace motion {
@@ -34,12 +32,18 @@ class RobotModelService : public RobotModelInterface, public Service {
 			int size; // chain length
 			KDL::Chain kdl_chain; // KDL chain model
 		};
+		struct ContactInfo {
+			//string name; // contact point name
+			std::vector<KDL::Vector> points; // points in the frame of the last segment the kinematic chain.
+			//KDL::Jacobian jacobian;  // contact jacobian
+		};
 
 	protected:
 		// SERVICE INTERFACE
 		// parameters
 		std::string robot_description_;
 		PropertyBag chains_prop_;
+		PropertyBag contacts_prop_;
 		
 		// SERVICE STATE
 		TaskContext* owner_;
@@ -49,9 +53,11 @@ class RobotModelService : public RobotModelInterface, public Service {
 		// joint groups
 		vector<ChainInfo> chains_info_; 
 		// index to speed up joint search
-		// TODO remove indexes
 		map<string, int> joints_index_;
 		map<string, int> chains_index_;
+		// contact points (they can be reordered)
+		map<string, ContactInfo> contacts_info_;
+
 		// KDL kinematic model
 		KDL::Tree tree_;
 
@@ -69,6 +75,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 			is_configured(false),
 			log(logger::getDefaultCategory("sweetie_bot.motion") + "." + "robot_model")
 		{
+
 			this->provides()->doc("Robot model service plugin. Provides unifed access to kinematic chains and joint enumeration function");
 
 			this->addProperty("robot_description", robot_description_)
@@ -80,6 +87,13 @@ class RobotModelService : public RobotModelInterface, public Service {
 					 "\t\t\t    PropertyBag chain_name2 { ... }\n"
 					 "\t\t\t    ...\n"
 					 "\t\t\t}");
+			this->addProperty("contacts", contacts_prop_)
+				.doc("Contact description (PropertuBag). 'points' field contains an equivalent set of fixed points in last_link frame. Format: \n"
+					 "\t\t\t{\n"
+					 "\t\t\t    PropertyBag contact_name1 { KDL::Vector[] points },\n"
+					 "\t\t\t    PropertyBag contact_name2 { ... }\n"
+					 "\t\t\t    ...\n"
+					 "\t\t\t}\n");
 
 			this->addOperation("configure", &RobotModelService::configure, this, OwnThread)
 				.doc("Configures service: read parameters, construct kdl tree.");
@@ -104,6 +118,16 @@ class RobotModelService : public RobotModelInterface, public Service {
 			this->addOperation("getJointIndex", &RobotModelService::getJointIndex, this, ClientThread)
 				.doc("Returns position (index) of the given joint in full pose sorted by chains and joints.")
 				.arg("joint", "Joint name");
+
+			this->addOperation("listContacts", &RobotModelService::listContacts, this, ClientThread)
+				.doc("Return list of registered contacts.");
+			this->addOperation("getContactPoints", &RobotModelService::getContactPoints, this, ClientThread)
+				.doc("Return the equivalent fixed points set for the contact. Return empty list if contact not found.")
+				.arg("name", "Contact points list. When contact is active they are assumed fixed.");
+			this->addOperation("addContactPointsToBuffer", &RobotModelService::addContactPointsToBuffer, this, ClientThread)
+				.doc("Return the equivalent fixed points set to buffer. Return number of added points and -1 if contact does not exists.")
+				.arg("name", "Contact points list. When contact is active they are assumed fixed.")
+				.arg("buffer", "Buffer where points are added.");
 
 			this->addOperation("getKDLChain", &RobotModelService::getKDLChain, this, ClientThread)
 				.doc("Get KDL::Chain object. Can form out_of_range exception.");
@@ -139,6 +163,12 @@ class RobotModelService : public RobotModelInterface, public Service {
 				return false;
 			}
 
+			// Get kinematics chains from properties
+			if (!readContacts()) {
+				cleanup();	
+				return false;
+			}
+
 			this->log(INFO) << "RobotModel is configured." <<endlog();
 			is_configured = true;
 			return true;
@@ -151,6 +181,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 			chains_info_.clear();
 			joints_index_.clear();
 			chains_index_.clear();
+			contacts_info_.clear();
 			tree_ = KDL::Tree();
 			is_configured = false;
 			this->log(INFO) << "RobotModel is cleaned up." <<endlog();
@@ -217,6 +248,36 @@ class RobotModelService : public RobotModelInterface, public Service {
 				}
 			}
 			this->log(INFO) << "Loaded " << chains_info_.size() << " chains and " << joint_names_.size() << " joints." <<endlog();
+			return true;
+		}
+
+		bool readContacts()
+		{	
+			// clear all buffers
+			contacts_info_.clear();
+			// load new chains	
+			for(PropertyBag::const_iterator p = contacts_prop_.begin(); p != contacts_prop_.end(); p++) {
+				Property<PropertyBag> contact_prop(*p);
+				if (!contact_prop.ready()) {
+					log(ERROR) << "Incorrect contact property " << contact_prop.getName() << " must be PropertyBag." << endlog();
+					return false;
+				}
+				// get equivalent set of contact points
+				Property< std::vector<KDL::Vector> > contact_points_prop = contact_prop.rvalue().getProperty("points");
+				if (!contact_points_prop.ready()) { 
+					log(ERROR) << "Incorrect contact structure: points field in " << contact_prop.getName() << " must be KDL::Vector[]." << endlog();
+					return false;
+				}
+				// add contact to list
+				auto ret = contacts_info_.emplace(contact_prop.getName(), ContactInfo()); 
+				if (!ret.second) {
+					log(WARN) << "Dublicate contact " << contact_prop.getName() << endlog();
+				}
+				ret.first->second.points = contact_points_prop.rvalue();
+
+				this->log(DEBUG) << "Contact point " << contact_prop.getName() << " with " <<  ret.first->second.points.size() << " points." << endlog();
+			}
+			this->log(INFO) << "Loaded " << contacts_info_.size() << " contacts." <<endlog();
 			return true;
 		}
 
@@ -301,6 +362,31 @@ class RobotModelService : public RobotModelInterface, public Service {
 		{
 			return tree_;
 		}
+
+		vector<string> listContacts() const
+		{
+			vector<string> names;
+			for( const auto& pair : contacts_info_ ) names.push_back(pair.first);
+			return names;
+		}
+
+		vector<KDL::Vector> getContactPoints(const string& name) const
+		{
+			auto it_pair = contacts_info_.find(name);
+			if (it_pair == contacts_info_.end()) return vector<KDL::Vector>();
+			else return it_pair->second.points;
+		}
+
+		int addContactPointsToBuffer(const string& name, vector<KDL::Vector>& buffer) const
+		{
+			auto it_pair = contacts_info_.find(name);
+			if (it_pair == contacts_info_.end()) return -1;
+			else {
+				buffer.insert(buffer.end(), it_pair->second.points.begin(), it_pair->second.points.end());
+				return it_pair->second.points.size();
+			}
+		}
+
 };
 
 } // namespace motion
