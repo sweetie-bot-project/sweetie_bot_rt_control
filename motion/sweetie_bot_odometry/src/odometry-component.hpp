@@ -9,6 +9,7 @@
 #include <orocos/kdl_typekit/typekit/Types.hpp>
 
 #include <sweetie_bot_logger/logger.hpp>
+#include <sweetie_bot_robot_model/robot_model.hpp>
 
 #include <sweetie_bot_kinematics_msgs/typekit/RigidBodyState.h>
 #include <sweetie_bot_kinematics_msgs/typekit/SupportState.h>
@@ -31,7 +32,8 @@ class Odometry : public RTT::TaskContext
 		//RTT::OutputPort<geometry_msgs::TwistStamped> twist_port;
 		// PROPERTIES
 		std::vector<std::string> legs;
-		std::vector<double> contact_points_prop; // KDL::Vector defined as vector<double> for ROS parameter compatibility
+		std::string default_contact; 
+		bool force_contact_z_to_zero;
 		std::string odometry_frame;
 		std::string base_link_tf_prefix;
 	protected:
@@ -39,6 +41,7 @@ class Odometry : public RTT::TaskContext
 		// OPERATIONS: requires
 		// SERVICES: provides
 		// SERVICES: required
+		RobotModel * robot_model;
 		// SERVICES: internal interface
 
 		// logger
@@ -49,24 +52,28 @@ class Odometry : public RTT::TaskContext
 #endif
 	protected:
 		struct LimbState {
-			std::string name;
+			std::string name; // kinematic chain name
+			int index;        // index of kinematic chain
+
+			std::string contact_name;  // contact name
+			bool is_in_contact;
 			bool was_in_contact;
-			KDL::Frame previous_pose;
+			bool contact_name_changed;
+
+			std::vector<KDL::Vector> contact_points_limb; // coordinates in limb end segment frame
 
 			LimbState(const string& _name) : 
 				name(_name),
-				was_in_contact(false),	
-				previous_pose(KDL::Frame::Identity())
+				is_in_contact(false),
+				was_in_contact(false)
 			{} 
 		};
 
 	protected:
 		// COMPONENT STATE
 		std::vector<LimbState> limbs;
-		std::vector<KDL::Vector> default_contact_points;
-		std::vector<KDL::Vector> contact_points;
-		std::vector<KDL::Vector> contact_points_prev;
-		KDL::Frame body_anchor;
+		std::vector<KDL::Vector> contact_points_anchor; // coordinates in world frame
+		std::vector<KDL::Vector> contact_points_body; // coordinates in body frame
 		unsigned int too_few_contact_warn_counter;
 		// ports buffers
 		sweetie_bot_kinematics_msgs::RigidBodyState limb_poses; 
@@ -76,10 +83,15 @@ class Odometry : public RTT::TaskContext
 		tf2_msgs::TFMessage body_tf;
 		//geometry_msgs::TwistStamped body_twist;
 
+	protected:
+		void updateAnchor(bool check_support_state);
+		void estimateVelocity();
+		void estimateRigidBodyPose(const std::vector<KDL::Vector>& contact_points_body, const std::vector<KDL::Vector>& contact_points_anchor, KDL::Frame& T);
+		bool integrateBodyPose();
+
 	public:
 		Odometry(std::string const& name);
 
-		bool integrateBodyPose();
 
 		// OPERATIONS
 		bool setIdentity();
