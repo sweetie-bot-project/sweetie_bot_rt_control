@@ -49,11 +49,11 @@ JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajec
 		this->chains = robot_model->getJointsChains(this->names);
 		std::bitset<max_chains> controlled_chains_flags; // controlled chains market by true
 		for ( const string& name : this->chains) {
-			std::cout << "name: " << name << " index: " << robot_model->getChainIndex(name) << std::endl;
+			// std::cout << "name: " << name << " index: " << robot_model->getChainIndex(name) << std::endl;
 			controlled_chains_flags.set(robot_model->getChainIndex(name), true);
 		}
 
-		std::cout << "controlled_chains_flags: " << controlled_chains_flags << " support_chains_flags: " << support_chains_flags << std::endl;
+		// std::cout << "controlled_chains_flags: " << controlled_chains_flags << " support_chains_flags: " << support_chains_flags << std::endl;
 
 		std::bitset<max_chains> common_chains_flags = controlled_chains_flags & support_chains_flags;
 		// now add support chains to controlled chains list
@@ -62,7 +62,7 @@ JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajec
 		// then add controlled chains to support states
 		controlled_chains_flags ^= common_chains_flags;
 
-		std::cout << "controlled_chains_flags: " << controlled_chains_flags << " support_chains_flags: " << support_chains_flags << " common_chains_flags: " << common_chains_flags << std::endl;
+		// std::cout << "controlled_chains_flags: " << controlled_chains_flags << " support_chains_flags: " << support_chains_flags << " common_chains_flags: " << common_chains_flags << std::endl;
 	
 		for(int i = 0; i < chains_list.size(); i++) {
 			if (support_chains_flags[i]) this->chains.push_back(chains_list[i]);
