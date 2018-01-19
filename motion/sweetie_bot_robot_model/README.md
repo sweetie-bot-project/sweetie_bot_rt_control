@@ -1,12 +1,25 @@
 # SweetieBot robot model service plugin
 
-This packages contain `robot_model` service which provides access to URDF robot model and semantic robot description (crude analog of MoveIt! SRDF). 
-It specifies joint ordering rules in full pose messages, the list of registered kinematic chains (resources), the list of joints in each chain.
-Another components use this plugin to extract information about kinematic chains and joints groups which are present in system.
-
+This packages contain `robot_model` service which provides access to URDF robot model and semantic robot description (some analog of MoveIt! SRDF). 
+It provides to another components information about joint ordering, joints groups (kinematic chains) and possible contacts.
 This package is part of [Sweetie Bot project](http://sweetiebot.net). See complete specification [here (Rus)](https://gitlab.com/sweetie-bot/sweetie_doc/wikis/plugin-robotmodel).
 
-Standard usage pattern: load plugin into aggregator component or GlobalService and use ServiceRequester in another component to get access to its operations.
+**Joint groups**. Joints are grouped in joint groups. Each group is a kinematic chain which contains all joints between first and last link. 
+One joint can not be shared between to joint group. Each group has unique index, which specifies its position in full robot pose.
+
+**Joint ordering**. Joints are ordered according to joints groups and then according to their order in kinematic chain which corresponds to th group.
+
+**Contacts**. Contacts are modeled as set of fixed points. Robot model access to these sets. Points coordinates represented in robot segments frames.
+Currently contacts are not binded to any specific robot segment, so they can be viewed simply as named points sets.
+
+**Robot description**. Plugin provides access to URDF robot description and KDL models of kinematic chains.
+
+Standard usage pattern: load plugin into aggregator component or GlobalService and then use ServiceRequester in another component to get access to its operations.
+
+### Headers
+
+* `robot_model-simle.hpp` --- Service interface and Service Requester with simplified interface.
+* `robot_model.hpp` --- Service interface and Service Requester with full interface. Impose dependency on `kdl_typekit` if is loaded.
 
 ### Properties
 
@@ -19,8 +32,16 @@ Standard usage pattern: load plugin into aggregator component or GlobalService a
         PropertyBag chain_name2
 		    ...
 		...
+2. `contacts` (`PropertyBag`) --- contacts' description:
+         
+        PropertyBag contact_name1 
+            KDL.Vector[] points
+        PropertyBag contact_name2
+            KDL.Vector[] points
+		    ...
+		...
     
-    It can be loaded from cpf file.
+Contacts and chains properties can be loaded from .cpf file.
      
 
 ### Operations
@@ -34,6 +55,10 @@ Standard usage pattern: load plugin into aggregator component or GlobalService a
 
 1. `string getJointChain(string joint)` (`ClientThread`) --- return chain name to which belongs given joint.
 1. `strings getJointsChains(strings joints)` (`ClientThread`) --- return chains' names to which belong given joints.
+
+1. `strings listContacts()` (`ClientThread`) --- return names of all contacts.
+1. `KDL.Vector[] getContactPoints(string name)` (`ClientThread`) --- return a set of points equivalent to the contact or nothing if contact does not exists. Points coordinates a given in a link frame.
+1. `bool getContactPoints(string name, KDL.Vector[]& buffer)` (`ClientThread`) --- add equivalent contact points to buffer. Return false if contact does no exists.
 
 1. `KDL::Tree getKDLTree()`
 1. `KDL::Chain getKDLChain(string name)`
