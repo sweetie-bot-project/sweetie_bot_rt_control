@@ -35,7 +35,7 @@ KinematicsFwd::KinematicsFwd(string const& name) :
 bool KinematicsFwd::configureHook()
 {
 	// check if RobotModel Service presents
-	if (!robot_model->ready() && robot_model->isConfigured()) {
+	if (!robot_model->ready() || !robot_model->isConfigured()) {
 		log(ERROR) << "RobotModel service is not ready." << endlog();
 		return false;
 	}

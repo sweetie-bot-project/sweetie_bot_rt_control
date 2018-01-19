@@ -9,7 +9,7 @@
 #include <rtt/os/Timer.hpp>
 
 #include <std_srvs/SetBool.h>
-#include <orocos/sensor_msgs/typekit/JointState.h>
+#include <sensor_msgs/typekit/JointState.h>
 
 #include <sweetie_bot_logger/logger.hpp>
 #include <sweetie_bot_resource_control/resource_client.hpp>

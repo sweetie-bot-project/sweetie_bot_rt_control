@@ -72,7 +72,7 @@ bool TorqueMainSwitch::configureHook()
 	}
 	// resource_client->setResourceChangeHook(boost::bind(&TorqueMainSwitch::resourceChangeHook, this));
 	// check if RobotModel Service presents
-	if (!robot_model->ready()) {
+	if (!robot_model->ready() || !robot_model->isConfigured()) {
 		log(ERROR) << "RobotModel service is not ready." << endlog();
 		return false;
 	}
