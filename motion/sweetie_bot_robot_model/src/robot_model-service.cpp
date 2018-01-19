@@ -230,7 +230,11 @@ class RobotModelService : public RobotModelInterface, public Service {
 					return false;
 				}
 
-				this->log(DEBUG) << chain_bag.getName() << "{ first_link = \"" << first_link.rvalue() << "\", last_link = \"" << last_link.rvalue() << "\" <<\", default_contact = \"" << default_contact.rvalue() << "\" }" << endlog();
+				if (log(DEBUG)) {
+				   log() << chain_bag.getName() << "{ first_link = \"" << first_link.rvalue() << "\", last_link = \"" << last_link.rvalue() << "\"";
+				   if (default_contact.ready()) log() << ", default_contact = \"" << default_contact.rvalue() << "\"";
+				   log() << " }" << endlog();
+				}
 
 				// add chain to index and check dublicates
 				if (chains_index_.find(chain_bag.getName()) != chains_index_.end()) {
