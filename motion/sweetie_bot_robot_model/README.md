@@ -16,11 +16,6 @@ Currently contacts are not binded to any specific robot segment, so they can be 
 
 Standard usage pattern: load plugin into aggregator component or GlobalService and then use ServiceRequester in another component to get access to its operations.
 
-### Headers
-
-* `robot_model-simle.hpp` --- Service interface and Service Requester with simplified interface.
-* `robot_model.hpp` --- Service interface and Service Requester with full interface. Impose dependency on `kdl_typekit` if is loaded.
-
 ### Properties
 
 1. `robot_description` (`string`) --- robot model in URDF format.

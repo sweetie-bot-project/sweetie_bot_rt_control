@@ -1,4 +1,4 @@
-#include <sweetie_bot_robot_model/robot_model-simple.hpp>
+#include <sweetie_bot_robot_model/robot_model.hpp>
 
 #include <unordered_map>
 

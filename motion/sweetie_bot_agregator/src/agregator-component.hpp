@@ -7,7 +7,7 @@
 #include <sensor_msgs/typekit/JointState.h>
 
 #include <sweetie_bot_logger/logger.hpp>
-#include <sweetie_bot_robot_model/robot_model-simple.hpp>
+#include <sweetie_bot_robot_model/robot_model.hpp>
 
 #include <sweetie_bot_kinematics_msgs/typekit/SupportState.h>
 
