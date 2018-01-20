@@ -9,6 +9,8 @@
 #include <kdl_conversions/kdl_msg.h>
 #include <ros/time.h>
 
+#include <sweetie_bot_orocos_misc/message_checks.hpp>
+
 using namespace RTT;
 using namespace KDL;
 using namespace Eigen;
@@ -40,9 +42,6 @@ Odometry::Odometry(std::string const& name) :
 	// PROPERTIES
 	this->addProperty("legs", legs).
 		doc("List of end effectors which can be in contact. (Kinematic chains names, legs)."); 
-	this->addProperty("default_contact", default_contact).
-		doc("Name of default contact point. It is used if no contact name is provided in SupportState message.").
-		set("hoof_flat");
 	this->addProperty("force_contact_z_to_zero", force_contact_z_to_zero).
 		doc("Assume that first contact point always have zero Z coordinate.").
 		set(false);
@@ -68,12 +67,6 @@ bool Odometry::configureHook()
 	// check if RobotModel Service presents
 	if (!robot_model->ready() || !robot_model->isConfigured()) {
 		log(ERROR) << "RobotModel service is not ready." << endlog();
-		return false;
-	}
-	// check default contact point
-	std::vector<std::string> list = robot_model->listContacts();
-	if (std::find(list.begin(), list.end(), default_contact) == list.end()) {
-		log(ERROR) << "Contact " << default_contact << " does not exists." << endlog();
 		return false;
 	}
 	// reserve LimbState array
@@ -177,6 +170,7 @@ void Odometry::estimateVelocity()
 	}
 	avg_body_twist = avg_body_twist / n_support_limbs;
 	// result
+	// TODO Why it has to be inversed?!!
 	body_pose.twist[0] = body_pose.frame[0] * avg_body_twist;
 }
 
@@ -321,22 +315,6 @@ bool Odometry::integrateBodyPose()
 }
 
 
-static inline bool isValidRigidBodyStateNameFrame(const sweetie_bot_kinematics_msgs::RigidBodyState& msg, int sz = -1) {
-	if (sz < 0) sz = msg.name.size();
-	else if (sz != msg.name.size()) return false;
-	if (sz != msg.frame.size()) return false;
-	if (sz != msg.twist.size() && msg.twist.size() != 0) return false;
-	return true;
-}
-
-static inline bool isValidSupportState(const sweetie_bot_kinematics_msgs::SupportState& msg, int sz = -1) {
-	if (sz < 0) sz = msg.name.size();
-	else if (sz != msg.name.size()) return false;
-	if (sz != msg.support.size()) return false;
-	if (sz != msg.contact.size() && msg.contact.size() != 0) return false;
-	return true;
-}
-
 static inline void normalizeQuaternionMsg(geometry_msgs::Quaternion& q) {
 	auto s = std::sqrt(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w);
 	q.x /= s; q.y /= s; q.z /= s; q.w /= s;
@@ -348,7 +326,7 @@ bool Odometry::setIdentity()
 		log(ERROR) << "Incorrect RigidBodyState message on limbs_port: its is too small or field size is inconsistent. msg.name.size = " << limb_poses.name.size() << endlog();
 		return false;
 	}
-	if (!isValidSupportState(support_state) || support_state.name.size() < limbs.size()) {
+	if (!isValidSupportStateNameSuppCont(support_state) || support_state.name.size() < limbs.size()) {
 		log(ERROR) << "SupportState is unknown." << endlog();
 		return false;
 	}
@@ -376,13 +354,9 @@ void Odometry::updateHook()
 		log(ERROR) << "SupportState is unknown." << endlog();
 		return;
 	}
-	if (!isValidSupportState(support_state) || support_state.name.size() < limbs.size()) {
+	if (!isValidSupportStateNameSuppCont(support_state) || support_state.name.size() < limbs.size()) {
 		log(ERROR) << "Incorrect SupportState message: its is too samll or field size is inconsistent. msg.name.size = " << support_state.name.size() << endlog();
 		return;
-	}
-	//TODO check size() during support_state analisys
-	if (support_state.contact.size() == 0) {
-		support_state.contact.assign(support_state.name.size(), default_contact);
 	}
 
 	// if we have received pose it overrides odomery results

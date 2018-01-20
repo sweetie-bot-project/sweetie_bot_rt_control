@@ -31,6 +31,7 @@ class Agregator : public RTT::TaskContext
     boost::shared_ptr<RobotModel> robot_model_;
 
 	// COMPONENT STATE
+	std::vector<std::string> chain_default_contacts_;
 	// ports buffers
     sensor_msgs::JointState input_joint_state_;
     sensor_msgs::JointState output_joint_state_;
