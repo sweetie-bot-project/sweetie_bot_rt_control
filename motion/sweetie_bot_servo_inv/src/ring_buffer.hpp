@@ -70,9 +70,9 @@ template<class T> T ring_buffer<T>::average_elem() {
 	return sum / _size;
 }
 
-//specific realisation for sensor_msgs::JointState
-template<> sensor_msgs::JointState ring_buffer<sensor_msgs::JointState>::average_elem() {
-	sensor_msgs::JointState sum;
+//specific realisation for sweetie_bot_kinematics_msgs::JointStateAccel
+template<> sweetie_bot_kinematics_msgs::JointStateAccel ring_buffer<sweetie_bot_kinematics_msgs::JointStateAccel>::average_elem() {
+	sweetie_bot_kinematics_msgs::JointStateAccel sum;
 	unsigned int i;
 	unsigned int j;
 	unsigned int n;
@@ -81,6 +81,7 @@ template<> sensor_msgs::JointState ring_buffer<sensor_msgs::JointState>::average
 	n = sum.name.size();
 	sum.position.assign(n, 0);
 	sum.velocity.assign(n, 0);
+	sum.acceleration.assign(n, 0);
 	sum.effort.assign(n, 0);
 
 	i = curr_pos;
@@ -88,12 +89,14 @@ template<> sensor_msgs::JointState ring_buffer<sensor_msgs::JointState>::average
 
 		//skip incorrect joints
 		if (buf[i].name.size() == n && buf[i].position.size() == n
-				&& buf[i].velocity.size() == n && buf[i].effort.size() == n) {
+				&& buf[i].velocity.size() == n && buf[i].acceleration.size() == n
+								&& buf[i].effort.size() == n) {
 
 			for (j = 0; j < n; j++) {
 
 				sum.position[j] = sum.position[j] + buf[i].position[j];
 				sum.velocity[j] = sum.velocity[j] + buf[i].velocity[j];
+				sum.acceleration[j] = sum.acceleration[j] + buf[i].acceleration[j];
 				sum.effort[j] = sum.effort[j] + buf[i].effort[j];
 			}
 		}
@@ -104,6 +107,7 @@ template<> sensor_msgs::JointState ring_buffer<sensor_msgs::JointState>::average
 	for (j = 0; j < n; j++) {
 		sum.position[j] = sum.position[j] / _size;
 		sum.velocity[j] = sum.velocity[j] / _size;
+		sum.acceleration[j] = sum.acceleration[j] / _size;
 		sum.effort[j] = sum.effort[j] / _size;
 	}
 

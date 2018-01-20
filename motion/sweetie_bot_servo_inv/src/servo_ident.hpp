@@ -2,18 +2,21 @@
 #define OROCOS_SERVO_IDENT_COMPONENT_HPP
 
 #include <rtt/RTT.hpp>
+#include <rtt/os/Timer.hpp>
 
 #include <sweetie_bot_logger/logger.hpp>
 
-#include <orocos/sensor_msgs/typekit/JointState.h>
-#include <orocos/sensor_msgs/typekit/BatteryState.h>
-#include <orocos/sweetie_bot_herkulex_msgs/typekit/ServoGoal.h>
-#include <orocos/sweetie_bot_servo_model_msg/typekit/ServoModel.h>
+#include <sensor_msgs/typekit/JointState.h>
+#include <sensor_msgs/typekit/BatteryState.h>
+#include <sweetie_bot_herkulex_msgs/typekit/ServoGoal.h>
+#include <sweetie_bot_servo_model_msg/typekit/ServoModel.h>
+#include <sweetie_bot_kinematics_msgs/typekit/JointStateAccel.h>
 
 #include <unordered_map>
 
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/vector.hpp>
+
 
 #include "ring_buffer.hpp"
 
@@ -42,8 +45,10 @@ class ServoIdent : public RTT::TaskContext {
 
 		// buffers
 
+		RTT::os::Timer::TimerId timer_id;
+
 		//we need store some last joints, because control_delay may be non-zero
-		ring_buffer<sensor_msgs::JointState> joints_buf;
+		ring_buffer<sweetie_bot_kinematics_msgs::JointStateAccel> joints_buf;
 
 		//map servos names and some helper data
 		std::unordered_map<std::string, servo_model_data> servo_models_data;
@@ -52,37 +57,37 @@ class ServoIdent : public RTT::TaskContext {
 		boost::numeric::ublas::c_vector<double, 5> phi;
 		boost::numeric::ublas::c_vector<double, 5> L;
 
-                const sensor_msgs::JointState *joints;
-                sensor_msgs::JointState joints_measured;
-                sensor_msgs::JointState effort_joints;
+		const sweetie_bot_kinematics_msgs::JointStateAccel *joints;
+		sensor_msgs::JointState joints_measured;
+		sensor_msgs::JointState effort_joints;
 		sensor_msgs::BatteryState battery_voltage_buf;
 
 		//count of cycles after getting last measured joint for servo with same number
 		std::vector<unsigned int> num_periods;
 
-		std::vector<double> velocity_prev;
 		std::vector<double> velocity_measured_prev;
 
 		bool models_vector_was_sorted;
 		bool sort_servo_models();
-		void prepare_buffers_for_new_joints_size(sensor_msgs::JointState const& jnt);
+		void prepare_buffers_for_new_joints_size(sweetie_bot_kinematics_msgs::JointStateAccel const& jnt);
 
 
 	// COMPONENT INTERFACE
-        protected:
-                // PORTS
-                RTT::InputPort<sensor_msgs::JointState> in_joints_fixed;
-                RTT::InputPort<sensor_msgs::JointState> in_joints_measured;
+	protected:
+		// PORTS
+		RTT::InputPort<RTT::os::Timer::TimerId> in_sync_step;
+		RTT::InputPort<sweetie_bot_kinematics_msgs::JointStateAccel> in_joints_fixed;
+		RTT::InputPort<sensor_msgs::JointState> in_joints_measured;
 		RTT::InputPort<sensor_msgs::BatteryState> in_battery_state;
 
 		RTT::OutputPort<std::vector<sweetie_bot_servo_model_msg::ServoModel>> out_servo_models;
-                RTT::OutputPort<sensor_msgs::JointState> out_torque_error_sorted;
+		RTT::OutputPort<sensor_msgs::JointState> out_torque_error_sorted;
 
 		// PROPERTIES
 		double period;
-                unsigned int control_delay;
-                double relaxation_factor;
-                double error_averaging_time;
+		unsigned int control_delay;
+		double relaxation_factor;
+		double error_averaging_time;
 		double treshhold;
 		double battery_voltage;
 		std::vector<sweetie_bot_servo_model_msg::ServoModel> servo_models;

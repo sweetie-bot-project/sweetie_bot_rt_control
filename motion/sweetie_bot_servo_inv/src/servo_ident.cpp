@@ -24,17 +24,19 @@ ServoIdent::ServoIdent(std::string const& name) :
 		return;
 	}
 
-	this->addPort("joints_fixed", in_joints_fixed)
-                .doc("Desired joints state. Order of joints should not change.");
-        this->addEventPort("joints_measured", in_joints_measured)
-                .doc("Some measured joints state.");
-        this->addEventPort("battery_state", in_battery_state)
+	this->addEventPort("sync_step", in_sync_step)
+		.doc("Timer event indicating beginig of next herck_sched cycle.");
+	this->addPort("joints_accel_fixed", in_joints_fixed)
+		.doc("Desired joints state. Order of joints should not change.");
+	this->addPort("joints_measured", in_joints_measured)
+		.doc("Some measured joints state.");
+	this->addEventPort("battery_state", in_battery_state)
 		.doc("Port for updating current voltage of the battery.");
 
-        this->addPort("servo_models", out_servo_models)
-                .doc("Result of identification.");
-        this->addPort("torque_error_sorted", out_torque_error_sorted)
-                .doc("Prediction error. Desired tourque - counted by model tourque. Position and velocity are current ones");
+	this->addPort("servo_models", out_servo_models)
+		.doc("Result of identification.");
+	this->addPort("torque_error_sorted", out_torque_error_sorted)
+		.doc("Prediction error. Desired tourque - counted by model tourque. Position and velocity are current ones");
 
 	this->addOperation("startIdentification", &ServoIdent::startIdentification, this, OwnThread)
 		.doc("It starts identification of servos.")
@@ -44,73 +46,74 @@ ServoIdent::ServoIdent(std::string const& name) :
 	this->addOperation("abortIdentification", &ServoIdent::abortIdentification, this, OwnThread)
 		.doc("It aborts identification of servos.");
 
-        this->addProperty("period", period)
-                .doc("Control cycle duration (seconds).")
-                .set(0.0224);
-        this->addProperty("control_delay", control_delay)
-                .doc("Control cycle delay (number of cycles). You should set it before start.")
-                .set(0);
-        this->addProperty("relaxation_factor", relaxation_factor)
-                .doc("Relaxation factor for OLQ.")
-                .set(0.995);
-        this->addProperty("error_averaging_time", error_averaging_time)
-                .doc("Error averaging time(seconds). You should set it before start identification.")
-                .set(1);
-        this->addProperty("treshhold", treshhold)
-                .doc("Minimum permissible accuraccy, rad")
-                .set(0.01);
+	this->addProperty("period", period)
+		.doc("Control cycle duration (seconds).")
+		.set(0.0224);
+	this->addProperty("control_delay", control_delay)
+		.doc("Control cycle delay (number of cycles). You should set it before start.")
+		.set(0);
+	this->addProperty("relaxation_factor", relaxation_factor)
+		.doc("Relaxation factor for OLQ.")
+		.set(0.995);
+	this->addProperty("error_averaging_time", error_averaging_time)
+		.doc("Error averaging time(seconds). You should set it before start identification.")
+		.set(1);
+	this->addProperty("treshhold", treshhold)
+		.doc("Minimum permissible accuraccy, rad")
+		.set(0.01);
 	this->addProperty("battery_voltage", battery_voltage)
-                .doc("Current voltage of the battery.")
-                .set(7);
-        this->addProperty("servo_models", servo_models)
-                .doc("Vector of models.");
+		.doc("Current voltage of the battery.")
+		.set(7);
+	this->addProperty("servo_models", servo_models)
+		.doc("Vector of models.");
 }
 
 struct ModelFinder {
-        const std::string s;
+	const std::string s;
 
-        ModelFinder(const std::string &str) : s(str) {};
-        bool operator()(const sweetie_bot_servo_model_msg::ServoModel &mdl) const {
-                return mdl.name == s;
-        }
+	ModelFinder(const std::string &str) : s(str) {};
+	bool operator()(const sweetie_bot_servo_model_msg::ServoModel &mdl) const {
+		return mdl.name == s;
+	}
 };
 
 bool ServoIdent::sort_servo_models() {
-        sweetie_bot_servo_model_msg::ServoModel eq_mdl;
-        std::vector<sweetie_bot_servo_model_msg::ServoModel> mdls;
-        std::vector<sweetie_bot_servo_model_msg::ServoModel>::iterator s_iter;
-        int i;
+	sweetie_bot_servo_model_msg::ServoModel eq_mdl;
+	std::vector<sweetie_bot_servo_model_msg::ServoModel> mdls;
+	std::vector<sweetie_bot_servo_model_msg::ServoModel>::iterator s_iter;
+	int i;
 
 	//this coefficient provides zero torque_error_sorted for model
-        eq_mdl.name = "";
-        eq_mdl.kp = 0;
-        eq_mdl.kgear = 1;
-        eq_mdl.alpha[0] = 0;
-        eq_mdl.alpha[1] = 0;
-        eq_mdl.alpha[2] = 0;
-        eq_mdl.alpha[3] = 0;
-        eq_mdl.alpha[4] = 1;
-        eq_mdl.qs = 10;
-        eq_mdl.delta = 1;
+	eq_mdl.name = "";
+	eq_mdl.kp = 0;
+	eq_mdl.kgear = 1;
+	eq_mdl.alpha[0] = 0;
+	eq_mdl.alpha[1] = 0;
+	eq_mdl.alpha[2] = 0;
+	eq_mdl.alpha[3] = 0;
+	eq_mdl.alpha[4] = 1;
+	eq_mdl.qs = 10;
+	eq_mdl.delta = 1;
 
-        mdls.assign(joints->name.size(), eq_mdl);
+	mdls.assign(joints->name.size(), eq_mdl);
 
-        for (i = 0; i < joints->name.size(); i++) {
+	for (i = 0; i < joints->name.size(); i++) {
 
-                mdls[i].name = joints->name[i];
-                s_iter = std::find_if(servo_models.begin(), servo_models.end(), ModelFinder(mdls[i].name));
+		mdls[i].name = joints->name[i];
+		s_iter = std::find_if(servo_models.begin(), servo_models.end(), ModelFinder(mdls[i].name));
 
-                if (s_iter != servo_models.end())
+		if (s_iter != servo_models.end())
 			mdls[i] = *s_iter;
 		servo_models_data[joints->name[i]].index = i;
-        }
+	}
 
-        servo_models = mdls;
+	servo_models = mdls;
 
-        return true;
+	return true;
 }
 
-void ServoIdent::prepare_buffers_for_new_joints_size(sensor_msgs::JointState const& jnt) {
+void ServoIdent::prepare_buffers_for_new_joints_size(sweetie_bot_kinematics_msgs::JointStateAccel const& jnt) {
+	sweetie_bot_kinematics_msgs::JointStateAccel joint_accel;
 	unsigned int i;
 	unsigned int n;
 
@@ -121,21 +124,27 @@ void ServoIdent::prepare_buffers_for_new_joints_size(sensor_msgs::JointState con
 	effort_joints.velocity.assign(n, 0);
 	effort_joints.effort.assign(n, 0);
 
-        joints_measured = effort_joints;
+	joints_measured = effort_joints;
 
-        velocity_prev.resize(n);
-        velocity_measured_prev.resize(n);
+	velocity_measured_prev.resize(n);
 	num_periods.assign(n, 1);
+
+	joint_accel.name = effort_joints.name;
+	joint_accel.position = effort_joints.position;
+	joint_accel.velocity = effort_joints.velocity;
+	joint_accel.acceleration.assign(n, 0);
+	joint_accel.effort = effort_joints.effort;
 
 	n = control_delay;
 	joints_buf.reset(n);
-	for (i = 0; i <= n; i++)
-		joints_buf.pos_to_put() = effort_joints;
+	for (i = 0; i <= n; i++) {
+		joints_buf.pos_to_put() = joint_accel;
+	}
 	joints = &joints_buf.pos_to_get();
 }
 
 bool ServoIdent::startHook() {
-	sensor_msgs::JointState joints_samp;
+	sweetie_bot_kinematics_msgs::JointStateAccel joints_samp;
 	unsigned int i;
 
 	in_joints_fixed.getDataSample(joints_samp);
@@ -153,7 +162,7 @@ bool ServoIdent::startHook() {
 
 void ServoIdent::updateHook() {
 	std::unordered_map<std::string, servo_model_data>::iterator iter;
-	unsigned int njoints;
+	unsigned int njoints, njoints_prev;
 	unsigned int j;
 	unsigned int i;
 	double den;
@@ -161,14 +170,14 @@ void ServoIdent::updateHook() {
 	double target_pos;
 	double prec_err;
 
-	if (in_joints_measured.read(joints_measured, false) == NewData) {
+	if (in_sync_step.read(timer_id, false) == NewData) {
 
 		if (in_joints_fixed.read(joints_buf.pos_to_put(), false) == NewData) {
 
+			njoints_prev = joints->name.size();
 			joints = &joints_buf.pos_to_get();
 			njoints = joints->name.size();
-
-			if (njoints != joints->position.size() || njoints != joints->velocity.size() || njoints != joints->effort.size()) {
+			if (njoints != joints->position.size() || njoints != joints->velocity.size() || njoints != joints->acceleration.size() || njoints != joints->effort.size()) {
 
 				log(WARN) << "joints message has incorrect structure." << endlog();
 				return;
@@ -183,7 +192,7 @@ void ServoIdent::updateHook() {
 
 			}
 
-			if (velocity_prev.size() != njoints) {
+			if (njoints_prev != njoints) {
 
 				log(WARN) << "Number of servos was changed. Skipping and resorting servo_models." << endlog();
 				models_vector_was_sorted = false;
@@ -192,12 +201,18 @@ void ServoIdent::updateHook() {
 
 		}
 
-		njoints = joints_measured.name.size();
+		if (in_joints_measured.read(joints_measured, false) == NewData) {
 
-		if (njoints != joints_measured.position.size() || njoints != joints_measured.velocity.size()) {
+			njoints = joints_measured.name.size();
 
-			log(WARN) << "joints_measured message has incorrect structure." << endlog();
-			return;
+			if (njoints != joints_measured.position.size() || njoints != joints_measured.velocity.size()) {
+
+				log(WARN) << "joints_measured message has incorrect structure." << endlog();
+				return;
+			}
+		} else {
+
+			njoints = 0;
 		}
 
 		//here we process servos for which measurements was getting
@@ -223,9 +238,9 @@ void ServoIdent::updateHook() {
 					joints->velocity[j] - joints_measured.velocity[i]
 				)
 				- servo_models[j].alpha[1] * (
-					(joints->velocity[j] - velocity_prev[j])
-					- (joints_measured.velocity[i] - velocity_measured_prev[j])
-				) / (period * num_periods[j])
+					joints->acceleration[j]
+					- (joints_measured.velocity[i] - velocity_measured_prev[j]) / (period * num_periods[j])
+				)
 				-  servo_models[j].alpha[2] * (
 					copysign(1, joints->velocity[j])
 					- copysign(1, joints_measured.velocity[i])
@@ -242,7 +257,7 @@ void ServoIdent::updateHook() {
 			if (iter->second.ident_started) {
 				target_pos = (
 				    servo_models[j].alpha[0] * joints->velocity[j] +
-				    servo_models[j].alpha[1] * (joints->velocity[j]-velocity_prev[j])/period +
+				    servo_models[j].alpha[1] * joints->acceleration[j] +
 				    servo_models[j].alpha[2] * copysign(1, joints->velocity[j]) +
 				    servo_models[j].alpha[3] * copysign(exp(-pow(fabs(joints->velocity[j]/servo_models[j].qs),
 													servo_models[j].delta)), joints->velocity[j]) +
@@ -278,10 +293,7 @@ void ServoIdent::updateHook() {
 		//another control cycle is ending...
 		njoints = joints->name.size();
 		for (j = 0; j < njoints; j++)
-			num_periods[j]++;
-
-		velocity_prev = joints->velocity;
-
+				num_periods[j]++;
 	}
 
 	//update battery voltage rate
@@ -320,7 +332,7 @@ bool ServoIdent::startIdentification(std::vector<std::string> names) {
 		}
 	}
 
-        log(INFO) << "Identification started!" << endlog();
+	log(INFO) << "Identification started!" << endlog();
 
 	return true;
 }
@@ -330,14 +342,16 @@ std::vector<std::string> ServoIdent::endIdentification() {
 	std::vector<std::string> names;
 	std::vector<sweetie_bot_servo_model_msg::ServoModel> mdls;
 	unsigned int j;
+	double prec;
 
 	for (iter = servo_models_data.begin(); iter != servo_models_data.end(); iter++) {
 
 		if (iter->second.ident_started) {
 
-			if (iter->second.prec_err_buf.average_elem() <= treshhold) {
+			prec = iter->second.prec_err_buf.average_elem();
+			j = iter->second.index;
+			if (prec <= treshhold) {
 
-				j = iter->second.index;
 				names.push_back(servo_models[j].name);
 				iter->second.ident_started = false;
 				servo_models[j].alpha[0] = iter->second.alpha(0);
@@ -346,14 +360,16 @@ std::vector<std::string> ServoIdent::endIdentification() {
 				servo_models[j].alpha[3] = iter->second.alpha(3);
 				servo_models[j].alpha[4] = iter->second.alpha(4);
 				mdls.push_back(servo_models[j]);
-				log(INFO) << "Identification success for " << servo_models[j].name << "!" << endlog();
+				log(WARN) << "Identification success for " << servo_models[j].name << "!" << "Prec: " << prec << endlog();
+			} else {
+				log(WARN) << "Identification faild for " << servo_models[j].name << "!" << "Prec: " << prec << endlog();
 			}
 		}
 	}
 
 	out_servo_models.write(mdls);
 
-        log(INFO) << "Identification ended!" << endlog();
+	log(INFO) << "Identification ended!" << endlog();
 
 	return names;
 }
@@ -365,7 +381,7 @@ bool ServoIdent::abortIdentification() {
 		if (iter->second.ident_started)
 			iter->second.ident_started = false;
 
-        log(INFO) << "Identification aborted!" << endlog();
+	log(INFO) << "Identification aborted!" << endlog();
 
 	return true;
 }
