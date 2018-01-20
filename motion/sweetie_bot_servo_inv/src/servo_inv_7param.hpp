@@ -2,14 +2,14 @@
 #define OROCOS_SWEETIE_BOT_SERVO_INV_COMPONENT_HPP
 
 #include <rtt/RTT.hpp>
-#include <rtt/os/Timer.hpp>
 
 #include <sweetie_bot_logger/logger.hpp>
 
-#include <orocos/sensor_msgs/typekit/JointState.h>
-#include <orocos/sensor_msgs/typekit/BatteryState.h>
-#include <orocos/sweetie_bot_herkulex_msgs/typekit/ServoGoal.h>
-#include <orocos/sweetie_bot_servo_model_msg/typekit/ServoModel.h>
+#include <sensor_msgs/typekit/JointState.h>
+#include <sensor_msgs/typekit/BatteryState.h>
+#include <sweetie_bot_herkulex_msgs/typekit/ServoGoal.h>
+#include <sweetie_bot_servo_model_msg/typekit/ServoModel.h>
+#include <sweetie_bot_kinematics_msgs/typekit/JointStateAccel.h>
 
 namespace sweetie_bot {
 namespace motion {
@@ -25,12 +25,9 @@ class ServoInv7Param : public RTT::TaskContext {
 #endif
 
 		// buffers
-		sensor_msgs::JointState joints;
-		RTT::os::Timer::TimerId timer_id;
-		std::vector<double> velocity_prev;
+		sweetie_bot_kinematics_msgs::JointStateAccel joints;
 		sweetie_bot_herkulex_msgs::ServoGoal goals;
-		std::vector<double> goals_pos; //last writed goals.target_pos without lead
-		std::vector<double> goals_pos_prev; // goals.target_pos without lead from last control cycle
+
 		std::vector<sweetie_bot_servo_model_msg::ServoModel> models;
 		sensor_msgs::BatteryState battery_voltage_buf;
 
@@ -44,16 +41,15 @@ class ServoInv7Param : public RTT::TaskContext {
 	// COMPONENT INTERFACE
 	protected:
 		// PORTS
-		RTT::InputPort<sensor_msgs::JointState> in_joints_fixed;
+		RTT::InputPort<sweetie_bot_kinematics_msgs::JointStateAccel> in_joints_fixed;
 		RTT::InputPort<std::vector<sweetie_bot_servo_model_msg::ServoModel>> in_servo_models;
-		RTT::InputPort<RTT::os::Timer::TimerId> in_sync_step;
 		RTT::InputPort<sensor_msgs::BatteryState> in_battery_state;
 
 		RTT::OutputPort<sweetie_bot_herkulex_msgs::ServoGoal> out_goals;
 
 		// PROPERTIES
 		double period;
-		double lead;
+
 		std::vector<sweetie_bot_servo_model_msg::ServoModel> servo_models;
 		double battery_voltage;
 

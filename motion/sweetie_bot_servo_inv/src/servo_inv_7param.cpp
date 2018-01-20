@@ -23,12 +23,10 @@ ServoInv7Param::ServoInv7Param(std::string const& name) :
 		return;
 	}
 
-	this->addEventPort("joints_fixed", in_joints_fixed)
-		.doc("Desired joints state. Order of joints should not change.");
+	this->addEventPort("joints_accel_fixed", in_joints_fixed)
+		.doc("Desired joints state with acceleration. Order of joints should not change.");
 	this->addEventPort("servo_models", in_servo_models)
 		.doc("Port for updating list of servo's models.");
-	this->addPort("sync_step", in_sync_step)
-		.doc("Timer event indicating beginig of next control cycle.");
 	this->addEventPort("battery_state", in_battery_state)
 		.doc("Port for updating current voltage of the battery.");
 	this->addPort("goals", out_goals)
@@ -36,9 +34,6 @@ ServoInv7Param::ServoInv7Param(std::string const& name) :
 
 	this->addProperty("period", period)
 		.doc("Control cycle duration (seconds).")
-		.set(0.0224);
-	this->addProperty("lead", lead)
-		.doc("Goal position lead in seconds. Goal position is equal desired position plus desired velocity multiplied by lead.")
 		.set(0.0224);
 	this->addProperty("servo_models", servo_models)
 		.doc("Vector of the models of the servos. It is automatically sorted in the order corresponding to the first message on joint_fixed port. You should not change it after this moment!");
@@ -96,11 +91,7 @@ void ServoInv7Param::prepare_buffers_for_new_joints_size() {
 
 	goals.name = joints.name;
 	goals.target_pos.assign(n, 0);
-	goals.playtime.assign(n, period + lead);
-
-	velocity_prev.assign(n, 0);
-	goals_pos.assign(n, 0);
-	goals_pos_prev.assign(n, 0);
+	goals.playtime.assign(n, 0);
 }
 
 bool ServoInv7Param::startHook() {
@@ -122,11 +113,6 @@ void ServoInv7Param::updateHook() {
 	unsigned int njoints;
 	std::vector<sweetie_bot_servo_model_msg::ServoModel>::iterator s_iter;
 
-	if (in_sync_step.read(timer_id, false) == NewData) {
-		velocity_prev = joints.velocity;
-		goals_pos_prev = goals_pos;
-	}
-
 	if (in_joints_fixed.read(joints, false) == NewData) {
 
 		njoints = joints.name.size();
@@ -139,13 +125,14 @@ void ServoInv7Param::updateHook() {
 		}
 
 		if (njoints != joints.position.size() || njoints != joints.velocity.size()
+							|| njoints != joints.acceleration.size()
 							|| njoints != joints.effort.size()) {
 
-			log(WARN) << "Goal message has incorrect structure." << endlog();
+			log(WARN) << "Joints message has incorrect structure." << endlog();
 			return;
 		}
 
-		if (velocity_prev.size() != njoints) {
+		if (goals.name.size() != njoints) {
 
 			log(WARN) << "Number of servos was changed. Skipping and resorting servo_models." << endlog();
 			models_vector_was_sorted = false;
@@ -157,7 +144,7 @@ void ServoInv7Param::updateHook() {
 			//calculate target position using inverse model of the servo
 			goals.target_pos[i] = (
 			    servo_models[i].alpha[0] * joints.velocity[i] +
-			    servo_models[i].alpha[1] * (joints.velocity[i]-velocity_prev[i])/period +
+			    servo_models[i].alpha[1] * joints.acceleration[i] +
 			    servo_models[i].alpha[2] * copysign(1, joints.velocity[i]) +
 			    servo_models[i].alpha[3] * copysign(exp(-pow(fabs(joints.velocity[i]/servo_models[i].qs),
 												servo_models[i].delta)), joints.velocity[i]) +
@@ -166,12 +153,6 @@ void ServoInv7Param::updateHook() {
 			  joints.position[i];
 
 			goals.target_pos[i] *= servo_models[i].kgear;
-
-			//store goals position without lead
-			goals_pos[i] = goals.target_pos[i];
-
-			//take defined lead
-			goals.target_pos[i] += (goals.target_pos[i] - goals_pos_prev[i]) * lead / period;
 		}
 
 		out_goals.write(goals);

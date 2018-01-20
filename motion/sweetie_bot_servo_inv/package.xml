@@ -24,6 +24,8 @@
   <depend>sweetie_bot_herkulex_msgs_rtt</depend>
   <depend>sweetie_bot_servo_model_msg</depend>
   <depend>rtt_sweetie_bot_servo_model_msg</depend>
+  <depend>sweetie_bot_kinematics_msgs</depend>
+  <depend>rtt_sweetie_bot_kinematics_msgs</depend>
 
   <export>
 	  <rtt_ros>
@@ -31,6 +33,7 @@
 		  <plugin_depend>rtt_sensor_msgs</plugin_depend>
 		  <plugin_depend>sweetie_bot_herkulex_msgs_rtt</plugin_depend>
 		  <plugin_depend>rtt_sweetie_bot_servo_model_msg</plugin_depend>
+		  <plugin_depend>rtt_sweetie_bot_kinematics_msgs</plugin_depend>
 	  </rtt_ros>
   </export>
 </package>
