@@ -26,7 +26,7 @@ include_directories(${USE_OROCOS_INCLUDE_DIRS})
 ### Orocos Targets ###
 
 # Libraries: only .so modules from root CMakeLists are added to *.pc file.
-orocos_library(sweetie_bot_orocos_misc src/joint_state_check.cpp) 
+orocos_library(sweetie_bot_orocos_misc src/message_checks.cpp) 
 # Include src/ directory.
 add_subdirectory( src )
 

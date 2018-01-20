@@ -35,4 +35,12 @@ bool isValidJointStateNamePos(const sensor_msgs::JointState& msg, int sz = -1);
 
 } // namespace sweetie_bot
 
+#ifndef MESSAGE_CHECKS_INLINE
+#define MESSAGE_CHECKS_INLINE 1
+#endif
+
+#if MESSAGE_CHECKS_INLINE
+#include "joint_state_check_impl.hpp"
+#endif 
+
 #endif  /*JOINT_STATE_CHECK_HPP*/
