@@ -34,7 +34,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 			string default_contact;
 		};
 		struct ContactInfo {
-			//string name; // contact point name
+			string name; // contact point name
 			std::vector<KDL::Vector> points; // points in the frame of the last segment the kinematic chain.
 			//KDL::Jacobian jacobian;  // contact jacobian
 		};
@@ -53,11 +53,12 @@ class RobotModelService : public RobotModelInterface, public Service {
 		vector<string> joint_names_;
 		// joint groups
 		vector<ChainInfo> chains_info_; 
-		// index to speed up joint search
+		// contact points
+		vector<ContactInfo> contacts_info_;
+		// index to speed up search
 		map<string, int> joints_index_;
 		map<string, int> chains_index_;
-		// contact points (they can be reordered)
-		map<string, ContactInfo> contacts_info_;
+		map<string, int> contacts_index_;
 
 		// KDL kinematic model
 		KDL::Tree tree_;
@@ -190,6 +191,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 			joints_index_.clear();
 			chains_index_.clear();
 			contacts_info_.clear();
+			contacts_index_.clear();
 			tree_ = KDL::Tree();
 			is_configured = false;
 			this->log(INFO) << "RobotModel is cleaned up." <<endlog();
@@ -225,7 +227,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 					return false;
 				}
 				default_contact = chain_bag.rvalue().getProperty("default_contact");
-				if (default_contact.ready() && contacts_info_.find(default_contact.rvalue()) == contacts_info_.end()) {
+				if (default_contact.ready() && contacts_index_.find(default_contact.rvalue()) == contacts_index_.end()) {
 					log(ERROR) << "Unknown contact name: default_contact = " << default_contact.rvalue() << endlog();
 					return false;
 				}
@@ -274,6 +276,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 		{	
 			// clear all buffers
 			contacts_info_.clear();
+			contacts_index_.clear();
 			// load new chains	
 			for(PropertyBag::const_iterator p = contacts_prop_.begin(); p != contacts_prop_.end(); p++) {
 				Property<PropertyBag> contact_prop(*p);
@@ -287,14 +290,20 @@ class RobotModelService : public RobotModelInterface, public Service {
 					log(ERROR) << "Incorrect contact structure: points field in " << contact_prop.getName() << " must be KDL::Vector[]." << endlog();
 					return false;
 				}
-				// add contact to list
-				auto ret = contacts_info_.emplace(contact_prop.getName(), ContactInfo()); 
+				
+				auto ret = contacts_index_.insert( std::make_pair( contact_prop.getName(), contacts_info_.size()) );
+				// check for dublicates
 				if (!ret.second) {
-					log(WARN) << "Dublicate contact " << contact_prop.getName() << endlog();
+					log(WARN) << "Dublicate contact " << contact_prop.getName() << ". Skip point." << endlog();
+					continue;
 				}
-				ret.first->second.points = contact_points_prop.rvalue();
+				// add contact to list
+				contacts_info_.emplace_back(); 
+				ContactInfo& contact = contacts_info_.back();
+				contact.name = contact_prop.getName();
+				contact.points = contact_points_prop.rvalue();
 
-				this->log(DEBUG) << "Contact point " << contact_prop.getName() << " with " <<  ret.first->second.points.size() << " points." << endlog();
+				this->log(DEBUG) << "Contact point " << contact.name << " with " <<  contact.points.size() << " points." << endlog();
 			}
 			this->log(INFO) << "Loaded " << contacts_info_.size() << " contacts." <<endlog();
 			return true;
@@ -391,24 +400,24 @@ class RobotModelService : public RobotModelInterface, public Service {
 		vector<string> listContacts() const
 		{
 			vector<string> names;
-			for( const auto& pair : contacts_info_ ) names.push_back(pair.first);
+			for( const ContactInfo& contact : contacts_info_ ) names.push_back(contact.name);
 			return names;
 		}
 
 		vector<KDL::Vector> getContactPoints(const string& name) const
 		{
-			auto it_pair = contacts_info_.find(name);
-			if (it_pair == contacts_info_.end()) return vector<KDL::Vector>();
-			else return it_pair->second.points;
+			auto it = contacts_index_.find(name);
+			if (it == contacts_index_.end()) return vector<KDL::Vector>();
+			else return contacts_info_[it->second].points;
 		}
 
 		int addContactPointsToBuffer(const string& name, vector<KDL::Vector>& buffer) const
 		{
-			auto it_pair = contacts_info_.find(name);
-			if (it_pair == contacts_info_.end()) return -1;
+			auto it = contacts_index_.find(name);
+			if (it == contacts_index_.end()) return -1;
 			else {
-				buffer.insert(buffer.end(), it_pair->second.points.begin(), it_pair->second.points.end());
-				return it_pair->second.points.size();
+				buffer.insert( buffer.end(), contacts_info_[it->second].points.begin(), contacts_info_[it->second].points.end() );
+				return contacts_info_[it->second].points.size();
 			}
 		}
 
