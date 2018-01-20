@@ -34,6 +34,7 @@ class JointTrajectoryCache
 		struct SupportPoint {
 			double t;
 			std::vector<double> support;
+			std::vector<std::string> contact;
 		};
 
 	protected:
@@ -53,7 +54,7 @@ class JointTrajectoryCache
 		double goal_time_tolerance;
 		
 	protected:
-		void loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags);
+		void loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags, RobotModel * robot_model);
 		void getJointTolerance(const FollowJointTrajectoryGoal& msg);
 
 	public:

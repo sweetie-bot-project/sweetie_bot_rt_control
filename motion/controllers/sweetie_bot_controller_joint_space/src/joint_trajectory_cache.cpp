@@ -70,7 +70,7 @@ JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajec
 		}
 	}
 	// now extract and interpolate trajectory
-	loadTrajectory(goal.trajectory, support_flags);
+	loadTrajectory(goal.trajectory, support_flags, robot_model);
 	// get tolerances from message
 	getJointTolerance(goal);
 }
@@ -79,13 +79,19 @@ JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajec
 /**
  * interpolate trajectory and cache support state buffer
  */
-void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags) 
+void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags, RobotModel * robot_model) 
 {
 	int n_joints = names.size();
 	int n_supports = support_names.size();
 	int n_samples = trajectory.points.size();
 	if (n_samples < 2) throw::std::invalid_argument("JointTrajectoryCache: trajectory must contains at least 2 samples.");
 	if (trajectory.points[0].time_from_start.toSec() != 0) throw::std::invalid_argument("JointTrajectoryCache: trajectory start time is not equal to zero.");
+
+	// get contacts names and default contacts
+	std::vector<std::string> contacts_list = robot_model->listContacts();
+	std::vector<std::string> default_contacts_list;
+	default_contacts_list.reserve(n_supports);
+	for (int i = 0; i < n_supports; i++) default_contacts_list.push_back( robot_model->getChainDefaultContact(support_names[i]) );
 
 	alglib::real_1d_array t;
 	std::vector<alglib::real_1d_array> joint_trajectory(n_joints);
@@ -109,10 +115,25 @@ void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory
 		// copy joint postions
 		int joint = 0;
 		int support = 0;
+		//TODO reserve
 		support_points[k].support.resize(n_supports);
+		support_points[k].contact.resize(n_supports);
 		for(int i = 0; i < trajectory.joint_names.size(); i++) {
 			if (support_flags[i]) {
-				support_points[k].support[support] = trajectory.points[k].positions[i];
+				double value = trajectory.points[k].positions[i];
+				if (value < 0.0) value = 0.0;
+				int index = std::floor(value);
+
+				if (support <= 1.0 || index >= contacts_list.size()) {
+					// default contact 
+					support_points[k].support[support] = value;
+					support_points[k].contact[support] = default_contacts_list[support];
+				}
+				else {
+					// get contact form index
+					support_points[k].support[support] = value - index;
+					support_points[k].contact[support] = contacts_list[index];
+				}
 				support++;
 			}
 			else {
