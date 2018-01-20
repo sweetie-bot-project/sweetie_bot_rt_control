@@ -1,0 +1,35 @@
+<package format="2">
+  <name>sweetie_bot_joints_diff</name>
+  <version>1.0.0</version>
+  <description>Servo joints_diff component for SweetieBot robot.</description>
+  <maintainer email="goncharov_oi@yandex.ru">disRecord</maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">https://gitlab.com/sweetie-bot/sweetie_doc/wikis</url>
+  <!-- <url type="bugtracker"></url> -->
+
+  <author>disRecord</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- ROS and OROCOS packages -->
+  <depend>rtt</depend>
+  <!-- ROS and OROCOS datatypes -->
+  <depend>sensor_msgs</depend>
+  <depend>rtt_sensor_msgs</depend>
+  <!-- SWEETIEBOT packages -->
+  <depend>sweetie_bot_logger</depend>
+  <depend>sweetie_bot_common</depend>
+  <!-- SWEETIEBOT datatypes -->
+  <depend>sweetie_bot_kinematics_msgs</depend>
+  <depend>rtt_sweetie_bot_kinematics_msgs</depend>
+
+  <export>
+	  <rtt_ros>
+		  <!-- Plugin deps are loaded automatically by the rtt_ros import service -->
+		  <plugin_depend>rtt_sensor_msgs</plugin_depend>
+		  <plugin_depend>rtt_sweetie_bot_kineamtics_msgs</plugin_depend>
+	  </rtt_ros>
+  </export>
+</package>
