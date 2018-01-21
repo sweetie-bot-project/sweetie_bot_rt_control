@@ -157,9 +157,20 @@ void Odometry::estimateRigidBodyPose(const std::vector<Vector>& contact_points_b
 	}
 }
 
+// srew-symmetric matrix which coresponds to vector.
+inline static Matrix3d S(Vector& w) {
+	Matrix3d S;
+	S << 0.0,	   -w.z(), w.y(), 
+		 w.z(),  0.0,	   -w.x(),
+		 -w.y(), w.x(),  0.0;
+	return S;
+}
+		
+
 void Odometry::estimateVelocity() 
 {
-	// TODO implement correct speed estimation: LS solution
+	/*
+	// AVERAGE CALCULATONS: method is correct for contacts without free modes.
 	KDL::Twist avg_body_twist = KDL::Twist::Zero();
 	int n_support_limbs = 0;	
 	for(int ind = 0; ind < limbs.size(); ind++) {
@@ -170,8 +181,45 @@ void Odometry::estimateVelocity()
 	}
 	avg_body_twist = avg_body_twist / n_support_limbs;
 	// result
-	// TODO Why it has to be inversed?!!
-	body_pose.twist[0] = body_pose.frame[0] * avg_body_twist;
+	body_pose.twist[0] = body_pose.frame[0] * avg_body_twist;A
+	*/
+
+	Vector avg_speed = Vector::Zero();
+	Vector center_point = Vector::Zero();
+	Matrix3d Aw = Matrix3d::Zero();
+	Vector bw = Vector::Zero();
+
+	int point_index = 0;
+	for(int ind = 0; ind < limbs.size(); ind++) {
+		if (limbs[ind].is_in_contact) {	
+			for(int k = 0; k < limbs[ind].contact_points_limb.size(); k++) {
+				Vector contact_point_speed = limb_poses.twist[ind].rot * contact_points_body[point_index] + limb_poses.twist[ind].vel;
+				// average speed and cental point
+				avg_speed += contact_point_speed;
+				center_point += contact_points_body[point_index];
+				// right hand part of angular velocity equation
+				bw += contact_points_body[ind] * contact_point_speed;
+				// left-hand part of angular velocity equation
+				Aw += S(contact_points_body[ind]) * S(contact_points_body[ind]).transpose();
+
+				point_index++;
+			}
+		}
+	}
+	// caluclate average speed, center point, and angular velocity equation
+	avg_speed = avg_speed / point_index;
+	center_point = center_point / point_index;
+	bw = bw / point_index;
+	bw -= center_point * avg_speed;
+	Aw /= point_index;
+	Aw -= S(center_point) * S(center_point).transpose();
+	// solve equation Aw * w = bw to find angular velocity. Aw is positive semi-definite
+	Twist body_twist;
+	Map<Vector3d>(body_twist.rot.data) = Aw.ldlt().solve(Map<Vector3d>(bw.data));
+	// find linear velocity
+	body_twist.vel = avg_speed + center_point*body_twist.rot;	
+	// result
+	body_pose.twist[0] = body_pose.frame[0] * body_twist;
 }
 
 void Odometry::updateAnchor(bool check_support_state)
