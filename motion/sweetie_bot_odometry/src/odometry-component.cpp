@@ -207,13 +207,14 @@ void Odometry::estimateVelocity()
 		}
 	}
 	// caluclate average speed, center point, and angular velocity equation
+	// TODO optimize out divisions
 	avg_speed = avg_speed / point_index;
 	center_point = center_point / point_index;
 	bw = bw / point_index;
 	bw -= center_point * avg_speed;
 	Aw /= point_index;
 	Aw -= S(center_point) * S(center_point).transpose();
-	// solve equation Aw * w = bw to find angular velocity. Aw is positive semi-definite
+	// solve equation Aw * w = bw to find angular velocity. Aw is positive semi-definite.
 	Twist body_twist;
 	Map<Vector3d>(body_twist.rot.data) = Aw.ldlt().solve(Map<Vector3d>(bw.data));
 	// find linear velocity
@@ -244,19 +245,19 @@ void Odometry::updateAnchor(bool check_support_state)
 		}
 		if (limb.is_in_contact && limb.contact_points_limb.size() > 0) {
 			double z_shift = 0.0;
-			// add points to anchor
-			contact_points_anchor.push_back( body_pose.frame[0] * limb_poses.frame[ind] * limb.contact_points_limb[0] ); // calculate absolute coordinates of the point
+			// add points to body and anchor
+			contact_points_body.push_back( limb_poses.frame[ind] * limb.contact_points_limb[0] ); // calucalte coordinates relative to body frame
+			contact_points_anchor.push_back( body_pose.frame[0] * contact_points_body.back() ); // calculate absolute coordinates of the point
 			if (force_contact_z_to_zero) {
 				// project point to Z=0 plane
 				z_shift = - contact_points_anchor.back().data[2];
 				contact_points_anchor.back().data[2] = 0.0;
 			}
 			for(auto it = limb.contact_points_limb.begin() + 1; it != limb.contact_points_limb.end(); it++) {
-				contact_points_anchor.push_back( body_pose.frame[0] * limb_poses.frame[ind] * (*it) );
+				contact_points_body.push_back( limb_poses.frame[ind] * (*it) ); // calucalte coordinates relative to body frame
+				contact_points_anchor.push_back( body_pose.frame[0] * contact_points_body.back() );
 				contact_points_anchor.back().data[2] += z_shift;
 			}
-			// add points to body
-			for ( Vector& p : limb.contact_points_limb ) contact_points_body.push_back( limb_poses.frame[ind] * p );
 		}
 	}
 }
