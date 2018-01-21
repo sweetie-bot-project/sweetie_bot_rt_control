@@ -3,8 +3,10 @@
 
 #include <interpolation.h>
 
-#include <orocos/sensor_msgs/typekit/JointState.h>
-#include <orocos/control_msgs/typekit/FollowJointTrajectoryGoal.h>
+#include <sensor_msgs/typekit/JointState.h>
+#include <control_msgs/typekit/FollowJointTrajectoryGoal.h>
+#include <sweetie_bot_kinematics_msgs/typekit/SupportState.h>
+
 
 namespace sweetie_bot {
 namespace motion {
@@ -25,8 +27,15 @@ class JointTrajectoryCache
 		typedef sensor_msgs::JointState JointState;
 		typedef control_msgs::FollowJointTrajectoryGoal FollowJointTrajectoryGoal;
 		typedef control_msgs::JointTolerance JointTolerance;
+		typedef sweetie_bot_kinematics_msgs::SupportState SupportState;
 		typedef alglib::spline1dinterpolant JointSpline;
 		
+	protected:
+		struct SupportPoint {
+			double t;
+			std::vector<double> support;
+			std::vector<std::string> contact;
+		};
 
 	protected:
 
@@ -37,12 +46,16 @@ class JointTrajectoryCache
 
 		std::vector<JointSpline> joint_splines;
 
+		std::vector<std::string> support_names;
+		std::vector<SupportPoint> support_points;
+
 		std::vector<double> path_tolerance; 
 		std::vector<double> goal_tolerance;
 		double goal_time_tolerance;
 		
 	protected:
-		void interpolateTrajectory(const trajectory_msgs::JointTrajectory& trajectory);
+		void loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags, RobotModel * robot_model);
+		void getJointTolerance(const FollowJointTrajectoryGoal& msg);
 
 	public:
 		/**
@@ -123,6 +136,20 @@ class JointTrajectoryCache
 		 **/
 		void selectJoints(const JointState& in_sorted, JointState& out) const;
 
+		/**
+		 * @brief Prepare SupportState message.
+		 * Resize arrays, set names.
+		 * @param support message buffer,
+		 **/
+		void prepareSupportStateBuffer(SupportState& support) const;
+
+		/**
+		 * @brief Get supports' state to buffer of proper size.
+		 * Method does not check message
+		 * @param joints Support state buffer receiving new state
+		 * @param t time in seconds from begining of movement.
+		 **/
+		void getSupportState(double t, SupportState& support) const;
 };
 
 

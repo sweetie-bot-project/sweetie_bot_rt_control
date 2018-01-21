@@ -4,13 +4,15 @@
 #include <rtt/TaskContext.hpp>
 #include <rtt/os/Timer.hpp>
 
-#include <orocos/sensor_msgs/typekit/JointState.h>
-#include <orocos/control_msgs/typekit/FollowJointTrajectoryGoal.h>
+#include <sensor_msgs/typekit/JointState.h>
+#include <control_msgs/typekit/FollowJointTrajectoryGoal.h>
 
 #include <sweetie_bot_logger/logger.hpp>
 #include <sweetie_bot_resource_control/resource_client.hpp>
-#include <sweetie_bot_robot_model/robot_model-simple.hpp>
+#include <sweetie_bot_robot_model/robot_model.hpp>
 #include <sweetie_bot_controller_joint_space/filter_joint_state.hpp>
+
+#include <sweetie_bot_kinematics_msgs/typekit/SupportState.h>
 
 #include "joint_trajectory_cache.hpp"
 
@@ -26,6 +28,7 @@ class AnimJointTrajectoryBase : public RTT::TaskContext
 	public:
 		typedef sensor_msgs::JointState JointState;
 		typedef control_msgs::FollowJointTrajectoryGoal FollowJointTrajectoryGoal;
+		typedef sweetie_bot_kinematics_msgs::SupportState SupportState;
 
 	protected:
 		// COMPONENT INTERFACE
@@ -35,6 +38,7 @@ class AnimJointTrajectoryBase : public RTT::TaskContext
 		RTT::InputPort<sensor_msgs::JointState> in_joints_port;
 		// PORTS: output
 		RTT::OutputPort<sensor_msgs::JointState> out_joints_port;
+		RTT::OutputPort<sweetie_bot_kinematics_msgs::SupportState> out_supports_port;
 		// PROPERTIES
 		double period;
 	protected:
@@ -55,6 +59,7 @@ class AnimJointTrajectoryBase : public RTT::TaskContext
 		JointState actual_fullpose; //< buffer for input port in_joints_port
 		JointState actual_pose; //< controlled joints actual positions
 		JointState ref_pose; //< controlled joints reference positions
+		SupportState support_state; //< list of contact
 		
 #ifdef SWEETIEBOT_LOGGER
 		sweetie_bot::logger::SWEETIEBOT_LOGGER log;

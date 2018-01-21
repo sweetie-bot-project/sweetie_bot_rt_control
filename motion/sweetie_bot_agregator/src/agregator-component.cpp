@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <sweetie_bot_orocos_misc/joint_state_check.hpp>
+#include <sweetie_bot_orocos_misc/message_checks.hpp>
 
 using namespace std;
 using namespace RTT;
@@ -50,8 +51,11 @@ bool Agregator::configureHook()
   int n_chains = output_support_state_.name.size();
   // construct joint group index
   chain_index_.clear();
-  for(int i = 0; i < n_chains; i++) 
-	  chain_index_[output_support_state_.name[i]] = i;
+  chain_default_contacts_.clear();
+  for(int i = 0; i < n_chains; i++) {
+    chain_index_[output_support_state_.name[i]] = i;
+	chain_default_contacts_.push_back( robot_model_->getChainDefaultContact(output_support_state_.name[i]) );
+  }
   // get list of all joint names
   output_joint_state_.name = robot_model_->listJoints("");
   int n_joints = output_joint_state_.name.size();
@@ -64,6 +68,7 @@ bool Agregator::configureHook()
   output_joint_state_.velocity.assign(n_joints, 0.0);
   output_joint_state_.effort.assign(n_joints, 0.0);
   output_support_state_.support.assign(n_chains, 0.0);
+  output_support_state_.contact.assign(n_chains, "");
   // set data samples
   output_port_joint_state_.setDataSample(output_joint_state_);
   output_port_support_state_.setDataSample(output_support_state_);
@@ -84,6 +89,7 @@ bool Agregator::setSupportState(std::vector<string> limbs)
 		auto it = chain_index_.find(name);
 		if (it != chain_index_.end()) {
 			output_support_state_.support[it->second] = 1.0;
+			output_support_state_.contact[it->second] = chain_default_contacts_[it->second];
 		}
 		else success = false;
 	}
@@ -144,14 +150,18 @@ void Agregator::updateHook(){
   while ( (input_port_support_state_.read(input_support_state_, false) == NewData) and (req_count < max_requests_per_cycle) )
   {
     req_count++;
-	if (input_support_state_.name.size() != input_support_state_.support.size()) continue; // Message is not valid. Go next.
+	if (!isValidSupportStateNameSupp(input_support_state_)) continue;
 
     for(int j = 0; j < input_support_state_.name.size(); j++)
     {
       auto it = chain_index_.find(input_support_state_.name[j]);
       if (it == chain_index_.end()) continue; // Unknown joint group
 
+	  // copy support value
       output_support_state_.support[it->second] = input_support_state_.support[j];
+	  // copy contact name or repace with default
+	  if (input_support_state_.contact.size()) output_support_state_.contact[it->second] = input_support_state_.contact[j];
+      else output_support_state_.contact[it->second] = chain_default_contacts_[it->second];
 	}
 	publish_support_state = true; // Support state is updated, publish it.
   }

@@ -9,7 +9,7 @@
 
 #include <sweetie_bot_logger/logger.hpp>
 #include <sweetie_bot_resource_control/resource_client.hpp>
-#include <sweetie_bot_robot_model/robot_model-simple.hpp>
+#include <sweetie_bot_robot_model/robot_model.hpp>
 
 namespace sweetie_bot {
 namespace motion {

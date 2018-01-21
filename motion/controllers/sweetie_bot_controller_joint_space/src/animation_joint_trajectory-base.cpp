@@ -26,6 +26,8 @@ AnimJointTrajectoryBase::AnimJointTrajectoryBase(std::string const& name) :
 	// PORTS: output
 	this->addPort("out_joints_ref_fixed", out_joints_port).
 		doc("Reference joint positions for agregator.");
+	this->addPort("out_supports", out_supports_port).
+		doc("Expected contact points for trajectory.");
 	// PROPERTIES
 	this->addProperty("period", period)
 		.doc("Discretization period (s)");
@@ -112,6 +114,7 @@ void AnimJointTrajectoryBase::updateHook()
 		}
 		// get desired pose	
 		bool on_goal = this->goal_active->getJointState(time_from_start, ref_pose);
+		this->goal_active->getSupportState(time_from_start, support_state);
 
 		// perform trajectory smoothing and put result in ref_pose
 		if (filter) filter->update(actual_pose, ref_pose, ref_pose);
@@ -120,6 +123,7 @@ void AnimJointTrajectoryBase::updateHook()
 		operationalHook(on_goal);
 		
 		// publish new reference position
+		if (support_state.name.size() > 0) out_supports_port.write(support_state);
 		out_joints_port.write(ref_pose);
 	}
 	// shift time

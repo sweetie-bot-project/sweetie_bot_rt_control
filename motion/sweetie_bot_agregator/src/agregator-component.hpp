@@ -7,7 +7,7 @@
 #include <sensor_msgs/typekit/JointState.h>
 
 #include <sweetie_bot_logger/logger.hpp>
-#include <sweetie_bot_robot_model/robot_model-simple.hpp>
+#include <sweetie_bot_robot_model/robot_model.hpp>
 
 #include <sweetie_bot_kinematics_msgs/typekit/SupportState.h>
 
@@ -31,6 +31,7 @@ class Agregator : public RTT::TaskContext
     boost::shared_ptr<RobotModel> robot_model_;
 
 	// COMPONENT STATE
+	std::vector<std::string> chain_default_contacts_;
 	// ports buffers
     sensor_msgs::JointState input_joint_state_;
     sensor_msgs::JointState output_joint_state_;
