@@ -17,9 +17,10 @@
   <depend>actionlib</depend>
   <depend>rtt_actionlib</depend>
   <!-- ROS and OROCOS datatypes -->
-  <depend>sweetie_bot_herkulex_msgs</depend>
+  <depend>kdl_msgs</depend>
   <!-- SWEETIEBOT packages -->
   <!-- SWEETIEBOT datatypes -->
+  <depend>sweetie_bot_herkulex_msgs</depend>
   <depend>sweetie_bot_herkulex_msgs_rtt</depend>
 
   <export>
