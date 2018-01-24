@@ -62,7 +62,7 @@ template<class T> T ring_buffer<T>::average_elem() {
 	i = curr_pos;
 	do {
 
-		sum = sum + buf[i];
+		sum = sum + abs(buf[i]);
 
 		i = (i + 1) % _size;
 	} while (i != curr_pos);

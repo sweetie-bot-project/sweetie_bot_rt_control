@@ -322,7 +322,7 @@ bool ServoIdent::startIdentification(std::vector<std::string> names) {
 
 		if (iter == servo_models_data.end()) {
 
-			log(WARN) << "Attempt to identify unknown servo" << names[i] << ". Skipped";
+			log(WARN) << "Attempt to identify unknown servo" << names[i] << ". Skipped" << endlog();
 		} else {
 
 			j = iter->second.index;
