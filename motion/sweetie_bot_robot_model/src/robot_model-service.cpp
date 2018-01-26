@@ -29,8 +29,9 @@ class RobotModelService : public RobotModelInterface, public Service {
 		struct ChainInfo {
 			string name; // joint group name
 			int index_begin; // index of the first joint in group
-			int size; // chain length
-			KDL::Chain kdl_chain; // KDL chain model
+			int size; // chain length (only real joints)
+			int size_virtual; // chain length including fictive joints
+			KDL::Chain kdl_chain; // KDL chain (with virtual joints)
 			string default_contact;
 		};
 		struct ContactInfo {
@@ -113,6 +114,10 @@ class RobotModelService : public RobotModelInterface, public Service {
 			this->addOperation("getChainDefaultContact", &RobotModelService::getChainDefaultContact, this, ClientThread)
 				.doc("Get default contact name for the chain. Return empty string if no default contact supplied.")
 				.arg("chain", "Chain name");
+			this->addOperation("getChainProperty", &RobotModelService::getChainProperty, this, ClientThread)
+				.doc("Get information about kinematic chain: first_link, last_link, last_link_virtual, default_contact.")
+				.arg("chain", "Chain name")
+				.arg("property", "Chain property.");
 
 			this->addOperation("listJoints", &RobotModelService::listJoints, this, ClientThread)
 				.doc("Return the list of joints in given kinematic chain. If chain name is empty return all joints.")
@@ -123,9 +128,6 @@ class RobotModelService : public RobotModelInterface, public Service {
 			this->addOperation("getJointsChains", &RobotModelService::getJointsChains, this, ClientThread)
 				.doc("Returns list of chains names to which the given joints are belongs.")
 				.arg("joints", "List of joints names.");
-			this->addOperation("getChainIndex", &RobotModelService::getChainIndex, this, ClientThread)
-				.doc("Returns position (index) of the given chain in full pose sorted by chains.")
-				.arg("chain", "Chain");
 			this->addOperation("getJointIndex", &RobotModelService::getJointIndex, this, ClientThread)
 				.doc("Returns position (index) of the given joint in full pose sorted by chains and joints.")
 				.arg("joint", "Joint name");
@@ -141,7 +143,9 @@ class RobotModelService : public RobotModelInterface, public Service {
 				.arg("buffer", "Buffer where points are added.");
 
 			this->addOperation("getKDLChain", &RobotModelService::getKDLChain, this, ClientThread)
-				.doc("Get KDL::Chain object. Can form out_of_range exception.");
+				.doc("Get KDL::Chain object.")
+				.arg("chain", "Chain name")
+				.arg("with_virtual_joints", "Add to chain virtual joints.");
 			this->addOperation("getKDLTree", &RobotModelService::getKDLTree, this, ClientThread)
 				.doc("Get KDL::Chain object. Can form out_of_range exception.");
 		}
@@ -202,7 +206,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 
 		bool readChains()
 		{	
-			Property<std::string> first_link, last_link, default_contact;
+			Property<std::string> first_link, last_link, last_link_virtual, default_contact;
 			char joint_num = 0;
 			// clear all buffers
 			joint_names_.clear();
@@ -229,6 +233,9 @@ class RobotModelService : public RobotModelInterface, public Service {
 					log(ERROR) << "Incorrect last_link property." << endlog();
 					return false;
 				}
+				last_link_virtual = chain_bag.rvalue().getProperty("last_link_virtual");
+				if (!last_link_virtual.ready()) last_link_virtual = last_link;
+
 				default_contact = chain_bag.rvalue().getProperty("default_contact");
 				if (default_contact.ready() && contacts_index_.find(default_contact.rvalue()) == contacts_index_.end()) {
 					log(ERROR) << "Unknown contact name: default_contact = " << default_contact.rvalue() << endlog();
@@ -236,7 +243,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 				}
 
 				if (log(DEBUG)) {
-				   log() << chain_bag.getName() << "{ first_link = \"" << first_link.rvalue() << "\", last_link = \"" << last_link.rvalue() << "\"";
+				   log() << chain_bag.getName() << "{ first_link = \"" << first_link.rvalue() << "\", last_link = \"" << last_link.rvalue() << "\", last_link_virtual = \"" << last_link_virtual.rvalue() << "\"";
 				   if (default_contact.ready()) log() << ", default_contact = \"" << default_contact.rvalue() << "\"";
 				   log() << " }" << endlog();
 				}
@@ -255,20 +262,32 @@ class RobotModelService : public RobotModelInterface, public Service {
 				chain_info.name = chain_bag.getName();
 				// set default contact if present
 				if (default_contact.ready()) chain_info.default_contact = default_contact.rvalue();
-				// get kdl_chain
-				if (!tree_.getChain( first_link, last_link, chain_info.kdl_chain )) {
-					this->log(ERROR) << "Unable to construct chain " << chain_bag.getName() << "{ first_link = \"" << first_link.rvalue() << "\", last_link = \"" << last_link.rvalue() << "\" }" << endlog();
+				// get kdl_chains
+				if (!tree_.getChain( first_link, last_link_virtual, chain_info.kdl_chain )) {
+					this->log(ERROR) << "Unable to construct chain " << chain_bag.getName() << "{ first_link = \"" << first_link.rvalue() << "\", last_link = \"" << last_link_virtual.rvalue() << "\" }" << endlog();
 					return false;
 				}
 				// joints numbers
 				chain_info.index_begin = joint_names_.size();
-				chain_info.size = chain_info.kdl_chain.getNrOfSegments();
+				chain_info.size_virtual = chain_info.kdl_chain.getNrOfSegments();
 
 				// fill up joints list
-				for(int j = 0; j < chain_info.kdl_chain.getNrOfSegments(); j++) {
-					const string& name = chain_info.kdl_chain.getSegment(j).getJoint().getName();
+				chain_info.size = -1; // size undefined
+				for(int j = 0; j < chain_info.kdl_chain.getNrOfSegments(); j++) { // iterate over all
+					const KDL::Segment& segment = chain_info.kdl_chain.getSegment(j);
+					const string& name = segment.getJoint().getName();
+					if (segment.getJoint().getType() == KDL::Joint::None) {
+						this->log(ERROR) << "Joints of type 'None' is not supported. Joint:  " << name << endlog();
+						return false;
+					}
 					joints_index_[name] = joint_names_.size();
 					joint_names_.push_back(name);
+
+					if (segment.getName() == last_link.rvalue()) chain_info.size = j+1;
+				}
+				if (chain_info.size < 0) {
+					this->log(ERROR) << "Link " << last_link.rvalue() << " is not found between " << first_link.rvalue() << " and " << last_link_virtual.rvalue() << " links" << endlog();
+					return false;
 				}
 			}
 			this->log(INFO) << "Loaded " << chains_info_.size() << " chains and " << joint_names_.size() << " joints." <<endlog();
@@ -335,7 +354,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 			if (it == chains_index_.end()) return vector<string>(); // not found
 			const ChainInfo& chain_info = chains_info_[it->second];
 			// return joint list
-			return vector<string>(joint_names_.begin() + chain_info.index_begin, joint_names_.begin() + chain_info.index_begin + chain_info.size);
+			return vector<string>(joint_names_.begin() + chain_info.index_begin, joint_names_.begin() + chain_info.index_begin + chain_info.size_virtual);
 		}
 
 		string getJointChain(const string& name) const
@@ -345,7 +364,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 
 			int jpos = it->second;
 			for(const ChainInfo& chain_info : chains_info_) {
-				if ( jpos >= chain_info.index_begin and (jpos < chain_info.index_begin + chain_info.size) ) return chain_info.name; // joint found
+				if ( jpos >= chain_info.index_begin and (jpos < chain_info.index_begin + chain_info.size_virtual) ) return chain_info.name; // joint found
 			}
 			return ""; // joint postion not found!
 		}
@@ -376,22 +395,54 @@ class RobotModelService : public RobotModelInterface, public Service {
 			return (iterator == chains_index_.end()) ? "" : chains_info_[iterator->second].default_contact;
 		}
 
+		string getChainProperty(const string& name, const string& property)
+		{
+			auto iterator = chains_index_.find(name);
+			if (iterator == chains_index_.end()) return "";
+			const ChainInfo& chain = chains_info_[iterator->second];
+		   	// get parameter
+			if (property == "first_link") {
+				KDL::SegmentMap::const_iterator element = tree_.getSegment(chain.kdl_chain.getSegment(0).getName());
+				element = element->second.parent;
+				return element->second.segment.getName();
+			} 
+			else if (property == "last_link") {
+				return chain.kdl_chain.getSegment(chain.size-1).getName();
+			}
+			else if (property == "last_link_virtual") {
+				return chain.kdl_chain.getSegment(chain.size_virtual-1).getName();
+			}
+			else if (property == "default_contact") {
+				return chain.default_contact;
+			}
+			else {
+				log(ERROR) << "getChainProperty: Unknown property " << property << "." << endlog();
+				return "";
+			}
+		}
+
 		int getJointIndex(const string& name) const
 		{
 			auto iterator = joints_index_.find(name);
 			return (iterator == joints_index_.end()) ? -1 : iterator->second;
 		}
 
-		Chain getKDLChain(const string& name) const
+		Chain getKDLChain(const string& name, bool with_virtual_joints) const
 		{
 			auto iterator = chains_index_.find(name);
 			if ( iterator == chains_index_.end() ) {
-				// limb not found
+				// log(ERROR) << "getKDLChain: Unknown chain " << name << "." << endlog();
 				return Chain();
 			}
-			else { 
-				//f ound
-				return chains_info_[iterator->second].kdl_chain;
+
+			const ChainInfo& chain_info = chains_info_[iterator->second];
+			if (with_virtual_joints || chain_info.size == chain_info.size_virtual ) {
+				return chain_info.kdl_chain;
+			}
+			else {
+				KDL::Chain chain;
+				for (int i = 0; i < chain_info.size; i++) chain.addSegment(chain_info.kdl_chain.getSegment(i));
+				return chain;
 			}
 		}
 		

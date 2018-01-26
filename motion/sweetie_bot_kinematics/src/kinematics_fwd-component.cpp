@@ -48,7 +48,7 @@ bool KinematicsFwd::configureHook()
 		KinematicChainData data;
 		// add information about chain
 		// get kinematic chain
-		Chain chain = robot_model->getKDLChain(name);
+		Chain chain = robot_model->getKDLChain(name, false); // we need only real joints
 		if (chain.segments.size() == 0) {
 			this->log(ERROR) << "Kinematic chain " << name << " does not exist." << endlog();
 			continue;
@@ -57,9 +57,9 @@ bool KinematicsFwd::configureHook()
 		//joint induces
 		//TODO make induces calculation more effective 
 		//TODO remove redundancy
-		vector<string> chain_joints = robot_model->listJoints(name);
+		vector<string> chain_joints = robot_model->listJoints(name); // contains fictive joints
 		data.index_begin = robot_model->getJointIndex(chain_joints.front());
-		data.size = chain_joints.size();
+		data.size = chain.getNrOfJoints(); // some joints can be fictive!
 		data.jnt_array_vel.resize(data.size);
 		// solvers
 		// data.fk_solver = make_shared<ChainFkSolverPos_recursive>(chain);
