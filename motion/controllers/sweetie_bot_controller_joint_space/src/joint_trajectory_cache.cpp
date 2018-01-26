@@ -52,18 +52,16 @@ JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajec
 			// std::cout << "name: " << name << " index: " << robot_model->getChainIndex(name) << std::endl;
 			controlled_chains_flags.set(robot_model->getChainIndex(name), true);
 		}
-
 		// std::cout << "controlled_chains_flags: " << controlled_chains_flags << " support_chains_flags: " << support_chains_flags << std::endl;
 
 		std::bitset<max_chains> common_chains_flags = controlled_chains_flags & support_chains_flags;
-		// now add support chains to controlled chains list
+		// Calculate the set of support chains that should be added to required resourses list.
 		support_chains_flags ^= common_chains_flags;
-
-		// then add controlled chains to support states
+		// Calculate the set of controlled chains that is not mentioned in supports.
+		// They are added to support list and assumed to be free.
 		controlled_chains_flags ^= common_chains_flags;
-
 		// std::cout << "controlled_chains_flags: " << controlled_chains_flags << " support_chains_flags: " << support_chains_flags << " common_chains_flags: " << common_chains_flags << std::endl;
-	
+		//
 		for(int i = 0; i < chains_list.size(); i++) {
 			if (support_chains_flags[i]) this->chains.push_back(chains_list[i]);
 			if (controlled_chains_flags[i]) this->support_names.push_back(chains_list[i]);
@@ -86,6 +84,7 @@ void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory
 	int n_samples = trajectory.points.size();
 	if (n_samples < 2) throw::std::invalid_argument("JointTrajectoryCache: trajectory must contains at least 2 samples.");
 	if (trajectory.points[0].time_from_start.toSec() != 0) throw::std::invalid_argument("JointTrajectoryCache: trajectory start time is not equal to zero.");
+	// std::cout << "n_supports = " << n_supports << " n_joints = " << n_joints << std::endl;
 
 	// get contacts names and default contacts
 	std::vector<std::string> contacts_list = robot_model->listContacts();
@@ -124,7 +123,7 @@ void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory
 				if (value < 0.0) value = 0.0;
 				int index = std::floor(value);
 
-				if (support <= 1.0 || index >= contacts_list.size()) {
+				if (value <= 1.0 || index >= contacts_list.size()) {
 					// default contact 
 					support_points[k].support[support] = value;
 					support_points[k].contact[support] = default_contacts_list[support];
@@ -264,6 +263,7 @@ void JointTrajectoryCache::prepareSupportStateBuffer(SupportState& support) cons
 {
 	support.name = support_names;
 	support.support.resize(support_names.size());
+	support.contact.resize(support_names.size());
 }
 
 void JointTrajectoryCache::getSupportState(double t, SupportState& support) const
@@ -275,6 +275,7 @@ void JointTrajectoryCache::getSupportState(double t, SupportState& support) cons
 	else index = it - support_points.begin() - 1;
 	// copy support state
 	copy(support_points[index].support.begin(), support_points[index].support.end(), support.support.begin());
+	copy(support_points[index].contact.begin(), support_points[index].contact.end(), support.contact.begin());
 }
 
 } // namespace controller
