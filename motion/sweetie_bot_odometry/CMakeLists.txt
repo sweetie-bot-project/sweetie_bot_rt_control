@@ -25,6 +25,9 @@ else()
         add_definitions(-DSWEETIEBOT_LOGGER=LoggerRTT)
 endif()
 
+### General Dependencies ###
+find_package(Eigen3 REQUIRED)
+include_directories(${eigen3_INCLUDE_DIRS})
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)

@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-#include <Eigen/Core>
+#include <Eigen/Dense>
 #include <Eigen/SVD>
 
 #include <rtt/Component.hpp>
@@ -129,13 +129,16 @@ void Odometry::estimateRigidBodyPose(const std::vector<Vector>& contact_points_b
 	Vector center_point_anchor = Vector::Zero();
 	for( const Vector& p : contact_points_body ) center_point_body += p;
 	for( const Vector& p : contact_points_anchor ) center_point_anchor += p;
-	center_point_anchor = center_point_anchor / n_points;
 	center_point_body = center_point_body / n_points;
+	center_point_anchor = center_point_anchor / n_points;
 
 	// Some debug information
 	if (log(DEBUG)) {
 		log() << "Total " << contact_points_body.size() << " == " << contact_points_anchor.size() << " contact points are registered." << std::endl;
+		log() << "body: " << std::endl;
 		for ( const Vector& v : contact_points_body ) log() << v.x() << " " << v.y() << " " << v.z() << std::endl;
+		log() << "anchor: " << std::endl;
+		for ( const Vector& v : contact_points_anchor ) log() << v.x() << " " << v.y() << " " << v.z() << std::endl;
 		log() << endlog();
 	}
 	// Calculate transform
@@ -149,7 +152,15 @@ void Odometry::estimateRigidBodyPose(const std::vector<Vector>& contact_points_b
 	JacobiSVD<Matrix3d> svd(H, ComputeFullU | ComputeFullV);
 	// rotation
 	Map< Matrix<double,3,3,Eigen::RowMajor> > R(T.M.data);
-	R = svd.matrixV() * svd.matrixU().transpose();
+	// check if V*U' belongs to SO(3)
+	if (svd.matrixV().determinant()*svd.matrixU().determinant() > 0.0) {
+		R = svd.matrixV() * svd.matrixU().transpose();
+	}
+	else {
+		// V*U' contains reflection. Fix it.
+		Vector3d refl(1.0, 1.0, -1.0);
+		R = svd.matrixV() * refl.asDiagonal() * svd.matrixU().transpose();
+	}
 	// translation
 	T.p = center_point_anchor - T.M*center_point_body;
 	if (log(DEBUG)) {
@@ -299,7 +310,7 @@ bool Odometry::integrateBodyPose()
 			too_few_contact_warn_counter += 1;
 		}
 		// do not change pose estimation
-		if (contact_set_changed) updateAnchor(true);
+		if (contact_set_changed) updateAnchor(false);
 		return false;
 	}
 	if (too_few_contact_warn_counter) {
