@@ -424,8 +424,9 @@ void DynamicsInvSimple::publishStateToPorts()
 				// calculate point postion in world coordinates
 				Map<Vector3d>(point_world.data)  = CalcBodyToBaseCoordinates(rbdl_model, Q, contact.body_id, Map<Vector3d>(contact.contact_points[k].data), false);
 				// calculate wrench in world coordinates
-				wrench.force += KDL::Vector(lambda_reserved[point_index], lambda_reserved[point_index+1], lambda_reserved[point_index+2]);
-				wrench.torque += point_world * wrench.force;
+				KDL::Vector force = KDL::Vector(lambda_reserved[point_index], lambda_reserved[point_index+1], lambda_reserved[point_index+2]);
+				wrench.force += force;
+				wrench.torque += point_world * force;
 				// CoP calculation 
 				// PROBLEM: in case of general contact model position of CoP cannot be storedin support structure
 				// so out_support_port is removed. Reaction forces wrenches should be used to calculate CoP position.
