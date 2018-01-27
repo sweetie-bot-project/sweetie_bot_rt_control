@@ -35,8 +35,6 @@ DynamicsInvSimple::DynamicsInvSimple(string const& name) :
 	// output ports
 	this->addPort( "out_joints_accel_sorted", out_joints_accel_port )
 		.doc( "Robot pose in joint space with drives effort and accelerations." );
-	//this->addPort( "out_supports_sorted", out_supports_port )
-	//	.doc( "Weight distribution beetween support legs." );
 	this->addPort( "out_wrenches_fixed", out_wrenches_port )
 		.doc( "Reaction forces for each contact." );
 
@@ -155,11 +153,17 @@ bool DynamicsInvSimple::configureHook()
 	QDot.resize(rbdl_model.qdot_size);
 	QDDot.resize(rbdl_model.qdot_size);
 	tau.resize(rbdl_model.qdot_size);
+	tau_full.resize(rbdl_model.qdot_size);
 	// contacts
-	// reserve memory for contact jacobian: max tree points per contact
+	// reserve memory for contact jacobian: max three points per contact
 	Jc_reserved.resize(9*contacts.size(), rbdl_model.qdot_size); //TODO RT dynamic allocation
 	JcDotQDot_reserved.resize(9*contacts.size()); //TODO RT dynamic allocation
 	lambda_reserved.resize(9*contacts.size());
+	// reserve memory for temporary variables
+	QDot_0.resize(rbdl_model.qdot_size);    // zero vector of qdot_size
+	QDot_0.setZero();
+	Jc_point.resize(3, rbdl_model.qdot_size);   // temporary matrix to hold point jacobian
+
 	// port buffers
 	joints_accel.position.resize(n_fullpose_joints);
 	joints_accel.velocity.resize(n_fullpose_joints);
@@ -260,15 +264,9 @@ void DynamicsInvSimple::updateStateFromPortsBuffers()
 void DynamicsInvSimple::inverseDynamic()
 {
 	// ALL CALCULATIONS IS PERFORMED IN WORLD FRAME!!! 
-	// It is only inertial frame in system.
-	
-	// TODO preallocation?
-	VectorN_t QDDot_0;
-	QDDot_0.setZero(rbdl_model.qdot_size);
-	MatrixXd Jc_point(3, rbdl_model.qdot_size);
+	// It is the only inertial frame in system.
 
-	// update rbdl model: only psition is necessary to calculate jacobian
-	UpdateKinematics(rbdl_model, Q, QDot, QDDot_0); // set acceleration to zero, to calculate dotJc using CalcPointAcceleration()
+	UpdateKinematics(rbdl_model, Q, QDot, QDot_0); // set acceleration to zero, to calculate time derivative of Jc using CalcPointAcceleration()
 
 	// calculate contact jacobian
 	int n_Jc_rows = 0;
@@ -282,7 +280,7 @@ void DynamicsInvSimple::inverseDynamic()
 				CalcPointJacobian(rbdl_model, Q, contact.body_id, point, Jc_point, false);
 				Jc_reserved.middleRows(n_Jc_rows, 3) = Jc_point;
 				// calculate gamma = JcDot*QDot
-				JcDotQDot_reserved.segment<3>(n_Jc_rows) = CalcPointAcceleration(rbdl_model, Q, QDot, QDDot_0, contact.body_id, point, false);
+				JcDotQDot_reserved.segment<3>(n_Jc_rows) = CalcPointAcceleration(rbdl_model, Q, QDot, QDot_0, contact.body_id, point, false);
 				// move index
 				n_Jc_rows += 3;
 			}
@@ -298,77 +296,46 @@ void DynamicsInvSimple::inverseDynamic()
 		}
 	}
 	else {
+		// TODO preallocation? or real time allocator? some operation still reques memory allocation
+		//
 		// submatrices of preallocated objects
 		Map<MatrixXd,0,OuterStride<> > Jc(Jc_reserved.data(), n_Jc_rows, rbdl_model.qdot_size, OuterStride<>(Jc_reserved.outerStride()));
 		Map<VectorXd> JcDotQDot(JcDotQDot_reserved.data(), n_Jc_rows);
 		Map<VectorXd> lambda(lambda_reserved.data(), n_Jc_rows);
-		// TODO preallocation?
-		//MatrixXd JcPInv(rbdl_model.qdot_size, n_Jc_rows); 
-		//MatrixXd Nc(rbdl_model.qdot_size, rbdl_model.qdot_size); 
-		//MatrixXd NcS(rbdl_model.qdot_size, rbdl_model.qdot_size); 
-		VectorXd tau_full(rbdl_model.qdot_size); 
 		
 		// compute SVD decomposition
-		// TODO preallocation? or real time allocator?
-		// TODO resize only on size change
-		Eigen::JacobiSVD<MatrixXd> Jc_decompose(Jc.rows(), Jc.cols(), ComputeThinU | ComputeThinV);
-		// Eigen::ColPivHouseholderQR<MatrixXd> Jc_decompose(Jc.rows(), Jc.cols());
-		Jc_decompose.setThreshold(tolerance);
-		Jc_decompose.compute(Jc);
-		//JcPInv = Jc_decompose.solve(MatrixXd::Identity(n_Jc_rows, n_Jc_rows));
+		Jc_decomposition.setThreshold(tolerance);
+		Jc_decomposition.compute(Jc, ComputeThinU | ComputeThinV);  // reallocate on resize!!!
 
 		// now normalize QDDot to conform contact constarins: Jc*QDDot + JcDot*QDot = 0
-		QDDot -= Jc_decompose.solve(JcDotQDot + Jc*QDDot);
-
+		QDDot -= Jc_decomposition.solve(JcDotQDot + Jc*QDDot);  // allocate for temporary!!!  
 		// solve inverse dynamic: tau_full = H*QDDot + N(Q,QDot)
 		InverseDynamics(rbdl_model, Q, QDot, QDDot, tau_full);
-		
-		// calculate null projector
-		// Nc.setIdentity(rbdl_model.qdot_size, rbdl_model.qdot_size);
-		// Nc -= JcPInv*Jc; 
-	
-		// apply null projector and calcualte tau: Nc*S*tau = Nc*(H*QDDot + N(Q,QDot))
-		// S matrix selects only actuated joints
-		// NcS.setZero();
-		// NcS.bottomRightCorner(rbdl_model.qdot_size-6,rbdl_model.qdot_size-6) = Nc.bottomRightCorner(rbdl_model.qdot_size-6,rbdl_model.qdot_size-6);
-
-		//	
-		// tau -> lambda
-		// Minimize tau, then calculate lambda
-		
-		/*// TODO preallocation? or real time allocator?
-		// TODO resize only on size change
-		//Eigen::LDLT<MatrixXd> NcSLDLT(rbdl_model.qdot_size);
-		Eigen::JacobiSVD<MatrixXd> NcSLDLT(rbdl_model.qdot_size, rbdl_model.qdot_size, ComputeThinU | ComputeThinV);
-		NcSLDLT.compute(NcS);
-		tau = NcSLDLT.solve(Nc*tau_full);
-
-		//now calculate reaction forces: JcT*lambda = H*QDDot + N(Q,QDDot) - tau
-		tau_full -= tau;
-		lambda = JcPInv.transpose()*tau_full;*/
 
 		//
 		// lambda -> tau
 		// Minimize lambda, then calculate tau
 		//
-		// calculate lambda which zeros first 6 elements of tau_full --- uncontrolled DOFs.
-		// Ns*Jc'*lambda = Ns*(H*QDDot + N(Q,QDDot)), Ns selects 6 first rows.
-		// lambda = JcPInv.transpose().leftCols<6>() * tau_full.head<6>(); // INCORRECT: this also tries to minimize inpact on tau.
-		// TODO preallocation? or real time allocator?
-		// TODO resize only on size change
-		//ColPivHouseholderQR<MatrixXd> JcT6_decompose(6, n_Jc_rows); // TODO Why it gives different results?
-		JacobiSVD<MatrixXd> JcT6_decompose(6, Jc.rows(), ComputeThinU | ComputeThinV);
-		JcT6_decompose.compute(Jc.transpose().topRows<6>());
-		lambda = JcT6_decompose.solve(tau_full.head<6>());
+		JcT6_decomposition.compute(Jc.transpose().topRows<6>(), ComputeThinU | ComputeThinV); // reallocate on resize
+
+		// calculate lambda that zeros first 6 elements of tau_full --- uncontrolled DOFs.
+		// Ns*Jc'*lambda = Ns*(H*QDDot + N(Q,QDDot)), where Ns selects 6 first rows.
+		lambda = JcT6_decomposition.solve(tau_full.head<6>());
 
 		// calculate coresponding tau
 		// tau = H*QDDot + N(Q,QDDot) - Jc'*lambda
-		tau = tau_full - Jc.transpose()*lambda;
+		tau = tau_full - Jc.transpose()*lambda;  // allocate for temporary!!!
+
+		// check if motion eqution is really fullfilled
+		if ( ! tau.head<6>().isZero(tolerance) ) {
+			log(WARN) << "Unable to achive control goal! tau_full residual: " << tau.head<6>().transpose() << endlog();
+		}
 
 		// FINISED!
 		if(log(DEBUG)) {
-			log(DEBUG) << "Simple WBC: QDot_size = " << rbdl_model.qdot_size << " Jc_rows = " << n_Jc_rows << " Jc_rank = " << Jc_decompose.rank() << endlog();
-			//calulate dignostics
+			log(DEBUG) << "Simple WBC: QDot_size = " << rbdl_model.qdot_size << " Jc_rows = " << n_Jc_rows << " Jc_rank = " << Jc_decomposition.rank() << endlog();
+			// calulate dignostics
+			// this cod is really not real-time
 			MatrixXd H(rbdl_model.qdot_size, rbdl_model.qdot_size); 
 			VectorXd N(rbdl_model.qdot_size); 
 			VectorXd err(rbdl_model.qdot_size); 
@@ -385,11 +352,8 @@ void DynamicsInvSimple::inverseDynamic()
 			log(DEBUG) << "Velocity constraints residual: " << cerr.norm() << endlog();
 			cerr = Jc*QDDot + JcDotQDot;
 			log(DEBUG) << "Acceleration constraints residual: " << cerr.norm() << endlog();
-			//log(DEBUG) << "Q = " << std::endl << Q << "\nQDot = " << std::endl << QDot << "\nNc*QDot = " << std::endl << Nc*QDot << "\nQDDot = " << std::endl << QDDot << endlog();
 			log(DEBUG) << "Q = [\n" << Q << " ];\nQDot = [\n" << QDot << " ];\nQDDot = [\n" << QDDot << " ];" << endlog();
 			log(DEBUG) << "tau = [\n" << tau << " ];\ntau_full = [\n" << tau_full + tau << " ];\nlambda = [\n"  << lambda  << " ];" << endlog();
-			//log(DEBUG) << "Jc = " << std::endl << Jc << "\nJcPinv = " << JcPInv<< "\nNcS = " << NcS <<  endlog();
-			//log(DEBUG) << "Jc = " << std::endl << Jc << "\nJcPinv = " << JcPInv <<  endlog();
 			log(DEBUG) << "Jc = [\n" << Jc << "]; " <<  endlog();
 			log(DEBUG) << "H = [\n" << H << " ];\nN = [ " << N << " ];" <<  endlog();
 		}
@@ -412,6 +376,7 @@ void DynamicsInvSimple::publishStateToPorts()
 
 	// wrenches calculations is performed in world coordinates
 	int point_index = 0;
+	wrenches.header.stamp = joints_accel.header.stamp;
 	wrenches.wrench.clear(); // has the same fields' order as legs array
 	//double reaction_force_z_total = 0.0;
 	for( ContactState& contact : contacts ) {
@@ -470,7 +435,9 @@ void DynamicsInvSimple::stopHook()
 
 void DynamicsInvSimple::cleanupHook() 
 {
-	// buffer cleanup?
+	// delete model
+	rbdl_model = Model();
+
 	this->log(INFO) << "DynamicsInvSimple is cleaned up." <<endlog();
 }
 

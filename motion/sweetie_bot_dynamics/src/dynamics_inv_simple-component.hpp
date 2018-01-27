@@ -1,11 +1,11 @@
 #ifndef OROCOS_SWEETIE_BOT_DYNAMICS_INV_SIMPLE_COMPONENT_HPP
-#define OROCOS_SWEETIE_BOT_DYNAMICS_INV_SIMPLE_COMPONENT_HPP
 
 #include <rtt/RTT.hpp>
 #include <rtt/os/Timer.hpp>
 
 #include <rbdl/rbdl.h>
 
+#include <kdl_msgs/typekit/Twist.h>
 #include <geometry_msgs/typekit/WrenchStamped.h>
 #include <sensor_msgs/typekit/JointState.h>
 
@@ -60,13 +60,22 @@ class DynamicsInvSimple : public RTT::TaskContext
 		VectorN_t Q;          // pose
 		VectorN_t QDot;       // generalized speed
 		VectorN_t QDDot;      // generalized accel
-		VectorN_t tau;        // generalized forces
+		VectorN_t tau;        // motor torques (first 6 element are always zero)
+		VectorN_t tau_full;   // full vector of generalized forces
 
 		// contact model
 		std::vector<ContactState> contacts; // contact list
 		MatrixN_t Jc_reserved; // contact jacobian buffer
 		VectorN_t JcDotQDot_reserved; // contact jacobian buffer
 		VectorN_t lambda_reserved;     // Lagrangian multiplers
+
+		// calculation temporary variables
+		VectorN_t QDot_0;    // zero vector of qdot_size
+		MatrixN_t Jc_point;   // temporary matrix to hold point jacobian
+		// linear equation solvers
+		Eigen::JacobiSVD<Eigen::MatrixXd> Jc_decomposition;
+		Eigen::JacobiSVD<Eigen::MatrixXd> JcT6_decomposition;
+		//ColPivHouseholderQR<MatrixXd> JcT6_solver; // TODO Why it gives different results?
 
 		// joint index: fullpose induces of rbdl joints
 		std::vector<int> joint_index;
@@ -75,7 +84,7 @@ class DynamicsInvSimple : public RTT::TaskContext
 		// buffers
 		sensor_msgs::JointState joints;
 		sweetie_bot_kinematics_msgs::JointStateAccel joints_accel;
-		sweetie_bot_kinematics_msgs::RigidBodyState base;
+		sweetie_bot_kinematics_msgs::RigidBodyState base;	
 		sweetie_bot_kinematics_msgs::SupportState supports;
 		sweetie_bot_kinematics_msgs::RigidBodyState wrenches;
 
