@@ -80,7 +80,7 @@ class DynamicsVisualizer
 			supports_sub = node_handler.subscribe<SupportState>("supports", 1, &DynamicsVisualizer::callbackSupportsSub, this);
 			// output
 			markers_pub = node_handler.advertise<MarkerArray>("marker_array", 2);
-			joints_pub = node_handler.advertise<JointState>("joint_state", 1);	
+			joints_pub = node_handler.advertise<JointState>("joint_efforts", 1);	
 
 			// get node parameters
 			if (!ros::param::get("~robot_model_namespace", robot_model_ns_param)) {
