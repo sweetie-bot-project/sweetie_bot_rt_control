@@ -306,7 +306,8 @@ bool Odometry::integrateBodyPose()
 	if (n_points < 3 ) {
 		if (n_points > 0) {
 			// warn if we have only one or two points
-			if (!too_few_contact_warn_counter) log(WARN) << "Too few contact points. Skiped iterations. " << endlog();
+			if (!too_few_contact_warn_counter) log(WARN) << "Too few contact points. Start skipping iterations. " << endlog();
+			if (too_few_contact_warn_counter % 100 == 0) log(WARN) << "Too few contact points. " << too_few_contact_warn_counter << " iterations are skipped." << endlog();
 			too_few_contact_warn_counter += 1;
 		}
 		// do not change pose estimation
@@ -314,7 +315,7 @@ bool Odometry::integrateBodyPose()
 		return false;
 	}
 	if (too_few_contact_warn_counter) {
-		log(WARN) << "Have enough contact points again. " << too_few_contact_warn_counter << " iterations skipped." << endlog();
+		log(WARN) << "Have enough contact points again. Total " << too_few_contact_warn_counter << " iterations skipped." << endlog();
 		too_few_contact_warn_counter = 0;
 	}
 
