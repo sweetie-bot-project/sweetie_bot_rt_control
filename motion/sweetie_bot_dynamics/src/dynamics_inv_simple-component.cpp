@@ -303,7 +303,7 @@ void DynamicsInvSimple::inverseDynamic()
 		Map<VectorXd> JcDotQDot(JcDotQDot_reserved.data(), n_Jc_rows);
 		Map<VectorXd> lambda(lambda_reserved.data(), n_Jc_rows);
 		// TODO preallocation?
-		MatrixXd JcPInv(rbdl_model.qdot_size, n_Jc_rows); 
+		//MatrixXd JcPInv(rbdl_model.qdot_size, n_Jc_rows); 
 		//MatrixXd Nc(rbdl_model.qdot_size, rbdl_model.qdot_size); 
 		//MatrixXd NcS(rbdl_model.qdot_size, rbdl_model.qdot_size); 
 		VectorXd tau_full(rbdl_model.qdot_size); 
@@ -311,13 +311,14 @@ void DynamicsInvSimple::inverseDynamic()
 		// compute SVD decomposition
 		// TODO preallocation? or real time allocator?
 		// TODO resize only on size change
-		Eigen::JacobiSVD<MatrixXd> JcSVD(Jc.rows(), Jc.cols(), ComputeThinU | ComputeThinV);
-		JcSVD.setThreshold(tolerance);
-		JcSVD.compute(Jc);
-		JcPInv = JcSVD.solve(MatrixXd::Identity(n_Jc_rows, n_Jc_rows));
+		Eigen::JacobiSVD<MatrixXd> Jc_decompose(Jc.rows(), Jc.cols(), ComputeThinU | ComputeThinV);
+		// Eigen::ColPivHouseholderQR<MatrixXd> Jc_decompose(Jc.rows(), Jc.cols());
+		Jc_decompose.setThreshold(tolerance);
+		Jc_decompose.compute(Jc);
+		//JcPInv = Jc_decompose.solve(MatrixXd::Identity(n_Jc_rows, n_Jc_rows));
 
 		// now normalize QDDot to conform contact constarins: Jc*QDDot + JcDot*QDot = 0
-		QDDot -= JcPInv*(JcDotQDot + Jc*QDDot);
+		QDDot -= Jc_decompose.solve(JcDotQDot + Jc*QDDot);
 
 		// solve inverse dynamic: tau_full = H*QDDot + N(Q,QDot)
 		InverseDynamics(rbdl_model, Q, QDot, QDDot, tau_full);
@@ -350,11 +351,15 @@ void DynamicsInvSimple::inverseDynamic()
 		// lambda -> tau
 		// Minimize lambda, then calculate tau
 		//
-		// calculate lambda which zeros first 5 elements of tau_full --- uncontrolled DOFs.
+		// calculate lambda which zeros first 6 elements of tau_full --- uncontrolled DOFs.
 		// Ns*Jc'*lambda = Ns*(H*QDDot + N(Q,QDDot)), Ns selects 6 first rows.
-		// tau.head<6>() = tau_full.head<6>(); 
-		// tau.tail(rbdl_model.qdot_size-6).setZero();
-		lambda = JcPInv.transpose().leftCols<6>() * tau_full.head<6>(); // not optimal computations TODO: use submatrices
+		// lambda = JcPInv.transpose().leftCols<6>() * tau_full.head<6>(); // INCORRECT: this also tries to minimize inpact on tau.
+		// TODO preallocation? or real time allocator?
+		// TODO resize only on size change
+		//ColPivHouseholderQR<MatrixXd> JcT6_decompose(6, n_Jc_rows); // TODO Why it gives different results?
+		JacobiSVD<MatrixXd> JcT6_decompose(6, Jc.rows(), ComputeThinU | ComputeThinV);
+		JcT6_decompose.compute(Jc.transpose().topRows<6>());
+		lambda = JcT6_decompose.solve(tau_full.head<6>());
 
 		// calculate coresponding tau
 		// tau = H*QDDot + N(Q,QDDot) - Jc'*lambda
@@ -362,7 +367,7 @@ void DynamicsInvSimple::inverseDynamic()
 
 		// FINISED!
 		if(log(DEBUG)) {
-			log(DEBUG) << "Simple WBC: QDot_size = " << rbdl_model.qdot_size << " Jc_rows = " << n_Jc_rows << " Jc_rank = " << JcSVD.rank() << endlog();
+			log(DEBUG) << "Simple WBC: QDot_size = " << rbdl_model.qdot_size << " Jc_rows = " << n_Jc_rows << " Jc_rank = " << Jc_decompose.rank() << endlog();
 			//calulate dignostics
 			MatrixXd H(rbdl_model.qdot_size, rbdl_model.qdot_size); 
 			VectorXd N(rbdl_model.qdot_size); 
@@ -381,11 +386,12 @@ void DynamicsInvSimple::inverseDynamic()
 			cerr = Jc*QDDot + JcDotQDot;
 			log(DEBUG) << "Acceleration constraints residual: " << cerr.norm() << endlog();
 			//log(DEBUG) << "Q = " << std::endl << Q << "\nQDot = " << std::endl << QDot << "\nNc*QDot = " << std::endl << Nc*QDot << "\nQDDot = " << std::endl << QDDot << endlog();
-			log(DEBUG) << "Q = " << std::endl << Q << "\nQDot = " << std::endl << QDot << "\nQDDot = " << std::endl << QDDot << endlog();
-			log(DEBUG) << "tau = " << std::endl << tau << "\ntau_full = " << std::endl << tau_full + tau << "\nlambda = " << std::endl << lambda  << endlog();
+			log(DEBUG) << "Q = [\n" << Q << " ];\nQDot = [\n" << QDot << " ];\nQDDot = [\n" << QDDot << " ];" << endlog();
+			log(DEBUG) << "tau = [\n" << tau << " ];\ntau_full = [\n" << tau_full + tau << " ];\nlambda = [\n"  << lambda  << " ];" << endlog();
 			//log(DEBUG) << "Jc = " << std::endl << Jc << "\nJcPinv = " << JcPInv<< "\nNcS = " << NcS <<  endlog();
-			log(DEBUG) << "Jc = " << std::endl << Jc << "\nJcPinv = " << JcPInv <<  endlog();
-			log(DEBUG) << "H = " << std::endl << H << "\nN = " << N <<  endlog();
+			//log(DEBUG) << "Jc = " << std::endl << Jc << "\nJcPinv = " << JcPInv <<  endlog();
+			log(DEBUG) << "Jc = [\n" << Jc << "]; " <<  endlog();
+			log(DEBUG) << "H = [\n" << H << " ];\nN = [ " << N << " ];" <<  endlog();
 		}
 	}
 
