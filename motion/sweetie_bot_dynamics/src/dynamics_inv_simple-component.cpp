@@ -245,6 +245,9 @@ void DynamicsInvSimple::updateStateFromPortsBuffers()
 	tf::quaternionKDLToEigen(base.frame[0].M, rot);
 	rot.normalize();
 	Q[3] = rot.x(); Q[4] = rot.y(); Q[5] = rot.z(); Q[rbdl_model.q_size-1] = rot.w();
+	// base acceeleration: twist time derivative
+	QDDot.head<3>() = ( Map<Vector3d>(base.twist[0].vel.data) - QDot.head<3>() ) / period;
+	QDDot.segment<3>(3) = ( Map<Vector3d>(base.twist[0].rot.data) - QDot.segment<3>(3) ) / period;
 	// base twist
 	QDot.head<3>() = Map<Vector3d>(base.twist[0].vel.data);
 	QDot.segment<3>(3) = Map<Vector3d>(base.twist[0].rot.data);
