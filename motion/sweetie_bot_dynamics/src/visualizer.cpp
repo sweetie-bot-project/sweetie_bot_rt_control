@@ -155,7 +155,7 @@ class DynamicsVisualizer
 		void callbackWrenchesSub(const RigidBodyState::ConstPtr& msg) 
 		{
 			unsigned int sz = msg->name.size();
-			if (sz == msg->wrench.size()) {
+			if (sz == msg->wrench.size() && sz == msg->frame.size()) {
 				// buffer message for following vizualization
 				wrenches = *msg;
 			}
@@ -264,26 +264,13 @@ class DynamicsVisualizer
 			marker_zmp.scale.x = point_size_param; marker_zmp.scale.y = point_size_param; marker_zmp.scale.z = 0.0;
 			marker_zmp.color = GREEN;
 
-			// calcualte resulting wrench in base frame (all fields of RigidBodyState are in base frame)
-			KDL::Wrench wrench_sum = KDL::Wrench::Zero();
-			for(int k = 0; k < wrenches.name.size(); k++) {
-				try {
+			// RigidBodyState messge contains all objects in world frame coordinates
+			for(int k = 0; k < wrenches.name.size() - 1; k++) {
 					KDL::Wrench wrench = wrenches.wrench[k];
-					// resultant wrench
-					wrench_sum += wrench;
-					// get transform to limb tip frame
-					std::string frame_id = getContactFrame(wrenches.name[k]);
-					// calculate transform to limb tip frame
-					KDL::Frame T;
-					{
-						tf::StampedTransform tmp;
-						tf_listener.lookupTransform("base_link", frame_id, ros::Time(0), tmp); 
-						tf::TransformTFToKDL(tmp, T);
-					}
+					// move to limb tip 
+					KDL::Vector point = wrenches.frame[k].p;
+					wrench.RefPoint(point); 
 					// wrench visualization
-					KDL::Vector point = T.p; // wrench apply point
-					wrench.RefPoint(point); // move wrench to point
-
 					KDL::Vector point_force = point + wrench.force*force_scale_param; // force visualization
 					KDL::Vector point_torque = point + wrench.torque*torque_scale_param; // torque visualization
 					// add to line list
@@ -291,37 +278,19 @@ class DynamicsVisualizer
 					marker.points.emplace_back(); tf::pointKDLToMsg(point_force, marker.points.back()); marker.colors.push_back(RED);
 					marker.points.emplace_back(); tf::pointKDLToMsg(point, marker.points.back()); marker.colors.push_back(BLUE);
 					marker.points.emplace_back(); tf::pointKDLToMsg(point_torque, marker.points.back()); marker.colors.push_back(BLUE);
-				}
-				catch (tf::TransformException& e) {
-					ROS_ERROR("tf error: %s", e.what());
-					continue;
-				}
-				catch (ros::Exception& e) { // getContactFrame or getContactPoint failed
-					ROS_ERROR("ROS error: %s", e.what());
-					continue;
-				}
 			}
-			// now transfor to world frame and calculate ZMP
-			KDL::Frame world_T_base;
-			try {
-				tf::StampedTransform tmp;
-				tf_listener.lookupTransform("odom_combined", "base_link", ros::Time(0), tmp); 
-				tf::TransformTFToKDL(tmp, world_T_base);
-			}
-			catch (tf::TransformException& e) {
-				ROS_ERROR("tf error: %s", e.what());
-				return;
-			}
-			// transform wrench to world frame
-			wrench_sum = world_T_base * wrench_sum;
+			// base_link wrench is already in world frame and contains summ of reaction forces
 			// now calculate ZMP coordinates if it is possible
 			// contact are assumed to be positioned in z = 0 plane
-			if (wrench_sum.force.z() > 0.0) {
-				KDL::Vector zmp;
-				zmp[0] = - wrench_sum.torque.y() / wrench_sum.force.z();
-				zmp[1] =   wrench_sum.torque.x() / wrench_sum.force.z();
-				// add zmp marker
-				marker_zmp.points.emplace_back(); tf::pointKDLToMsg(zmp, marker_zmp.points.back()); marker_zmp.colors.push_back(MAGENTA);
+			if (wrenches.name.size() > 0 && wrenches.name.back() == "base_link") {
+				KDL::Wrench& wrench_sum = wrenches.wrench.back();
+				if (wrench_sum.force.z() > 0.0) {
+					KDL::Vector zmp;
+					zmp[0] = - wrench_sum.torque.y() / wrench_sum.force.z();
+					zmp[1] =   wrench_sum.torque.x() / wrench_sum.force.z();
+					// add zmp marker
+					marker_zmp.points.emplace_back(); tf::pointKDLToMsg(zmp, marker_zmp.points.back()); marker_zmp.colors.push_back(MAGENTA);
+				}
 			}
 			// publish resulting message
 			markers_pub.publish(marker_array);

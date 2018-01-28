@@ -36,7 +36,7 @@ DynamicsInvSimple::DynamicsInvSimple(string const& name) :
 	this->addPort( "out_joints_accel_sorted", out_joints_accel_port )
 		.doc( "Robot pose in joint space with drives effort and accelerations." );
 	this->addPort( "out_wrenches_fixed", out_wrenches_port )
-		.doc( "Reaction forces for each contact." );
+		.doc( "Reaction forces for each contact. WARNING: in world frame." );
 
 	// properties
 	this->addProperty( "robot_description", robot_description )
@@ -171,7 +171,10 @@ bool DynamicsInvSimple::configureHook()
 	joints_accel.effort.assign(n_fullpose_joints, 0.0);
 	wrenches.header.frame_id = "base_link";
 	wrenches.name = legs;
-	wrenches.wrench.resize(wrenches.name.size());
+	wrenches.name.push_back("base_link");
+	wrenches.frame.reserve(wrenches.name.size());
+	wrenches.twist.reserve(wrenches.name.size());
+	wrenches.wrench.reserve(wrenches.name.size());
 		
 	// data samples
 	out_joints_accel_port.setDataSample(joints_accel);
@@ -380,11 +383,26 @@ void DynamicsInvSimple::publishStateToPorts()
 	// wrenches calculations is performed in world coordinates
 	int point_index = 0;
 	wrenches.header.stamp = joints_accel.header.stamp;
-	wrenches.wrench.clear(); // has the same fields' order as legs array
-	//double reaction_force_z_total = 0.0;
+	// has the same fields' order as legs array
+	wrenches.frame.clear(); 
+	wrenches.twist.clear(); 
+	wrenches.wrench.clear(); 
+
+	// limbs state is publised relative to base_link
+	// base link pose added to the end of message
+	KDL::Wrench wrench_sum = KDL::Wrench::Zero();
 	for( ContactState& contact : contacts ) {
-		KDL::Wrench wrench = KDL::Wrench::Zero();
-		//double reaction_force_z = 0.0;
+		// frame positions
+		KDL::Frame T;
+		Map< Matrix<double,3,3,Eigen::RowMajor> >(T.M.data) = CalcBodyWorldOrientation(rbdl_model, Q, contact.body_id, false);
+		Map<Vector3d>(T.p.data) = CalcBodyToBaseCoordinates(rbdl_model, Q, contact.body_id, Vector3d::Zero(), false);
+		wrenches.frame.emplace_back(base.frame[0].Inverse()*T);
+		// frame velocities
+		SpatialVector_t twist = CalcPointVelocity6D(rbdl_model, Q, QDDot, contact.body_id, Vector3d::Zero(), false);
+		wrenches.twist.emplace_back( base.frame[0].Inverse( KDL::Twist(KDL::Vector(twist[0], twist[1], twist[2]), KDL::Vector(twist[3], twist[4], twist[5])) ) ); // vel, rot
+		// wrences
+		wrenches.wrench.emplace_back(KDL::Wrench::Zero());
+		KDL::Wrench& wrench = wrenches.wrench.back();
 		if (contact.is_active) {
 			int n_points = std::min<unsigned int>(contact.contact_points.size(), 3); // no more, then 3 point per contact
 			for ( int k = 0; k < n_points ; k++ ) {
@@ -395,26 +413,19 @@ void DynamicsInvSimple::publishStateToPorts()
 				KDL::Vector force = KDL::Vector(lambda_reserved[point_index], lambda_reserved[point_index+1], lambda_reserved[point_index+2]);
 				wrench.force += force;
 				wrench.torque += point_world * force;
-				// CoP calculation 
-				// PROBLEM: in case of general contact model position of CoP cannot be storedin support structure
-				// so out_support_port is removed. Reaction forces wrenches should be used to calculate CoP position.
-				// TODO remove commented out code.
-				//reaction_force_z += wrench.force.z();	
 
 				point_index += 3;
 			}
+			wrench_sum += wrench;
+			wrench = base.frame[0].Inverse(wrench);
 		}
-		// assign to RigidBodyState in base_link coordinates
-		wrenches.wrench.push_back(base.frame[0].Inverse(wrench));
-		// assign support coefficients
-		// supports.support[contact.index] = reaction_force_z;
 	}
+	// add base_link pose
+	wrenches.frame.push_back(base.frame[0]);
+	wrenches.twist.push_back(base.twist[0]);
+	wrenches.wrench.push_back(wrench_sum);
 	// publish
 	out_wrenches_port.write(wrenches);
-
-	// supports
-	//for( ContactState& contact : contacts ) supports.support[contact.index] /= reaction_force_z_total;
-	//out_supports_port.write(supports);
 }
 
 
