@@ -51,7 +51,7 @@ bool KinematicsFwd::configureHook()
 		Chain chain = robot_model->getKDLChain(name, false); // we need only real joints
 		if (chain.segments.size() == 0) {
 			this->log(ERROR) << "Kinematic chain " << name << " does not exist." << endlog();
-			continue;
+			return false;
 		}
 		data.name = name;
 		//joint induces
