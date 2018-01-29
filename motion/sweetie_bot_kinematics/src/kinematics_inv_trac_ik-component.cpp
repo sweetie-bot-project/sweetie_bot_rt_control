@@ -3,6 +3,7 @@
 #include <rtt/Component.hpp>
 
 #include <kdl/chainiksolvervel_pinv.hpp>
+#include <kdl/chainiksolvervel_wdls.hpp>
 
 #include <sweetie_bot_orocos_misc/message_checks.hpp>
 #include <sweetie_bot_orocos_misc/joint_state_check.hpp>
@@ -28,12 +29,18 @@ KinematicsInvTracIK::KinematicsInvTracIK(string const& name) : TaskContext(name)
 	this->addProperty( "kinematic_chains", chain_names_ )
 		.doc( "List of kinematic chains for which poses are calculated. Other chains are ignored.");
 	this->addProperty( "max_iterations", max_iterations_ )
-		.doc( "Maximum number of iterations for TracIk solver.")
+		.doc( "Maximum number of iterations for instantaneous IK solver.")
 		.set(100);
-	this->addProperty( "eps", eps_ )
-		.doc( "Singular values less then eps is assumed to be zero. Parameter is used by TracIk and inverse instantaneous solvers.")
+	this->addProperty( "eps_pos", eps_pos_ )
+		.doc( "Singular values less then eps is assumed to be zero. TracIk solver parameter.")
 		.set(1e-4);
-	this->addProperty( "timeout", timeout_ )
+	this->addProperty( "eps_vel", eps_vel_ )
+		.doc( "Singular values less then eps is assumed to be zero. Instantaneous IK solvers parameter.")
+		.set(1e-2);
+	this->addProperty( "zero_vel_at_singularity", zero_vel_at_singularity_ )
+		.doc( "Set velocity to zero near singularity.")
+		.set(true);
+	this->addProperty( "timeout_pos", timeout_ )
 		.doc( "TracIK solver timeout (s).")
 		.set(0.003);
 	this->addProperty( "use_ik_pose_as_new_seed", use_ik_pose_as_new_seed_ )
@@ -82,13 +89,13 @@ bool KinematicsInvTracIK::configureHook()
 		data.jnt_array_seed_pose.resize(data.size);
 		// solvers
 		// instantaneous IK
-		data.ik_vel_solver = make_shared<ChainIkSolverVel_pinv>(chain, eps_, max_iterations_);
+		data.ik_vel_solver = make_shared<KDL::ChainIkSolverVel_pinv>(chain, eps_vel_, max_iterations_);
 		// IK: use URDF to extract joints limits, because robot_model does not provides them
 		// this function tries to access ROS parameter server directly...
-		data.ik_solver = make_shared<TRAC_IK::TRAC_IK>(robot_model_->getChainProperty(name, "first_link"), robot_model_->getChainProperty(name, "last_link_virtual"), "robot_description", timeout_, eps_, TRAC_IK::Speed);
+		data.ik_solver = make_shared<TRAC_IK::TRAC_IK>(robot_model_->getChainProperty(name, "first_link"), robot_model_->getChainProperty(name, "last_link_virtual"), "robot_description", timeout_, eps_pos_, TRAC_IK::Speed);
 		//check if solver initialaized
 		if (!data.ik_solver->getKDLChain(chain)) {
-			log(ERROR) << "Unable to initialize TracIk solver." << endlog();
+			log(ERROR) << "Unable to initialize TracIk solver for chain " << name << ". first_link: " << robot_model_->getChainProperty(name, "first_link") << " last_link_virtual: " << robot_model_->getChainProperty(name, "last_link_virtual") << endlog();
 			return false;
 		}
 		// save data
@@ -163,9 +170,15 @@ bool KinematicsInvTracIK::poseToJointState(const sweetie_bot_kinematics_msgs::Ri
 		}
 		// use computed pose as new seed
 		if (use_ik_pose_as_new_seed_) chain_it->jnt_array_seed_pose = chain_it->jnt_array_pose;
+
 		// pack result into JointState message
 		joints_.position.insert(joints_.position.end(), chain_it->jnt_array_pose.data.data(), chain_it->jnt_array_pose.data.data() + chain_it->size);
 
+		/*// speed calculation	
+		chain_it->jnt_array_vel.data = (chain_it->jnt_array_pose.data - chain_it->jnt_array_seed_pose.data)/0.056;
+		chain_it->jnt_array_seed_pose = chain_it->jnt_array_pose;
+		joints_.velocity.insert(joints_.velocity.end(), chain_it->jnt_array_vel.data.data(), chain_it->jnt_array_vel.data.data() + chain_it->size);*/
+	
 		// check if velocities present
 		if (limbs_.twist.size() != 0) {
 			// instantaneous inverse kinematics
@@ -175,13 +188,20 @@ bool KinematicsInvTracIK::poseToJointState(const sweetie_bot_kinematics_msgs::Ri
 				// fill speed with zeros
 				return false;
 			}
-			// pack result into JointState message
-			joints_.velocity.insert(joints_.velocity.end(), chain_it->jnt_array_pose.data.data(), chain_it->jnt_array_pose.data.data() + chain_it->size);
+			// check singular values 
+			if (zero_vel_at_singularity_ && chain_it->ik_vel_solver->getNrZeroSigmas() > (chain_it->size - 6)) {
+				// set velocity to zero near singularity
+				joints_.velocity.insert(joints_.velocity.end(), chain_it->size, 0.0);
+			}
+			else {
+				// pack result into JointState message
+				joints_.velocity.insert(joints_.velocity.end(), chain_it->jnt_array_vel.data.data(), chain_it->jnt_array_vel.data.data() + chain_it->size);
+			}
 		} 
 		else {
 			// fill with zeros
 			// TODO more effective
-			joints_.velocity.insert(joints_.velocity.end(), 0.0, chain_it->size);
+			joints_.velocity.insert(joints_.velocity.end(), chain_it->size, 0.0);
 		}
 	}
 	return true;
@@ -233,7 +253,7 @@ void KinematicsInvTracIK::updateHook()
 				// failsafe values
 				joints_.name.insert(joints_.name.end(), chain_it->joint_names.begin(), chain_it->joint_names.end());
 				joints_.position.insert(joints_.position.end(), chain_it->jnt_array_seed_pose.data.data(), chain_it->jnt_array_seed_pose.data.data() + chain_it->size);
-				joints_.velocity.insert(joints_.velocity.end(), 0.0, chain_it->size);
+				joints_.velocity.insert(joints_.velocity.end(), chain_it->size, 0.0);
 			}
 		}
 		out_joints_port_.write(joints_);

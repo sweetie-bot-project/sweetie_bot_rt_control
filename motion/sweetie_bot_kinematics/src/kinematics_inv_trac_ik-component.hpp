@@ -2,7 +2,7 @@
 #define OROCOS_SWEETIE_BOT_KINEMATICS_INV_TRAC_IK_COMPONENT_HPP
 
 #include <kdl/chain.hpp>
-#include <kdl/chainiksolver.hpp>
+#include <kdl/chainiksolvervel_pinv.hpp>
 #include <trac_ik/trac_ik.hpp>
 
 #include <rtt/RTT.hpp>
@@ -27,7 +27,7 @@ class KinematicsInvTracIK : public RTT::TaskContext
 			int index_begin; /**< Index of first joint in chain */
 			int size; /**< Kinematic chain length. */
 			shared_ptr<TRAC_IK::TRAC_IK> ik_solver; /**< IK  velocity solver */
-			shared_ptr<KDL::ChainIkSolverVel> ik_vel_solver; /**< IK  velocity solver */
+			shared_ptr<KDL::ChainIkSolverVel_pinv> ik_vel_solver; /**< IK  velocity solver */
 			KDL::JntArray jnt_array_pose; /**< buffer */
 			KDL::JntArray jnt_array_vel; /**< buffer */
 			KDL::JntArray jnt_array_seed_pose; /**< initial approximation for solution */
@@ -43,9 +43,11 @@ class KinematicsInvTracIK : public RTT::TaskContext
 		// properties
 		std::vector<std::string> chain_names_;
 		int max_iterations_;
-		double eps_;
+		double eps_vel_;
+		double eps_pos_;
 		double timeout_;
 		bool use_ik_pose_as_new_seed_;
+		bool zero_vel_at_singularity_;
 		// subservices
 		RobotModel * robot_model_;
 
