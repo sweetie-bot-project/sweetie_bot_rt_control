@@ -47,10 +47,13 @@ KinematicsInvTracIK::KinematicsInvTracIK(string const& name) : TaskContext(name)
 		.doc( "Renew chain seed pose with newly calculated IK pose.")
 		.set(false);
 	// operations
-	this->addOperation("poseToJointState", &KinematicsInvTracIK::poseToJointState, this)
+	this->addOperation("poseToJointState", &KinematicsInvTracIK::poseToJointState, this, OwnThread)
 		.doc("Process IK request syncronously. Unknown chains are ignored. Return true if request succesed. Otherwise result message is incorrect and should be ignored.")
 		.arg("in", "Desired pose and speed of kinematic chains relative to its bases.")
 		.arg("out", "IK result for known kinematic chains");
+	this->addOperation("poseToJointStatePublish", &KinematicsInvTracIK::poseToJointStatePublish, this, OwnThread)
+		.doc("Process IK request syncronously and publish result on out_joints_port. Unknown chains are ignored. Return false if solver fails. In this case seed pose is publised.")
+		.arg("in", "Desired pose and speed of kinematic chains relative to its bases.");
 	// Service: requires
 	robot_model_ = new sweetie_bot::motion::RobotModel(this);
 	this->requires()->addServiceRequester(ServiceRequester::shared_ptr(robot_model_));
@@ -137,13 +140,11 @@ bool KinematicsInvTracIK::startHook()
 	return true;
 }
 
-bool KinematicsInvTracIK::poseToJointState(const sweetie_bot_kinematics_msgs::RigidBodyState& limbs_, sensor_msgs::JointState& joints_) 
-{
-	if ( !isValidRigidBodyStateNameFrame(limbs_)) {
-		log(WARN) << "Incorrect RigidBodyState." << endlog();
-		return false;
-	}
 
+bool KinematicsInvTracIK::poseToJointState_impl(const sweetie_bot_kinematics_msgs::RigidBodyState& limbs_, sensor_msgs::JointState& joints_) 
+{
+	// WARNING! Correct limbs_ message is assumed!
+	
 	// clear message buffer
 	joints_.name.clear();
 	joints_.position.clear();
@@ -165,7 +166,7 @@ bool KinematicsInvTracIK::poseToJointState(const sweetie_bot_kinematics_msgs::Ri
 		// inverse kinematics
 		int ret =  chain_it->ik_solver->CartToJnt(chain_it->jnt_array_seed_pose, limbs_.frame[k], chain_it->jnt_array_pose); //, tolerances);
 		if (ret < 0) {
-			this->log(INFO) << "IK failed with error code: " << ret <<endlog();
+			this->log(DEBUG) << "IK failed with error code: " << ret <<endlog();
 			return false;
 		}
 		// use computed pose as new seed
@@ -173,18 +174,13 @@ bool KinematicsInvTracIK::poseToJointState(const sweetie_bot_kinematics_msgs::Ri
 
 		// pack result into JointState message
 		joints_.position.insert(joints_.position.end(), chain_it->jnt_array_pose.data.data(), chain_it->jnt_array_pose.data.data() + chain_it->size);
-
-		/*// speed calculation	
-		chain_it->jnt_array_vel.data = (chain_it->jnt_array_pose.data - chain_it->jnt_array_seed_pose.data)/0.056;
-		chain_it->jnt_array_seed_pose = chain_it->jnt_array_pose;
-		joints_.velocity.insert(joints_.velocity.end(), chain_it->jnt_array_vel.data.data(), chain_it->jnt_array_vel.data.data() + chain_it->size);*/
 	
 		// check if velocities present
 		if (limbs_.twist.size() != 0) {
 			// instantaneous inverse kinematics
 			ret =  chain_it->ik_vel_solver->CartToJnt(chain_it->jnt_array_pose, limbs_.twist[k], chain_it->jnt_array_vel); 
 			if (ret < 0) {
-				this->log(WARN) << "Instantaneous IK failed with error code: " << ret << endlog();
+				this->log(DEBUG) << "Instantaneous IK failed with error code: " << ret << endlog();
 				// fill speed with zeros
 				return false;
 			}
@@ -207,6 +203,64 @@ bool KinematicsInvTracIK::poseToJointState(const sweetie_bot_kinematics_msgs::Ri
 	return true;
 }
 
+bool KinematicsInvTracIK::poseToJointState(const sweetie_bot_kinematics_msgs::RigidBodyState& limbs_, sensor_msgs::JointState& joints_) {
+	if (!this->isRunning()) {
+		log(ERROR) << "poseToJointState: KinematicsInvTracIK must be running!" << endlog();
+		return false;
+	}
+	// check message 
+	if ( !isValidRigidBodyStateNameFrame(limbs_)) {
+		log(ERROR) << "poseToJointState: Incorrect RigidBodyState." << endlog();
+		return false;
+	}
+	// call IK solver
+	return KinematicsInvTracIK::poseToJointState_impl(limbs_, joints_);
+}
+
+
+bool KinematicsInvTracIK::poseToJointStatePublish(const sweetie_bot_kinematics_msgs::RigidBodyState& limbs_) 
+{
+	if (!this->isRunning()) {
+		log(ERROR) << "poseToJointStatePublish: KinematicsInvTracIK must be running!" << endlog();
+		return false;
+	}
+	// check message 
+	if ( !isValidRigidBodyStateNameFrame(limbs_)) {
+		log(ERROR) << "poseToJointStatePublish: Incorrect RigidBodyState. Joints are not publised." << endlog();
+		return false;
+	}
+
+	// invoke IK solvers, use joints_ as buffer
+	bool success = poseToJointState_impl(limbs_, joints_);
+
+	if (!success) {
+		// IK failed, construct and publish failsafe message
+		// because we have no means to tel requester that IK failed
+		// TODO undublicate code
+
+		// clear message buffer
+		joints_.name.clear();
+		joints_.position.clear();
+		joints_.velocity.clear();
+
+		for (int k = 0; k < limbs_.name.size(); k++) {
+			const std::string& name = limbs_.name[k];
+			// check if chain is known
+			auto chain_it = std::find_if(chain_data_.begin(), chain_data_.end(), [name](const KinematicChainData& data) { return data.name == name; });
+			if (chain_it == chain_data_.end()) {
+				// continue silently
+				break;
+			}
+			// failsafe values
+			joints_.name.insert(joints_.name.end(), chain_it->joint_names.begin(), chain_it->joint_names.end());
+			joints_.position.insert(joints_.position.end(), chain_it->jnt_array_seed_pose.data.data(), chain_it->jnt_array_seed_pose.data.data() + chain_it->size);
+			joints_.velocity.insert(joints_.velocity.end(), chain_it->size, 0.0);
+		}
+	}
+	out_joints_port_.write(joints_);
+
+	return success;
+}
 
 void KinematicsInvTracIK::updateHook()
 {
@@ -225,38 +279,8 @@ void KinematicsInvTracIK::updateHook()
 
 	// Check for IK requests
 	while ( in_limbs_port_.read(limbs_) == NewData ) {
-		// check if message valid
-		if ( !isValidRigidBodyStateNameFrame(limbs_)) {
-			log(WARN) << "Incorrect RigidBodyState message on port in_limbs." << endlog();
-			continue;
-		}
 		// process received message
-		if (!poseToJointState(limbs_, joints_)) {
-			// IK failed, construct and publish failsafe message
-			// because we have no means to tel requester that IK failed
-			
-			// TODO undublicate code
-
-			// clear message buffer
-			joints_.name.clear();
-			joints_.position.clear();
-			joints_.velocity.clear();
-
-			for (int k = 0; k < limbs_.name.size(); k++) {
-				const std::string& name = limbs_.name[k];
-				// check if chain is known
-				auto chain_it = std::find_if(chain_data_.begin(), chain_data_.end(), [name](const KinematicChainData& data) { return data.name == name; });
-				if (chain_it == chain_data_.end()) {
-					// continue silently
-					break;
-				}
-				// failsafe values
-				joints_.name.insert(joints_.name.end(), chain_it->joint_names.begin(), chain_it->joint_names.end());
-				joints_.position.insert(joints_.position.end(), chain_it->jnt_array_seed_pose.data.data(), chain_it->jnt_array_seed_pose.data.data() + chain_it->size);
-				joints_.velocity.insert(joints_.velocity.end(), chain_it->size, 0.0);
-			}
-		}
-		out_joints_port_.write(joints_);
+		poseToJointStatePublish(limbs_);
 	}
 
 }

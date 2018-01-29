@@ -65,9 +65,12 @@ class KinematicsInvTracIK : public RTT::TaskContext
 #else
 		sweetie_bot::logger::LoggerRTT log;
 #endif
-	public:
+	protected:
+		bool poseToJointState_impl(const sweetie_bot_kinematics_msgs::RigidBodyState& in, sensor_msgs::JointState& out); 
+
 		// operations
 		bool poseToJointState(const sweetie_bot_kinematics_msgs::RigidBodyState& in, sensor_msgs::JointState& out); 
+		bool poseToJointStatePublish(const sweetie_bot_kinematics_msgs::RigidBodyState& in); 
 
 	public:
 
