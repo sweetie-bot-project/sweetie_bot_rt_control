@@ -10,7 +10,6 @@ ros.import("rtt_rosparam");
 
 require("print");
 import("sweetie_bot_robot_model");
-
 import("sweetie_bot_kinematics");
 
 # Logger
@@ -19,20 +18,32 @@ log4cpp.default_root_category = "sweetie_bot.motion";
 log4cpp.configure(ros.find("sweetie_bot_kinematics") + "/scripts/config.log4cpp"); # load configuration from file
 log4cpp.addRosAppender("sweetie_bot", 20); # redirect sweetie_bot to /rosout
 
-loadComponent("sweetie_bot_kinematics", "sweetie_bot::motion::Kinematics");
+# inverse kinematics
+loadComponent("sweetie_bot_kinematics", "sweetie_bot::motion::KinematicsInvTracIK");
 loadService("sweetie_bot_kinematics","rosparam");
 loadService("sweetie_bot_kinematics","marshalling"); # Поддержка исполнения скриптов и загрузки xml/cpf файлов
+loadService("sweetie_bot_kinematics","robot_model"); # предоставяет robot_model сам себе
+connectServices("sweetie_bot_kinematics", "sweetie_bot_kinematics")
 
 # Загружаем параметры из xml файла.
-sweetie_bot_kinematics.marshalling.loadProperties(ros.find("sweetie_bot_proto2_description") + "/robots/chains.cpf");
+sweetie_bot_kinematics.marshalling.loadServiceProperties(ros.find("sweetie_bot_deploy") + "/motion_core/kinematic_chains.cpf","robot_model");
 sweetie_bot_kinematics.rosparam.getParam("/", "robot_model");
+sweetie_bot_kinematics.robot_model.configure()
+sweetie_bot_kinematics.kinematic_chains = strings("leg1","leg2")
+
+# forward kinematics
+loadComponent("sweetie_bot_kinematics_fwd", "sweetie_bot::motion::KinematicsFwd");
+connectServices("sweetie_bot_kinematics_fwd", "sweetie_bot_kinematics")
+sweetie_bot_kinematics_fwd.kinematic_chains = strings("leg1","leg2")
 
 # Create ROS mapping
 stream("sweetie_bot_kinematics.in_joints_seed_sorted", ros.topic("/kinematics/input_joint_seed"));
-stream("sweetie_bot_kinematics.in_joints_sorted", ros.topic("/kinematics/input_joint_state"));
+stream("sweetie_bot_kinematics_fwd.in_joints_sorted", ros.topic("/kinematics/input_joint_state"));
 stream("sweetie_bot_kinematics.in_limbs", ros.topic("/kinematics/input_limb_state"));
 stream("sweetie_bot_kinematics.out_joints", ros.topic("/kinematics/output_joint_state"));
-stream("sweetie_bot_kinematics.out_limbs", ros.topic("/kinematics/output_limb_state"));
+stream("sweetie_bot_kinematics_fwd.out_limbs_fixed", ros.topic("/kinematics/output_limb_state"));
 
 sweetie_bot_kinematics.configure();
 sweetie_bot_kinematics.start();
+sweetie_bot_kinematics_fwd.configure();
+sweetie_bot_kinematics_fwd.start();
