@@ -35,7 +35,8 @@ namespace controller {
 
 FollowStance::FollowStance(std::string const& name)  : 
 	TaskContext(name, RTT::base::TaskCore::PreOperational),
-	log(logger::categoryFromComponentName(name))
+	log(logger::categoryFromComponentName(name)),
+	poseToJointStatePublish("poseToJointStatePublish", this->engine()) // operation caller
 {
 	// ports
 	this->addPort("in_limbs", in_limbs_port)
@@ -66,9 +67,15 @@ FollowStance::FollowStance(std::string const& name)  :
 	this->addProperty("Kd", Kv)
 		.doc("PD regulator coefficient.")
 		.set(2);
+	this->addProperty("base_pose_feedback", base_pose_feedback)
+		.doc("If it is false component ignores in_base_port after receving initial pose. Reference trajectory is calculated without any feedback. In most cases this way is more robust. "
+				"To comform kinematic constraints inverse kinematics should be connected syncronously via poseToJointStatePublish operation. ")
+		.set(false);
 	// operations: provided
 	this->addOperation("rosSetOperational", &FollowStance::rosSetOperational, this)
 		.doc("ROS compatible start/stop operation (std_srvs::SetBool).");
+	// operations: required
+	this->requires()->addOperationCaller(poseToJointStatePublish); // kinematics service
 
 	// Service: reqires
 	robot_model = new sweetie_bot::motion::RobotModel(this);
@@ -160,6 +167,17 @@ bool FollowStance::configureHook()
 		return false;
 	}
 
+	// check poseToJointStatePublish caller
+	if (poseToJointStatePublish.ready()) {
+		log(INFO) << "poseToJointStatePublish operation is connected. Syncronous IK interface is used." << endlog();
+	}
+	else {
+		log(INFO) << "poseToJointStatePublish operation is disconnected. Asyncronous IK interface via port is used." << endlog();
+		if (!base_pose_feedback) {
+			log(WARN) << "Controller is running without any feedback. Connect operation to stop pose integration if kinematic constrains are violated." << endlog();
+		}
+	}
+
 	// allocate memory
 	int n_chains = support_legs.size();
 	limbs.name = support_legs;
@@ -168,7 +186,10 @@ bool FollowStance::configureHook()
 	limbs.wrench.resize(n_chains);
 	base.name.resize(1);
 	base.frame.resize(1);
-	base.wrench.resize(1);
+	base.twist.resize(1);
+	base_next.name.resize(1); base_next.name[0] = "base_link";
+	base_next.frame.resize(1);
+	base_next.twist.resize(1);
 	supports.name = support_legs;
 	supports.contact.resize(n_chains);
 	supports.support.resize(n_chains);
@@ -176,7 +197,7 @@ bool FollowStance::configureHook()
 	// data samples
 	out_supports_port.setDataSample(supports);
 	out_limbs_ref_port.setDataSample(limbs);
-	out_base_ref_port.setDataSample(base);
+	out_base_ref_port.setDataSample(base_next);
 
 	log(INFO) << "FollowStance is configured !" << endlog();
 	return true;
@@ -185,7 +206,7 @@ bool FollowStance::configureHook()
 bool FollowStance::startHook()
 {
 	if (!setupSupports(support_legs)) return false;
-
+	ik_success = true;
 	resource_client->resourceChangeRequest(support_legs);
 
 	// data samples
@@ -275,26 +296,21 @@ void FollowStance::updateHook()
 		// publish support state
 		out_supports_port.write(supports);
 
-		// get base_link pose
-		if (in_base_port.read(base, true) == NoData || !isValidRigidBodyStateFrameTwist(base, 1) || base.name[0] != "base_link") {
-			// no information about robot pose --- skip iteration
-			return;
+		if (base_pose_feedback || !ik_success) {
+			// get base_link pose: this overrides component state
+			if (in_base_port.read(base, true) == NoData || !isValidRigidBodyStateFrameTwist(base, 1) || base.name[0] != "base_link") {
+				// no information about robot pose --- skip iteration
+				return;
+			}
 		}
 
 		// get reference pose
 		{
 			geometry_msgs::PoseStamped pose_stamped;
-			RTT::FlowStatus result = in_base_ref_port.read(pose_stamped, false);
-			switch (result) {
-				case NewData:
+			if (in_base_ref_port.read(pose_stamped, false) == NewData) {
 					// convert to KDL 
 					// TODO sanity checks
 					tf::poseMsgToKDL(pose_stamped.pose, base_ref);
-					break;
-				case OldData:
-				case NoData:
-					// do not touch target
-					break;
 			}
 		}
 		
@@ -306,26 +322,17 @@ void FollowStance::updateHook()
 		double Re_angle;
 		rotationMatrixToAngleAxis(base.frame[0].M.Inverse()*base_ref.M, Re_axis, Re_angle);
 
-		if (log(DEBUG)) {
-			log() << "base.p = " << base.frame[0].p << " base_ref.p =" <<  base_ref.p << " angle_error = " << Re_angle << " angle_axis = " << Re_axis << std::endl;
-			log() << "base.M = \n" << base.frame[0].M << " base_ref.M = \n" << base_ref.M << std::endl;
-			log() << "base.twist = " << base.twist[0] << endlog();
-		}
 		// now calculate acceleration: PD regulators for pe = pr - p and Re 
 		KDL::Twist accel;
 		accel.rot = (-Kv)*base.twist[0].rot + (Kp)*(base_ref.M*(Re_axis*Re_angle));
 		accel.vel = (-Kv)*dp + Kp*(base_ref.p - base.frame[0].p) - accel.rot*base.frame[0].p - base.twist[0].rot*dp;
 		// integrate base_link pose
 		// TODO Is there better way to integrate pose?
-		base.twist[0] += (0.5*period)*accel;
-		KDL::Rotation Rt = KDL::Rot(base.twist[0].rot*period);
-		base.frame[0].M = Rt*base.frame[0].M;
-		base.frame[0].p = Rt*base.frame[0].p + base.twist[0].vel*period;
-		//base.frame[0].M = addDelta(base.frame[0], base.twist[0], period);
-		base.twist[0] += (0.5*period)*accel;
-
-		// TODO synchronous call to kinematics_inv
-		out_base_ref_port.write(base);
+		base_next.twist[0] = base.twist[0] + (0.5*period)*accel;
+		KDL::Rotation Rt = KDL::Rot(base_next.twist[0].rot*period);
+		base_next.frame[0].M = Rt*base.frame[0].M;
+		base_next.frame[0].p = Rt*base.frame[0].p + base_next.twist[0].vel*period;
+		base_next.twist[0] += (0.5*period)*accel;
 
 		// calculate new limb poses
 		KDL::Twist legs_twist = - base.frame[0].Inverse(base.twist[0]); // move to base_link frame and change direction
@@ -334,14 +341,42 @@ void FollowStance::updateHook()
 			limbs.frame[k] =  base_inv * support_leg_anchors[k];
 			limbs.twist[k] = legs_twist;
 		}
-		out_limbs_ref_port.write(limbs);
+		// pass result to kinematics
+		if (poseToJointStatePublish.ready()) {
+			// syncronous interface
+			ik_success = poseToJointStatePublish(limbs);
+			if (ik_success) out_base_ref_port.write(base_next);
+			else  {
+				// do not move base if IK failed
+				base.twist[0] = KDL::Twist::Zero(); 
+				out_base_ref_port.write(base); 
+			}
+		} 
+		else {
+			// async interface: assume always success
+			ik_success = true;;
+			out_base_ref_port.write(base_next);
+			out_limbs_ref_port.write(limbs);
+		}
 
 		if (log(DEBUG)) {
+			log() << "base.p = " << base.frame[0].p << " base_ref.p =" <<  base_ref.p << " angle_error = " << Re_angle << " angle_axis = " << Re_axis << std::endl;
+			log() << "base.M = \n" << base.frame[0].M << " base_ref.M = \n" << base_ref.M << std::endl;
+			log() << "base.twist = " << base.twist[0] << std::endl;
 			log() << "accel = " << accel << std::endl;
-			log() << "base_new.p = " << base.frame[0].p <<  std::endl;
-			log() << "base_new.M = \n" << base.frame[0].M << std::endl;
-			log() << "base_new.twist = " << base.twist[0] << endlog();
+			log() << "base_new.p = " << base_next.frame[0].p <<  std::endl;
+			log() << "base_new.M = \n" << base_next.frame[0].M << std::endl;
+			log() << "base_new.twist = " << base_next.twist[0] << std::endl;
+			log() << "ik_success = " << ik_success << " sync_mode = " << poseToJointStatePublish.ready() << endlog();
 		}
+
+		if (ik_success && !base_pose_feedback) {
+			// kinematics succesed and we are working without feedback (in_base_port is ignored)
+			// store result base_link pose to use at the next time step
+			base.frame[0] = base_next.frame[0];
+			base.twist[0] = base_next.twist[0];
+		}
+
 	}
 	else if (state == ResourceClient::NONOPERATIONAL) {
 		log(INFO) << "FollowStance is exiting  operational state !" << endlog();

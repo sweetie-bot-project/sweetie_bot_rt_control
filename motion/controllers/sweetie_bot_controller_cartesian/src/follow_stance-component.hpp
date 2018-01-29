@@ -43,11 +43,13 @@ class FollowStance : public RTT::TaskContext
 		double Kp;
 		double Kv;
 		double period;
+		bool base_pose_feedback;
 
 	protected:
 		// OPERATIONS: provides
 		bool rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp);
 		// OPERATIONS: requires
+		RTT::OperationCaller<bool(const sweetie_bot_kinematics_msgs::RigidBodyState&)> poseToJointStatePublish;
 		// SERVICES: provides
 		// SERVICES: required
 		sweetie_bot::motion::RobotModel * robot_model;
@@ -57,9 +59,11 @@ class FollowStance : public RTT::TaskContext
 	protected:
 		// COMPONENT STATE
 		std::vector<KDL::Frame> support_leg_anchors; 
+		bool ik_success;
 		// ports buffers
-		sweetie_bot_kinematics_msgs::RigidBodyState base;
-		KDL::Frame base_ref;
+		sweetie_bot_kinematics_msgs::RigidBodyState base; // current pose
+		sweetie_bot_kinematics_msgs::RigidBodyState base_next; // next pose calucalated by component
+		KDL::Frame base_ref; // reference pose
 		sweetie_bot_kinematics_msgs::RigidBodyState limbs;
 		sweetie_bot_kinematics_msgs::SupportState supports;
 		
