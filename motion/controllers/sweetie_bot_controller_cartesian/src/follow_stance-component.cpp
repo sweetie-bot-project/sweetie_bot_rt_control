@@ -278,6 +278,11 @@ static void rotationMatrixToAngleAxis(const KDL::Rotation& m, KDL::Vector& axis,
 	axis = KDL::Vector((m(2,1) - m(1,2))/s, (m(0,2) - m(2,0))/s, (m(1,0) - m(0,1))/s);
 }
 
+static inline void normalizeQuaternionMsg(geometry_msgs::Quaternion& q) {
+	auto s = std::sqrt(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w);
+	q.x /= s; q.y /= s; q.z /= s; q.w /= s;
+}
+
 void FollowStance::updateHook()
 {
 	// let resource_client do it stuff
@@ -298,6 +303,7 @@ void FollowStance::updateHook()
 
 		if (base_pose_feedback || !ik_success) {
 			// get base_link pose: this overrides component state
+			// if IK failed this is the best behavior
 			if (in_base_port.read(base, true) == NoData || !isValidRigidBodyStateFrameTwist(base, 1) || base.name[0] != "base_link") {
 				// no information about robot pose --- skip iteration
 				return;
@@ -309,7 +315,7 @@ void FollowStance::updateHook()
 			geometry_msgs::PoseStamped pose_stamped;
 			if (in_base_ref_port.read(pose_stamped, false) == NewData) {
 					// convert to KDL 
-					// TODO sanity checks
+					normalizeQuaternionMsg(pose_stamped.pose.orientation);
 					tf::poseMsgToKDL(pose_stamped.pose, base_ref);
 			}
 		}
