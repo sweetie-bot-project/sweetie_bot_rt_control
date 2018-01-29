@@ -10,8 +10,8 @@
 # Creates a component library libkinematics-<target>.so
 # and installs in the directory lib/orocos/sweetie_bot_kinematics/
 #
-#orocos_component(kinematics kinematics-component.hpp kinematics-component.cpp) # ...you may add multiple source files
-#target_link_libraries(kinematics ${catkin_LIBRARIES})
+orocos_component(kinematics_inv_trac_ik kinematics_inv_trac_ik-component.hpp kinematics_inv_trac_ik-component.cpp) # ...you may add multiple source files
+target_link_libraries(kinematics_inv_trac_ik ${catkin_LIBRARIES})
 
 orocos_component(kinematics_fwd kinematics_fwd-component.hpp kinematics_fwd-component.cpp) # ...you may add multiple source files
 #
