@@ -3,6 +3,7 @@
 
 #include <sweetie_bot_kinematics_msgs/SupportState.h>
 #include <sweetie_bot_kinematics_msgs/RigidBodyState.h>
+#include <sweetie_bot_kinematics_msgs/JointStateAccel.h>
 
 namespace sweetie_bot {
 
@@ -41,6 +42,22 @@ inline bool isValidSupportStateNameSupp(const sweetie_bot_kinematics_msgs::Suppo
  * @param sz expected number of elements.
  */
 inline bool isValidSupportStateNameSuppCont(const sweetie_bot_kinematics_msgs::SupportState& msg, int sz = -1);
+
+/** JOINT STATE ACCEL */
+
+/**
+ * Checks if all fields of JointStateAccel are present and have equal sizes. 
+ * If @a sz is provided additinally check if their size is equal to @a sz.
+ * @param sz expected number of joints
+ */
+inline bool isValidJointStateAccelNamePosVelAccelEffort(const sweetie_bot_kinematics_msgs::JointStateAccel& msg, int sz = -1);
+
+/**
+ * Checks if all nonzero length fields of JointState have equal sizes. Fields @a position, @a velocity abd @a acceleration must present. Does not check @a effort.
+ * If @a sz is provided additinally check if their size is equal to @a sz.
+ * @param sz expected number of joints
+ */
+inline bool isValidJointStateAccelPosVelAccel(const sweetie_bot_kinematics_msgs::JointStateAccel& msg, int sz = -1);
 
 }
 

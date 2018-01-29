@@ -227,9 +227,9 @@ void Odometry::estimateVelocity()
 	Aw -= S(center_point) * S(center_point).transpose();
 	// solve equation Aw * w = bw to find angular velocity. Aw is positive semi-definite.
 	Twist body_twist;
-	Map<Vector3d>(body_twist.rot.data) = Aw.ldlt().solve(Map<Vector3d>(bw.data));
+	Map<Vector3d>(body_twist.rot.data) = - Aw.ldlt().solve(Map<Vector3d>(bw.data));
 	// find linear velocity
-	body_twist.vel = avg_speed + center_point*body_twist.rot;	
+	body_twist.vel = - (avg_speed + center_point*body_twist.rot);	
 	// result
 	body_pose.twist[0] = body_pose.frame[0] * body_twist;
 }
@@ -306,7 +306,8 @@ bool Odometry::integrateBodyPose()
 	if (n_points < 3 ) {
 		if (n_points > 0) {
 			// warn if we have only one or two points
-			if (!too_few_contact_warn_counter) log(WARN) << "Too few contact points. Skiped iterations. " << endlog();
+			if (!too_few_contact_warn_counter) log(WARN) << "Too few contact points. Start skipping iterations. " << endlog();
+			if (too_few_contact_warn_counter % 100 == 0) log(WARN) << "Too few contact points. " << too_few_contact_warn_counter << " iterations are skipped." << endlog();
 			too_few_contact_warn_counter += 1;
 		}
 		// do not change pose estimation
@@ -314,7 +315,7 @@ bool Odometry::integrateBodyPose()
 		return false;
 	}
 	if (too_few_contact_warn_counter) {
-		log(WARN) << "Have enough contact points again. " << too_few_contact_warn_counter << " iterations skipped." << endlog();
+		log(WARN) << "Have enough contact points again. Total " << too_few_contact_warn_counter << " iterations skipped." << endlog();
 		too_few_contact_warn_counter = 0;
 	}
 

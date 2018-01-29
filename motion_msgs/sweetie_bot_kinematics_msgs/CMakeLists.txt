@@ -51,6 +51,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   LimbState.msg
+  JointStateAccel.msg
   RigidBodyState.msg
   SupportState.msg
 )

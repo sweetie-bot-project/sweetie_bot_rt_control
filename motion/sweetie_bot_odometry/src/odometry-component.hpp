@@ -5,7 +5,6 @@
 
 #include <kdl/frames.hpp>
 #include <tf2_msgs/typekit/TFMessage.h>
-#include <geometry_msgs/typekit/TwistStamped.h>
 #include <orocos/kdl_typekit/typekit/Types.hpp>
 
 #include <sweetie_bot_logger/logger.hpp>

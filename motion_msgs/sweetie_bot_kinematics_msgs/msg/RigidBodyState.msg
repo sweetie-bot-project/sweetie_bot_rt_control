@@ -9,4 +9,4 @@ Header header
 string[] name
 kdl_msgs/Frame[] frame
 kdl_msgs/Twist[] twist
-#kdl_msgs/Wrench[] wrench
+kdl_msgs/Wrench[] wrench
