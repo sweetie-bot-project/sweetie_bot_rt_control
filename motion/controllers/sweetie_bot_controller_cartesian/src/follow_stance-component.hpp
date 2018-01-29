@@ -30,19 +30,20 @@ class FollowStance : public RTT::TaskContext
 		// COMPONENT INTERFACE
 		//
 		// PORTS: input
-		RTT::InputPort<sweetie_bot_kinematics_msgs::JointStateAccel> in_joints_accel_port;
+		RTT::InputPort<sweetie_bot_kinematics_msgs::RigidBodyState> in_limbs_port;
 		RTT::InputPort<sweetie_bot_kinematics_msgs::RigidBodyState> in_base_port;
 		RTT::InputPort<geometry_msgs::PoseStamped> in_base_ref_port;
 		RTT::InputPort<RTT::os::Timer::TimerId> sync_port;
 		// PORTS: output
-		RTT::OutputPort<kdl_msgs::Twist> out_accel_port;
-		RTT::OutputPort<sensor_msgs::JointState> out_joints_port;
+		RTT::OutputPort<sweetie_bot_kinematics_msgs::RigidBodyState> out_limbs_ref_port;
+		RTT::OutputPort<sweetie_bot_kinematics_msgs::RigidBodyState> out_base_ref_port;
 		RTT::OutputPort<sweetie_bot_kinematics_msgs::SupportState> out_supports_port;
 		// PROPERTIES
 		std::vector<std::string> support_legs;
 		double Kp;
 		double Kv;
 		double period;
+
 	protected:
 		// OPERATIONS: provides
 		bool rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp);
@@ -55,12 +56,11 @@ class FollowStance : public RTT::TaskContext
 
 	protected:
 		// COMPONENT STATE
-		int n_joints_fullpose; // number of joints in full robot model
-		std::vector<int> joint_index;
+		std::vector<KDL::Frame> support_leg_anchors; 
 		// ports buffers
-		sweetie_bot_kinematics_msgs::JointStateAccel joints_accel;
-		sensor_msgs::JointState joints_ref;
 		sweetie_bot_kinematics_msgs::RigidBodyState base;
+		KDL::Frame base_ref;
+		sweetie_bot_kinematics_msgs::RigidBodyState limbs;
 		sweetie_bot_kinematics_msgs::SupportState supports;
 		
 #ifdef SWEETIEBOT_LOGGER
