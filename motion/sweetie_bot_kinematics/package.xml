@@ -2,15 +2,14 @@
   <name>sweetie_bot_kinematics</name>
   <version>1.0.0</version>
   <description>Forward and inverse Kinematics modules for SweetieBot.</description>
-  <maintainer email="unknown@maintainer.com">Unknown Author</maintainer>
+  <maintainer email="fsdfur@gmail.com">mutronics</maintainer>
 
   <license>BSD</license>
 
-  <url type="website">https://gitlab.com/sweetie-bot/sweetie_doc/wikis</url>
+  <url type="website">https://gitlab.com/sweetie-bot/sweetie_doc/wikis/components-kinematics</url>
   <url type="website">https://sweetiebot.net</url>
-  <!-- <url type="bugtracker"></url> -->
 
-  <author>Mutronics</author>
+  <author email="fsdfur@gmail.com">mutronics</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 
