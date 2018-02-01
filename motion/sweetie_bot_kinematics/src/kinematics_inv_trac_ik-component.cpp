@@ -15,7 +15,8 @@ using namespace KDL;
 namespace sweetie_bot {
 namespace motion {
 
-KinematicsInvTracIK::KinematicsInvTracIK(string const& name) : TaskContext(name),
+KinematicsInvTracIK::KinematicsInvTracIK(string const& name) : 
+	TaskContext(name, PreOperational),
 	log(logger::categoryFromComponentName(name))
 {
 	// ports
@@ -77,11 +78,14 @@ bool KinematicsInvTracIK::configureHook()
 		KinematicChainData data;
 		// add information about chain
 		// get kinematic chain
-		Chain chain = robot_model_->getKDLChain(name, true); // we need real and virtual joints
-		if (chain.segments.size() == 0) {
-			this->log(ERROR) << "Kinematic chain " << name << " does not exist." << endlog();
-			return false;
+		// check if chain exist
+		if (robot_model_->getChainIndex(name) < 0) {
+			log(ERROR) << "Chain " << name << " is not registered in robot_model." << endlog();
+			return nullptr;
 		}
+		// get kdl_chain
+		Chain chain = robot_model_->getKDLChain(name, true); // we need real and virtual joints
+
 		data.name = name;
 		//joint induces
 		data.joint_names = robot_model_->listJoints(name); // contains fictive joints
@@ -91,16 +95,10 @@ bool KinematicsInvTracIK::configureHook()
 		data.jnt_array_vel.resize(data.size);
 		data.jnt_array_seed_pose.resize(data.size);
 		// solvers
-		// instantaneous IK
+		// instantaneous IK initialization
 		data.ik_vel_solver = make_shared<KDL::ChainIkSolverVel_pinv>(chain, eps_vel_, max_iterations_);
-		// IK: use URDF to extract joints limits, because robot_model does not provides them
-		// this function tries to access ROS parameter server directly...
-		data.ik_solver = make_shared<TRAC_IK::TRAC_IK>(robot_model_->getChainProperty(name, "first_link"), robot_model_->getChainProperty(name, "last_link_virtual"), "robot_description", timeout_, eps_pos_, TRAC_IK::Speed);
-		//check if solver initialaized
-		if (!data.ik_solver->getKDLChain(chain)) {
-			log(ERROR) << "Unable to initialize TracIk solver for chain " << name << ". first_link: " << robot_model_->getChainProperty(name, "first_link") << " last_link_virtual: " << robot_model_->getChainProperty(name, "last_link_virtual") << endlog();
-			return false;
-		}
+		// IK initialization
+		data.ik_solver = getIKSolver(name, chain);
 		// save data
 		chain_data_.push_back(data);
 	};
@@ -122,6 +120,50 @@ bool KinematicsInvTracIK::configureHook()
 	return true;
 }
 
+
+std::shared_ptr<TRAC_IK::TRAC_IK> KinematicsInvTracIK::getIKSolver(const string& name, const Chain& chain) 
+{
+	int n_joints = chain.getNrOfJoints();
+	// check limit properties
+	Property< std::vector<double> >	q_max_prop = this->getProperty(name + "_q_max");
+	Property< std::vector<double> >	q_min_prop = this->getProperty(name + "_q_min");
+
+	if (q_max_prop.ready() && q_min_prop.ready()) {
+		// check properties sizes
+		if (q_max_prop.rvalue().size() != n_joints || q_min_prop.rvalue().size() != n_joints) {
+			log(ERROR) << "Incorrect " << name << "_q_max or " << name << "_q_min property size." << endlog();
+			return nullptr;
+		}
+		// correct properties: assign its values to JntArrays
+		JntArray q_min(n_joints), q_max(n_joints); 
+		q_min.data = Eigen::Map<Eigen::VectorXd>(&q_min_prop.value().front(), n_joints);
+		q_max.data = Eigen::Map<Eigen::VectorXd>(&q_max_prop.value().front(), n_joints);
+		// init IK
+		return make_shared<TRAC_IK::TRAC_IK>(chain, q_min, q_max, timeout_, eps_pos_, TRAC_IK::Speed);
+	}
+	else {
+		// hard way: use URDF to extract joints limits, because robot_model does not provides them
+		log(INFO) << name << "_q_max and " << name << "_q_min properties are not provided. Load values from URDF model." << endlog();
+		// this function tries to access ROS parameter server directly...
+		// TODO add chain limits to robot_model
+		auto ik_solver = make_shared<TRAC_IK::TRAC_IK>(robot_model_->getChainProperty(name, "first_link"), robot_model_->getChainProperty(name, "last_link_virtual"), "robot_description", timeout_, eps_pos_, TRAC_IK::Speed);
+		// get limits and check if initialization successed
+		JntArray q_min, q_max; 
+		if (!ik_solver->getKDLLimits(q_min, q_max) || q_min.rows() != n_joints || q_max.rows() != n_joints) {
+			log(ERROR) << "Unable to initialize TracIk solver for chain " << name << ". first_link: " << robot_model_->getChainProperty(name, "first_link") << " last_link_virtual: " << robot_model_->getChainProperty(name, "last_link_virtual") << endlog();
+			return nullptr;
+		}
+		// now add properties to component interface
+		std::vector<double> q_min_vec(n_joints);
+		std::vector<double> q_max_vec(n_joints);
+		Eigen::Map<Eigen::VectorXd>(&q_min_vec.front(), n_joints) = q_min.data;
+		Eigen::Map<Eigen::VectorXd>(&q_max_vec.front(), n_joints) = q_max.data;
+		this->properties()->ownProperty( new Property< std::vector<double> >(name + "_q_min", "Lower joints limits", q_min_vec) );
+		this->properties()->ownProperty( new Property< std::vector<double> >(name + "_q_max", "Upper joints limits", q_max_vec) );
+
+		return ik_solver;
+	}
+}
 
 bool KinematicsInvTracIK::startHook()
 {

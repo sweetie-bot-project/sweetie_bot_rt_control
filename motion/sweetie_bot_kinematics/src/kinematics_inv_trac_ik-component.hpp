@@ -67,6 +67,7 @@ class KinematicsInvTracIK : public RTT::TaskContext
 #endif
 	protected:
 		bool poseToJointState_impl(const sweetie_bot_kinematics_msgs::RigidBodyState& in, sensor_msgs::JointState& out); 
+		std::shared_ptr<TRAC_IK::TRAC_IK> getIKSolver(const string& chain_name, const KDL::Chain& kdl_chain);
 
 		// operations
 		bool poseToJointState(const sweetie_bot_kinematics_msgs::RigidBodyState& in, sensor_msgs::JointState& out); 
