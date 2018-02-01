@@ -16,6 +16,7 @@
   <depend>rtt</depend>
   <depend>actionlib</depend>
   <depend>rtt_actionlib</depend>
+  <depend>orocos_kdl</depend>
   <!-- ROS and OROCOS datatypes -->
   <depend>kdl_msgs</depend>
   <!-- SWEETIEBOT packages -->
