@@ -10,6 +10,7 @@
 #include <ros/time.h>
 
 #include <sweetie_bot_orocos_misc/message_checks.hpp>
+#include <sweetie_bot_orocos_misc/math.hpp>
 
 using namespace RTT;
 using namespace KDL;
@@ -373,12 +374,6 @@ bool Odometry::integrateBodyPose()
 	estimateVelocity();
 
 	return true;
-}
-
-
-static inline void normalizeQuaternionMsg(geometry_msgs::Quaternion& q) {
-	auto s = std::sqrt(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w);
-	q.x /= s; q.y /= s; q.z /= s; q.w /= s;
 }
 
 bool Odometry::setIdentity() 
