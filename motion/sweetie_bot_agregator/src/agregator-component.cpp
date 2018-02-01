@@ -66,7 +66,8 @@ bool Agregator::configureHook()
   // reserve memory
   output_joint_state_.position.assign(n_joints, 0.0);
   output_joint_state_.velocity.assign(n_joints, 0.0);
-  output_joint_state_.effort.assign(n_joints, 0.0);
+  //output_joint_state_.effort.assign(n_joints, 0.0);
+  output_joint_state_.effort.clear();
   output_support_state_.support.assign(n_chains, 0.0);
   output_support_state_.contact.assign(n_chains, "");
   // set data samples
@@ -122,7 +123,7 @@ void Agregator::updateHook(){
     req_count++;
     if (!isValidJointStateNamePos(input_joint_state_)) continue; // Message check failed. Go to next.
 
-    publish_joint_state = publish_on_event_;
+    publish_joint_state = publish_on_event_; // publish state only if corecponding publishing policy is set.
 
     for(int j = 0; j < input_joint_state_.name.size(); j++)
     {
@@ -138,14 +139,24 @@ void Agregator::updateHook(){
       //if(input_joint_state_.effort.size() == input_joint_state_.name.size())
         //output_joint_state_.effort[it->second] = input_joint_state_.effort[j];
     }
+
+	if (log(DEBUG)) {
+      log() << "Received pose update for " << input_joint_state_.name.size() << " joints: ";
+      for (int i = 0; i < input_joint_state_.name.size() && i < 3; i++) log() << input_joint_state_.name[i] << ", "; // print first tree joints names
+	  log() << " ..." << endlog();
+	}
   } 
 
   // Check sync port
   RTT::os::Timer::TimerId timer_id;
-  if (sync_port_.read(timer_id) == NewData) publish_joint_state = publish_on_timer_;
+  if (sync_port_.read(timer_id) == NewData) {
+    publish_joint_state = publish_on_timer_;
 
+    log(DEBUG) << "Timer sync event." << endlog();
+  }
+
+  // Check if support state was updated
   bool publish_support_state = false;
-  // Check if support state is updated
   req_count = 0;
   while ( (input_port_support_state_.read(input_support_state_, false) == NewData) and (req_count < max_requests_per_cycle) )
   {
