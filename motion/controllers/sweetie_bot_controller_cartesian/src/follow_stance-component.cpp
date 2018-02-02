@@ -62,12 +62,6 @@ FollowStance::FollowStance(std::string const& name)  :
 		set(legs);
 	this->addProperty("period", period)
 		.doc("Discretization period (s).");
-	this->addProperty("Kp", Kp)
-		.doc("PD regulator coefficient.")
-		.set(1);
-	this->addProperty("Kd", Kv)
-		.doc("PD regulator coefficient.")
-		.set(2);
 	this->addProperty("base_pose_feedback", base_pose_feedback)
 		.doc("If it is false component ignores in_base_port after receving initial pose. Reference trajectory is calculated without any feedback. In most cases this way is more robust. "
 				"To comform kinematic constraints inverse kinematics should be connected syncronously via poseToJointStatePublish operation. ")
@@ -146,7 +140,14 @@ bool FollowStance::setupSupports(const vector<string>& support_legs)
 	}
 
 	// reset target
-	base_ref = base.frame[0];
+	base_ref.frame[0] = base.frame[0];
+	base_ref.twist[0] = KDL::Twist::Zero();
+
+	// reset filters
+	if (!filter->reset(base, period)) {
+		log(ERROR) << "JointState filter reset has failed." << endlog();
+		return false;
+	}
 
 	return true;
 }
@@ -161,6 +162,13 @@ bool FollowStance::configureHook()
 		return false;
 	}
 	resource_client->setResourceChangeHook(boost::bind(&FollowStance::resourceChangedHook, this));
+
+	// check if filter present
+	filter = getSubServiceByType<filter::FilterRigidBodyStateInterface>(this->provides().get());
+	if (!filter) {
+		log(ERROR) << "RigidBodyState filter service is not loaded." << endlog();
+		return false;
+	}
 
 	// check if RobotModel Service presents
 	if (!robot_model->ready() || !robot_model->isConfigured()) {
@@ -188,6 +196,8 @@ bool FollowStance::configureHook()
 	base.name.resize(1);
 	base.frame.resize(1);
 	base.twist.resize(1);
+	base_ref.frame.resize(1);
+	base_ref.twist.resize(1);
 	base_next.name.resize(1); base_next.name[0] = "base_link";
 	base_next.frame.resize(1);
 	base_next.twist.resize(1);
@@ -252,29 +262,12 @@ void FollowStance::updateHook()
 			if (in_base_ref_port.read(pose_stamped, false) == NewData) {
 					// convert to KDL 
 					normalizeQuaternionMsg(pose_stamped.pose.orientation);
-					tf::poseMsgToKDL(pose_stamped.pose, base_ref);
+					tf::poseMsgToKDL(pose_stamped.pose, base_ref.frame[0]);
 			}
 		}
 		
-		// calculate speed of the origin of base_link in world frame
-		KDL::Vector dp = base.twist[0].vel + base.twist[0].rot*base.frame[0].p; // speed of base_link origin
-		// Re = inv(Rr)*R, logm(Re)
-		// calculate matrix log: inv(Rr)*R = exp(S(Re_axis*Re_angle))
-		KDL::Vector Re_axis; 
-		double Re_angle;
-		rotationMatrixToAngleAxis(base.frame[0].M.Inverse()*base_ref.M, Re_axis, Re_angle);
-
-		// now calculate acceleration: PD regulators for pe = pr - p and Re 
-		KDL::Twist accel;
-		accel.rot = (-Kv)*base.twist[0].rot + (Kp)*(base_ref.M*(Re_axis*Re_angle));
-		accel.vel = (-Kv)*dp + Kp*(base_ref.p - base.frame[0].p) - accel.rot*base.frame[0].p - base.twist[0].rot*dp;
-		// integrate base_link pose
-		// TODO Is there better way to integrate pose?
-		base_next.twist[0] = base.twist[0] + (0.5*period)*accel;
-		KDL::Rotation Rt = KDL::Rot(base_next.twist[0].rot*period);
-		base_next.frame[0].M = Rt*base.frame[0].M;
-		base_next.frame[0].p = Rt*base.frame[0].p + base_next.twist[0].vel*period;
-		base_next.twist[0] += (0.5*period)*accel;
+		// apply filter to calculate next pose
+		filter->update(base, base_ref, base_next);
 
 		// calculate new limb poses
 		KDL::Twist legs_twist = - base.frame[0].Inverse(base.twist[0]); // move to base_link frame and change direction
@@ -302,10 +295,14 @@ void FollowStance::updateHook()
 		}
 
 		if (log(DEBUG)) {
-			log() << "base.p = " << base.frame[0].p << " base_ref.p =" <<  base_ref.p << " angle_error = " << Re_angle << " angle_axis = " << Re_axis << std::endl;
-			log() << "base.M = \n" << base.frame[0].M << " base_ref.M = \n" << base_ref.M << std::endl;
+			KDL::Vector Re_axis;
+			double Re_angle;
+			rotationMatrixToAngleAxis(base.frame[0].M.Inverse()*base_ref.frame[0].M, Re_axis, Re_angle);
+
+			log() << "base.p = " << base.frame[0].p << " base_ref.p =" <<  base_ref.frame[0].p << " angle_error = " << Re_angle << " angle_axis = " << Re_axis << std::endl;
+			log() << "base.M = \n" << base.frame[0].M << " base_ref.M = \n" << base_ref.frame[0].M << std::endl;
 			log() << "base.twist = " << base.twist[0] << std::endl;
-			log() << "accel = " << accel << std::endl;
+			//log() << "accel = " << accel << std::endl;
 			log() << "base_new.p = " << base_next.frame[0].p <<  std::endl;
 			log() << "base_new.M = \n" << base_next.frame[0].M << std::endl;
 			log() << "base_new.twist = " << base_next.twist[0] << std::endl;

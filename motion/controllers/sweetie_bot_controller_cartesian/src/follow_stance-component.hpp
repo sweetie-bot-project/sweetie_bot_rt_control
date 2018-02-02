@@ -18,6 +18,7 @@
 #include <sweetie_bot_orocos_misc/simple_action_server.hpp>
 #include <sweetie_bot_resource_control/resource_client.hpp>
 #include <sweetie_bot_robot_model/robot_model.hpp>
+#include <sweetie_bot_controller_cartesian/filter_rigid_body_state.hpp>
 
 namespace sweetie_bot {
 namespace motion {
@@ -55,6 +56,7 @@ class FollowStance : public RTT::TaskContext
 		sweetie_bot::motion::RobotModel * robot_model;
 		// SERVICES: internal interface
 		sweetie_bot::motion::ResourceClientInterface * resource_client;
+		sweetie_bot::motion::filter::FilterRigidBodyStateInterface * filter; // trajectory smoother
 
 	protected:
 		// COMPONENT STATE
@@ -63,7 +65,7 @@ class FollowStance : public RTT::TaskContext
 		// ports buffers
 		sweetie_bot_kinematics_msgs::RigidBodyState base; // current pose
 		sweetie_bot_kinematics_msgs::RigidBodyState base_next; // next pose calucalated by component
-		KDL::Frame base_ref; // reference pose
+		sweetie_bot_kinematics_msgs::RigidBodyState base_ref; // reference pose
 		sweetie_bot_kinematics_msgs::RigidBodyState limbs;
 		sweetie_bot_kinematics_msgs::SupportState supports;
 		
