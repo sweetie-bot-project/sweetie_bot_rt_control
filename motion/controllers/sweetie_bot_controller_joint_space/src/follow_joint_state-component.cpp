@@ -45,6 +45,9 @@ FollowJointState::FollowJointState(std::string const& name)  :
 	this->addPort("out_joints_ref_fixed", out_joints_port).
 		doc("Reference joint positions for agregator.");
 
+	this->addPort("out_supports", out_supports_port).
+		doc("Active contact list. All controlled kinematic chains are assumed free.");
+
 	// properties
 	this->addProperty("controlled_chains", controlled_chains).
 		doc("List of controlled joint groups (kinematic chains, resources).");
@@ -54,6 +57,10 @@ FollowJointState::FollowJointState(std::string const& name)  :
 	this->addProperty("activation_delay", activation_delay).
 		doc("After start wait for activation_delay seconds before start processing input and publish actual pose on out_joints_src_reset.")
 		.set(0.0);
+
+	this->addProperty("publish_supports", publish_supports).
+		doc("Publish list of active contacts. All controlled kinematic chains are assumed free.")
+		.set(true);
 
 	// operations: provided
 	this->addOperation("rosSetOperational", &FollowJointState::rosSetOperational, this)
@@ -105,6 +112,10 @@ bool FollowJointState::formJointIndex(const vector<string>& controlled_chains)
 	ref_pose.velocity.assign(sz, 0);
 	//ref_pose.effort.assign(sz, 0);
 	actual_pose = ref_pose;
+	// supports
+	supports.name = controlled_chains;
+	supports.contact.assign(supports.name.size(), "");
+	supports.support.assign(supports.name.size(), 0.0);
 
 	// set timestamp to delay actual input processing
 	activation_timestamp = os::TimeService::Instance()->getTicks();
@@ -143,6 +154,7 @@ bool FollowJointState::configureHook()
 	// set ports data samples
 	out_joints_port.setDataSample(ref_pose);
 	out_joints_src_reset_port.setDataSample(actual_fullpose);
+	out_supports_port.setDataSample(supports);
 
 	log(INFO) << "FollowJointState is configured !" << endlog();
 	return true;
@@ -175,6 +187,9 @@ bool FollowJointState::resourceChangeHook()
 	// Controller is able to work with arbitrary joint set.
 	// Just rebuild index and continue.
 	if (!formJointIndex(resource_client->listResources())) return false;
+
+	// inform about support state change
+	if (publish_supports) out_supports_port.write(supports);
 
 	// Now we are starting potion. Due to activation_delay 
 	// reference position is not available. So we have to guess it.
@@ -277,6 +292,9 @@ void FollowJointState::updateHook()
 			// publish without smoothing
 			out_joints_port.write(ref_pose);
 		}
+
+		// publish supports
+		//if (publish_supports) out_supports_port.write(supports);
 	}
 	else if (state == ResourceClient::NONOPERATIONAL) {
 		log(INFO) << "FollowJointState is exiting  operational state !" << endlog();

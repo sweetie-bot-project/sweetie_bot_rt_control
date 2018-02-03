@@ -10,6 +10,7 @@
 
 #include <std_srvs/SetBool.h>
 #include <sensor_msgs/typekit/JointState.h>
+#include <sweetie_bot_kinematics_msgs/typekit/SupportState.h>
 
 #include <sweetie_bot_logger/logger.hpp>
 #include <sweetie_bot_resource_control/resource_client.hpp>
@@ -33,10 +34,12 @@ class FollowJointState : public RTT::TaskContext
 		// PORTS: output
 		RTT::OutputPort<sensor_msgs::JointState> out_joints_port;
 		RTT::OutputPort<sensor_msgs::JointState> out_joints_src_reset_port;
+		RTT::OutputPort<sweetie_bot_kinematics_msgs::SupportState> out_supports_port;
 		// PROPERTIES
 		std::vector<std::string> controlled_chains;
 		double activation_delay;
 		double period;
+		bool publish_supports;
 	protected:
 		// OPERATIONS: provides
 		bool rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp);
@@ -67,6 +70,7 @@ class FollowJointState : public RTT::TaskContext
 		sensor_msgs::JointState actual_fullpose; // buffer for input port in_joints_port
 		sensor_msgs::JointState actual_pose; // controlled joints actual position
 		sensor_msgs::JointState ref_pose; // controlled joints ref position
+		sweetie_bot_kinematics_msgs::SupportState supports; // contact list buffer
 		
 #ifdef SWEETIEBOT_LOGGER
 		sweetie_bot::logger::SWEETIEBOT_LOGGER log;
