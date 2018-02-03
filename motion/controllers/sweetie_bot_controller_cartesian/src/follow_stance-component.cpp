@@ -260,9 +260,9 @@ void FollowStance::updateHook()
 		{
 			geometry_msgs::PoseStamped pose_stamped;
 			if (in_base_ref_port.read(pose_stamped, false) == NewData) {
-					// convert to KDL 
-					normalizeQuaternionMsg(pose_stamped.pose.orientation);
-					tf::poseMsgToKDL(pose_stamped.pose, base_ref.frame[0]);
+				// convert to KDL 
+				normalizeQuaternionMsg(pose_stamped.pose.orientation);
+				tf::poseMsgToKDL(pose_stamped.pose, base_ref.frame[0]);
 			}
 		}
 		
@@ -270,8 +270,8 @@ void FollowStance::updateHook()
 		filter->update(base, base_ref, base_next);
 
 		// calculate new limb poses
-		KDL::Twist legs_twist = - base.frame[0].Inverse(base.twist[0]); // move to base_link frame and change direction
-		KDL::Frame base_inv = base.frame[0].Inverse(); 
+		KDL::Twist legs_twist = - base_next.frame[0].Inverse(base_next.twist[0]); // move to base_link frame and change direction
+		KDL::Frame base_inv = base_next.frame[0].Inverse(); 
 		for(int k = 0; k < support_leg_anchors.size(); k++) {
 			limbs.frame[k] =  base_inv * support_leg_anchors[k];
 			limbs.twist[k] = legs_twist;
