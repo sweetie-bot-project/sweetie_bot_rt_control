@@ -54,6 +54,7 @@ add_message_files(
   JointStateAccel.msg
   RigidBodyState.msg
   SupportState.msg
+  BalanceState.msg
 )
 
 ## Generate services in the 'srv' folder
