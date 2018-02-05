@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include <rbdl/rbdl_utils.h>
+
 #include <rtt/Component.hpp>
 #include <rbdl/addons/urdfreader/urdfreader.h>
 #include <ros/time.h>
@@ -36,7 +38,11 @@ DynamicsInvSimple::DynamicsInvSimple(string const& name) :
 	this->addPort( "out_joints_accel_sorted", out_joints_accel_port )
 		.doc( "Robot pose in joint space with drives effort and accelerations." );
 	this->addPort( "out_wrenches_fixed", out_wrenches_port )
-		.doc( "Reaction forces for each contact. WARNING: in world frame." );
+		.doc( "Reaction forces for each contact in base_link frame." );
+	this->addPort( "out_base", out_base_port )
+		.doc( "Base link pose and sum of reaction forces in world frame." );
+	this->addPort( "out_balance", out_balance_port )
+		.doc( "Information about robot balance." );
 
 	// properties
 	this->addProperty( "robot_description", robot_description )
@@ -171,16 +177,22 @@ bool DynamicsInvSimple::configureHook()
 	joints_accel.effort.assign(n_fullpose_joints, 0.0);
 	wrenches.header.frame_id = "base_link";
 	wrenches.name = legs;
-	wrenches.name.push_back("base_link");
 	wrenches.frame.reserve(wrenches.name.size());
 	wrenches.twist.reserve(wrenches.name.size());
 	wrenches.wrench.reserve(wrenches.name.size());
+	base.header.frame_id = "odom_combined";
+	base.name.resize(1);
+	base.frame.resize(1);
+	base.twist.resize(1);
+	base.wrench.resize(1);
+	balance.header.frame_id = "odom_combined";
+	balance.support_points.reserve(wrenches.name.size());
 		
 	// data samples
 	out_joints_accel_port.setDataSample(joints_accel);
-	in_supports_port.getDataSample(supports);
-	//out_supports_port.setDataSample(supports);
 	out_wrenches_port.setDataSample(wrenches);
+	out_base_port.setDataSample(base);
+	out_balance_port.setDataSample(balance);
 
 	this->log(INFO) << "DynamicsInvSimple is configured." <<endlog();
 	return true;
@@ -381,16 +393,19 @@ void DynamicsInvSimple::publishStateToPorts()
 	out_joints_accel_port.write(joints_accel);
 
 	// wrenches calculations is performed in world coordinates
+	// baut at the end of message base_link pose is added in world coordinates
+	// TODO do not add base link pose to the end of message
 	int point_index = 0;
 	wrenches.header.stamp = joints_accel.header.stamp;
-	// has the same fields' order as legs array
+	// wrenches already has the same fields' order as legs array
 	wrenches.frame.clear(); 
 	wrenches.twist.clear(); 
 	wrenches.wrench.clear(); 
-
-	// limbs state is publised relative to base_link
-	// base link pose added to the end of message
-	KDL::Wrench wrench_sum = KDL::Wrench::Zero();
+	base.header.stamp = joints_accel.header.stamp;
+	base.wrench.clear();
+	base.wrench.push_back(KDL::Wrench::Zero());
+	balance.header.stamp = joints_accel.header.stamp;
+	balance.support_points.clear();
 	for( ContactState& contact : contacts ) {
 		// frame positions
 		KDL::Frame T;
@@ -409,6 +424,8 @@ void DynamicsInvSimple::publishStateToPorts()
 				KDL::Vector point_world;
 				// calculate point postion in world coordinates
 				Map<Vector3d>(point_world.data)  = CalcBodyToBaseCoordinates(rbdl_model, Q, contact.body_id, Map<Vector3d>(contact.contact_points[k].data), false);
+				// add to support points list
+				balance.support_points.push_back(point_world);
 				// calculate wrench in world coordinates
 				KDL::Vector force = KDL::Vector(lambda_reserved[point_index], lambda_reserved[point_index+1], lambda_reserved[point_index+2]);
 				wrench.force += force;
@@ -416,16 +433,31 @@ void DynamicsInvSimple::publishStateToPorts()
 
 				point_index += 3;
 			}
-			wrench_sum += wrench;
+			base.wrench[0] += wrench;
 			wrench = base.frame[0].Inverse(wrench);
 		}
 	}
-	// add base_link pose
-	wrenches.frame.push_back(base.frame[0]);
-	wrenches.twist.push_back(base.twist[0]);
-	wrenches.wrench.push_back(wrench_sum);
 	// publish
 	out_wrenches_port.write(wrenches);
+	out_base_port.write(base);
+
+	// balance information
+	// calculte center of mass
+	{ 
+		Vector3_t CoM;
+		Utils::CalcCenterOfMass(rbdl_model, Q, QDot, balance.mass, CoM, nullptr, nullptr, false);
+		Map<Vector3d>(balance.CoM.data) = CoM;
+	}
+	// calculate ZMP (center of pressure)
+	if (base.wrench[0].force.z() > 0) {
+		// calculate ZMP
+		balance.CoP[0] = - base.wrench[0].torque.y() / base.wrench[0].force.z();
+		balance.CoP[1] =   base.wrench[0].torque.x() / base.wrench[0].force.z();
+		balance.CoP[2] =   0.0;
+	}
+	else balance.CoP = balance.CoM;
+	// publish
+	out_balance_port.write(balance);
 }
 
 
