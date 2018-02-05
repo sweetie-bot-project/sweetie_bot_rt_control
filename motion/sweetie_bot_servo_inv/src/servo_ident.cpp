@@ -235,7 +235,7 @@ void ServoIdent::updateHook() {
 			effort_joints.position[j] = joints_measured.position[i];
 			effort_joints.velocity[j] = joints_measured.velocity[i];
 
-			effort_joints.effort[j] = (
+			effort_joints.effort[j] = joints->effort[j] - (
 				servo_models[j].kp*battery_voltage * (
 					-(joints->position[j] - joints_measured.position[i])
 				)
@@ -322,7 +322,7 @@ bool ServoIdent::startIdentification(std::vector<std::string> names) {
 
 		if (iter == servo_models_data.end()) {
 
-			log(WARN) << "Attempt to identify unknown servo" << names[i] << ". Skipped" << endlog();
+			log(WARN) << "Attempt to identify unknown servo " << names[i] << ". Skipped" << endlog();
 		} else {
 
 			j = iter->second.index;
