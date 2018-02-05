@@ -15,6 +15,7 @@
 #include <sweetie_bot_kinematics_msgs/JointStateAccel.h>
 #include <sweetie_bot_kinematics_msgs/SupportState.h>
 #include <sweetie_bot_kinematics_msgs/RigidBodyState.h>
+#include <sweetie_bot_kinematics_msgs/BalanceState.h>
 
 
 struct ColorRGBAInit : public std_msgs::ColorRGBA
@@ -33,6 +34,7 @@ class DynamicsVisualizer
 		typedef sweetie_bot_kinematics_msgs::JointStateAccel JointStateAccel;
 		typedef sweetie_bot_kinematics_msgs::SupportState SupportState;
 		typedef sweetie_bot_kinematics_msgs::RigidBodyState RigidBodyState;
+		typedef sweetie_bot_kinematics_msgs::BalanceState BalanceState;
 		typedef visualization_msgs::MarkerArray MarkerArray;
 		typedef visualization_msgs::Marker Marker;
 
@@ -41,6 +43,7 @@ class DynamicsVisualizer
 		static const ColorRGBAInit GREEN;
 		static const ColorRGBAInit MAGENTA;
 		static const ColorRGBAInit BLUE;
+		static const ColorRGBAInit LIGHT_BLUE;
 
 	protected:
 		// NODE INTERFACE
@@ -53,6 +56,7 @@ class DynamicsVisualizer
 		ros::Subscriber joints_accel_sub;
 		ros::Subscriber supports_sub;
 		ros::Subscriber wrenches_sub;
+		ros::Subscriber balance_sub;
 		// tf
 		tf::TransformListener tf_listener;
 		// timer
@@ -70,6 +74,7 @@ class DynamicsVisualizer
 		// BUFFERS
 		SupportState supports;
 		RigidBodyState wrenches;
+		BalanceState balance;
 
 	public:
 		DynamicsVisualizer()
@@ -78,6 +83,7 @@ class DynamicsVisualizer
 			joints_accel_sub = node_handler.subscribe<JointStateAccel>("joint_state_accel", 1, &DynamicsVisualizer::callbackJointsAccelSub, this);
 			wrenches_sub = node_handler.subscribe<RigidBodyState>("wrenches", 1, &DynamicsVisualizer::callbackWrenchesSub, this);
 			supports_sub = node_handler.subscribe<SupportState>("supports", 1, &DynamicsVisualizer::callbackSupportsSub, this);
+			balance_sub = node_handler.subscribe<BalanceState>("balance", 1, &DynamicsVisualizer::callbackBalanceSub, this);
 			// output
 			markers_pub = node_handler.advertise<MarkerArray>("marker_array", 2);
 			joints_pub = node_handler.advertise<JointState>("joint_efforts", 1);	
@@ -159,6 +165,11 @@ class DynamicsVisualizer
 				// buffer message for following vizualization
 				wrenches = *msg;
 			}
+		}
+
+		void callbackBalanceSub(const BalanceState::ConstPtr& msg) 
+		{
+			balance = *msg;
 		}
 
 		void loop(const ros::TimerEvent&) 
@@ -265,7 +276,7 @@ class DynamicsVisualizer
 			marker_zmp.color = GREEN;
 
 			// RigidBodyState messge contains all objects in world frame coordinates
-			for(int k = 0; k < wrenches.name.size() - 1; k++) {
+			for(int k = 0; k < wrenches.name.size(); k++) {
 					KDL::Wrench wrench = wrenches.wrench[k];
 					// move to limb tip 
 					KDL::Vector point = wrenches.frame[k].p;
@@ -279,19 +290,21 @@ class DynamicsVisualizer
 					marker.points.emplace_back(); tf::pointKDLToMsg(point, marker.points.back()); marker.colors.push_back(BLUE);
 					marker.points.emplace_back(); tf::pointKDLToMsg(point_torque, marker.points.back()); marker.colors.push_back(BLUE);
 			}
-			// base_link wrench is already in world frame and contains summ of reaction forces
-			// now calculate ZMP coordinates if it is possible
+			// use balance message to display CoP and CoM
 			// contact are assumed to be positioned in z = 0 plane
-			if (wrenches.name.size() > 0 && wrenches.name.back() == "base_link") {
-				KDL::Wrench& wrench_sum = wrenches.wrench.back();
-				if (wrench_sum.force.z() > 0.0) {
-					KDL::Vector zmp;
-					zmp[0] = - wrench_sum.torque.y() / wrench_sum.force.z();
-					zmp[1] =   wrench_sum.torque.x() / wrench_sum.force.z();
-					// add zmp marker
-					marker_zmp.points.emplace_back(); tf::pointKDLToMsg(zmp, marker_zmp.points.back()); marker_zmp.colors.push_back(MAGENTA);
-				}
-			}
+			// CoP (z = 0)
+			marker_zmp.points.emplace_back(); 
+			tf::pointKDLToMsg(balance.CoP, marker_zmp.points.back());
+			marker_zmp.colors.push_back(MAGENTA);
+			// CoM projection (z = 0)
+			marker_zmp.points.emplace_back(); 
+			tf::pointKDLToMsg(balance.CoM, marker_zmp.points.back());
+			marker_zmp.points.back().z = 0.0;
+			marker_zmp.colors.push_back(LIGHT_BLUE);
+			// CoM 
+			marker_zmp.points.emplace_back(); 
+			tf::pointKDLToMsg(balance.CoM, marker_zmp.points.back());
+			marker_zmp.colors.push_back(LIGHT_BLUE);
 			// publish resulting message
 			markers_pub.publish(marker_array);
 		}
@@ -302,6 +315,7 @@ const ColorRGBAInit DynamicsVisualizer::RED = ColorRGBAInit(1 ,0, 0);
 const ColorRGBAInit DynamicsVisualizer::GREEN = ColorRGBAInit(0, 1, 0);
 const ColorRGBAInit DynamicsVisualizer::MAGENTA = ColorRGBAInit(1, 0, 1);
 const ColorRGBAInit DynamicsVisualizer::BLUE = ColorRGBAInit(0, 0, 1);
+const ColorRGBAInit DynamicsVisualizer::LIGHT_BLUE = ColorRGBAInit(0, 1, 1);
 
 int main(int argc, char **argv)
 {
