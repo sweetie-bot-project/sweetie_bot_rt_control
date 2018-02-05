@@ -85,7 +85,7 @@ class DynamicsVisualizer
 			supports_sub = node_handler.subscribe<SupportState>("supports", 1, &DynamicsVisualizer::callbackSupportsSub, this);
 			balance_sub = node_handler.subscribe<BalanceState>("balance", 1, &DynamicsVisualizer::callbackBalanceSub, this);
 			// output
-			markers_pub = node_handler.advertise<MarkerArray>("marker_array", 2);
+			markers_pub = node_handler.advertise<MarkerArray>("marker_array", 3);
 			joints_pub = node_handler.advertise<JointState>("joint_efforts", 1);	
 
 			// get node parameters
@@ -103,7 +103,7 @@ class DynamicsVisualizer
 			}
 
 			// timer
-			timer = node_handler.createTimer(ros::Duration(0.1), &DynamicsVisualizer::loop, this);
+			timer = node_handler.createTimer(ros::Duration(0.05), &DynamicsVisualizer::loop, this);
 			timer.start();
 
 			ROS_INFO("SweeterBot dynamics visualizer started!");
@@ -176,6 +176,7 @@ class DynamicsVisualizer
 		{
 			if (supports.name.size() > 0) visualizeSupports();
 			if (wrenches.name.size() > 0) visualizeWrenches();
+			visualizeBalance();
 		}
 
 		void visualizeSupports() 
@@ -184,13 +185,12 @@ class DynamicsVisualizer
 			MarkerArray marker_array;
 
 			// add contact points
-			marker_array.markers.resize(2);
+			marker_array.markers.resize(1);
 			Marker& marker_points = marker_array.markers[0];
-			Marker& marker_lines = marker_array.markers[1];
 			// message with points
 			marker_points.header.frame_id = "odom_combined"; // contact points are displayed in world frame
 			marker_points.header.stamp = ros::Time::now();
-			marker_points.ns = "support_contacts";
+			marker_points.ns = "contacts";
 			marker_points.id = 0;
 			marker_points.type = visualization_msgs::Marker::POINTS;
 			marker_points.action = 0; // add/modify 
@@ -199,12 +199,6 @@ class DynamicsVisualizer
 			marker_points.color = RED;
 			marker_points.lifetime = ros::Duration(1.0); // one second
 			marker_points.frame_locked = true; // odom_combined is fixed frame
-			// message with lines
-			marker_lines = marker_points;
-			marker_lines.id = 1;
-			marker_lines.type = visualization_msgs::Marker::LINE_STRIP;
-			marker_lines.scale.x = point_size_param/2; marker_lines.scale.y = 0.0; marker_lines.scale.z = 0.0;
-			marker_lines.color = GREEN;
 
 			for(int k = 0; k < supports.name.size(); k++) {
 				if (supports.contact[k] == "") continue;
@@ -221,8 +215,6 @@ class DynamicsVisualizer
 					if (supports.support[k] > 0.0) {
 						// set color: point is in contact
 						marker_points.colors.push_back(RED);
-						// add point to line strip
-						marker_lines.points.push_back(point_stamped.point);
 					}
 					else {
 						// set color: point is not in contact
@@ -237,11 +229,6 @@ class DynamicsVisualizer
 					ROS_ERROR("ROS error: %s", e.what());
 				}
 			}
-			// close support polygon
-			if (marker_lines.points.size() >= 2) {
-				marker_lines.points.push_back(marker_lines.points.front());
-			}
-
 			// publish resulting message
 			markers_pub.publish(marker_array);
 		}
@@ -250,12 +237,10 @@ class DynamicsVisualizer
 		{
 			// prepare Markers message
 			MarkerArray marker_array;
-
 			// add contact points
-			marker_array.markers.resize(2);
+			marker_array.markers.resize(1);
 			Marker& marker = marker_array.markers[0];
-			Marker& marker_zmp = marker_array.markers[1];
-			// message with points
+			// message contact forces vizualization
 			marker.header.frame_id = "base_link"; // forces are supplied in base_link frame
 			marker.header.stamp = ros::Time::now();
 			marker.ns = "external_forces";
@@ -267,13 +252,6 @@ class DynamicsVisualizer
 			marker.color = RED;
 			marker.lifetime = ros::Duration(1.0); // one second
 			marker.frame_locked = true; // odom_combined is fixed frame
-			// message with ZMP point
-			marker_zmp = marker;
-			marker_zmp.header.frame_id = "odom_combined"; // we can calculate ZMP only on world frame
-			marker_zmp.id = 1;
-			marker_zmp.type = visualization_msgs::Marker::POINTS;
-			marker_zmp.scale.x = point_size_param; marker_zmp.scale.y = point_size_param; marker_zmp.scale.z = 0.0;
-			marker_zmp.color = GREEN;
 
 			// RigidBodyState messge contains all objects in world frame coordinates
 			for(int k = 0; k < wrenches.name.size(); k++) {
@@ -290,6 +268,35 @@ class DynamicsVisualizer
 					marker.points.emplace_back(); tf::pointKDLToMsg(point, marker.points.back()); marker.colors.push_back(BLUE);
 					marker.points.emplace_back(); tf::pointKDLToMsg(point_torque, marker.points.back()); marker.colors.push_back(BLUE);
 			}
+			// publish resulting message
+			markers_pub.publish(marker_array);
+		}
+
+		void visualizeBalance() {
+			// prepare Markers message
+			MarkerArray marker_array;
+			marker_array.markers.resize(2);
+			Marker& marker_zmp = marker_array.markers[0];
+			Marker& marker_lines = marker_array.markers[1];
+			// message with CoP an point
+			marker_zmp.header.frame_id = "odom_combined"; // we can calculate ZMP only on world frame
+			marker_zmp.header.stamp = ros::Time::now();
+			marker_zmp.ns = "balance";
+			marker_zmp.id = 0;
+			marker_zmp.type = visualization_msgs::Marker::POINTS;
+			marker_zmp.action = 0; // add/modify 
+			marker_zmp.pose.orientation.w = 1.0; // other elements are zeros
+			marker_zmp.scale.x = point_size_param; marker_zmp.scale.y = point_size_param; marker_zmp.scale.z = 0.0;
+			marker_zmp.color = GREEN;
+			marker_zmp.lifetime = ros::Duration(1.0); // one second
+			marker_zmp.frame_locked = true; // odom_combined is fixed frame
+			// message with support polygone
+			marker_lines = marker_zmp;
+			marker_lines.id = 1;
+			marker_lines.type = visualization_msgs::Marker::LINE_STRIP;
+			marker_lines.scale.x = point_size_param/2; marker_lines.scale.y = 0.0; marker_lines.scale.z = 0.0;
+			marker_lines.color = GREEN;
+			
 			// use balance message to display CoP and CoM
 			// contact are assumed to be positioned in z = 0 plane
 			// CoP (z = 0)
@@ -305,6 +312,18 @@ class DynamicsVisualizer
 			marker_zmp.points.emplace_back(); 
 			tf::pointKDLToMsg(balance.CoM, marker_zmp.points.back());
 			marker_zmp.colors.push_back(LIGHT_BLUE);
+
+			// now add support polygone
+			for(int k = 0; k < balance.support_points.size(); k++) {
+				geometry_msgs::Point point;
+				tf::pointKDLToMsg(balance.support_points[k], point);
+				marker_lines.points.push_back(point);
+			}
+			// close support polygon
+			if (marker_lines.points.size() >= 2) {
+				marker_lines.points.push_back(marker_lines.points.front());
+			}
+
 			// publish resulting message
 			markers_pub.publish(marker_array);
 		}
