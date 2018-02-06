@@ -2,6 +2,7 @@
 
 #include <rtt/Component.hpp>
 #include <iostream>
+#include <ros/time.h>
 
 #include <sweetie_bot_orocos_misc/joint_state_check.hpp>
 #include <sweetie_bot_orocos_misc/get_subservice_by_type.hpp>
@@ -119,6 +120,7 @@ void KinematicsFwd::updateHook()
 			limbs.twist[k] = frame_vel.deriv();
 		}
 		// publish message
+		limbs.header.stamp = ros::Time::now();
 		out_limbs_port.write(limbs);
 	}
 }
