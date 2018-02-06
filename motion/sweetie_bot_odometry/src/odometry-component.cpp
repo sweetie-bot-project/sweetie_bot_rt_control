@@ -230,7 +230,7 @@ void Odometry::estimateVelocity()
 	Twist body_twist;
 	Map<Vector3d>(body_twist.rot.data) = - Aw.ldlt().solve(Map<Vector3d>(bw.data));
 	// find linear velocity
-	body_twist.vel = - (avg_speed + center_point*body_twist.rot);	
+	body_twist.vel = - (avg_speed - center_point*body_twist.rot);
 	// result
 	body_pose.twist[0] = body_pose.frame[0] * body_twist;
 }
