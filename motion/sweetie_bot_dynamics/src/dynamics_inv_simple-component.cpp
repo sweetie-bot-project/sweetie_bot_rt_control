@@ -415,10 +415,17 @@ void DynamicsInvSimple::publishStateToPorts()
 		KDL::Frame T;
 		Map< Matrix<double,3,3,Eigen::RowMajor> >(T.M.data) = CalcBodyWorldOrientation(rbdl_model, Q, contact.body_id, false);
 		Map<Vector3d>(T.p.data) = CalcBodyToBaseCoordinates(rbdl_model, Q, contact.body_id, Vector3d::Zero(), false);
-		wrenches.frame.emplace_back(base.frame[0].Inverse()*T);
-		// frame velocities: this is pose twist in world frame, convert to srew twist in base_link frame
+		// wrenches.frame.emplace_back(base.frame[0].Inverse()*T); // move to base_link frame
+		wrenches.frame.emplace_back(T);
+
+		// frame velocities
+		// RBDL returns pose twist in world frame, convert to srew twist in base_link frame
 		SpatialVector_t twist = CalcPointVelocity6D(rbdl_model, Q, QDDot, contact.body_id, Vector3d::Zero(), false);
-		wrenches.twist.emplace_back( base.frame[0].Inverse( KDL::Twist(KDL::Vector(twist[3], twist[4], twist[5]), KDL::Vector(twist[0], twist[1], twist[2])).RefPoint(-T.p) ) ); // vel, rot
+		// add twist to message
+		wrenches.twist.emplace_back(KDL::Vector(twist[3], twist[4], twist[5]), KDL::Vector(twist[0], twist[1], twist[2])); // vel, rot  (field order in rbdl is reversed)
+		wrenches.twist.back() = wrenches.twist.back().RefPoint(-T.p); // move reference point to frame origin
+		// wrenches.twist.back() = base.frame[0].Inverse(wrenches.twist.back() - base.twist[0]); // subtract base_link velocity and change to base_link_frame
+
 		// wrences
 		wrenches.wrench.emplace_back(KDL::Wrench::Zero());
 		KDL::Wrench& wrench = wrenches.wrench.back();
@@ -438,7 +445,7 @@ void DynamicsInvSimple::publishStateToPorts()
 				point_index += 3;
 			}
 			base.wrench[0] += wrench;
-			wrench = base.frame[0].Inverse(wrench);
+			//wrench = base.frame[0].Inverse(wrench); // convert to base_link frame
 		}
 	}
 	// publish

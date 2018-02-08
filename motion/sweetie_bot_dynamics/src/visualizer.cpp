@@ -17,6 +17,8 @@
 #include <sweetie_bot_kinematics_msgs/RigidBodyState.h>
 #include <sweetie_bot_kinematics_msgs/BalanceState.h>
 
+#include <sweetie_bot_orocos_misc/joint_state_check.hpp>
+#include <sweetie_bot_orocos_misc/message_checks.hpp>
 
 struct ColorRGBAInit : public std_msgs::ColorRGBA
 {
@@ -44,6 +46,7 @@ class DynamicsVisualizer
 		static const ColorRGBAInit MAGENTA;
 		static const ColorRGBAInit BLUE;
 		static const ColorRGBAInit LIGHT_BLUE;
+		static const ColorRGBAInit YELLOW;
 
 	protected:
 		// NODE INTERFACE
@@ -67,6 +70,7 @@ class DynamicsVisualizer
 		double point_size_param;
 		double torque_scale_param;
 		double force_scale_param;
+		bool display_twist;
 
 		// robot_model parameters cache
 		std::map<std::string, KDL::Vector> contact_points_cache;
@@ -100,6 +104,9 @@ class DynamicsVisualizer
 			}
 			if (!ros::param::get("~force_scale", force_scale_param)) {
 				force_scale_param = 0.01;
+			}
+			if (!ros::param::get("~display_twist", display_twist)) {
+				display_twist = true;
 			}
 
 			// timer
@@ -151,8 +158,7 @@ class DynamicsVisualizer
 
 		void callbackSupportsSub(const SupportState::ConstPtr& msg) 
 		{
-			unsigned int sz = msg->name.size();
-			if (sz == msg->contact.size() && sz == msg->support.size()) {
+			if (sweetie_bot::isValidSupportStateNameSuppCont(*msg)) {
 				// buffer message for following vizualization
 				supports = *msg;
 			}
@@ -160,8 +166,7 @@ class DynamicsVisualizer
 
 		void callbackWrenchesSub(const RigidBodyState::ConstPtr& msg) 
 		{
-			unsigned int sz = msg->name.size();
-			if (sz == msg->wrench.size() && sz == msg->frame.size()) {
+			if (sweetie_bot::isValidRigidBodyStateNameFrame(*msg)) {
 				// buffer message for following vizualization
 				wrenches = *msg;
 			}
@@ -241,9 +246,9 @@ class DynamicsVisualizer
 			marker_array.markers.resize(1);
 			Marker& marker = marker_array.markers[0];
 			// message contact forces vizualization
-			marker.header.frame_id = "base_link"; // forces are supplied in base_link frame
+			marker.header.frame_id = "odom_combined"; // forces are supplied in base_link frame
 			marker.header.stamp = ros::Time::now();
-			marker.ns = "external_forces";
+			marker.ns = "limbs_external_forces_and_twists";
 			marker.id = 0;
 			marker.type = visualization_msgs::Marker::LINE_LIST;
 			marker.action = 0; // add/modify 
@@ -254,11 +259,11 @@ class DynamicsVisualizer
 			marker.frame_locked = true; // odom_combined is fixed frame
 
 			// RigidBodyState messge contains all objects in world frame coordinates
-			for(int k = 0; k < wrenches.name.size(); k++) {
+			for(int k = 0; k < wrenches.wrench.size(); k++) {
+					// get wrench and bring it to limb tip
 					KDL::Wrench wrench = wrenches.wrench[k];
-					// move to limb tip 
 					KDL::Vector point = wrenches.frame[k].p;
-					wrench.RefPoint(point); 
+					wrench = wrench.RefPoint(point);
 					// wrench visualization
 					KDL::Vector point_force = point + wrench.force*force_scale_param; // force visualization
 					KDL::Vector point_torque = point + wrench.torque*torque_scale_param; // torque visualization
@@ -267,6 +272,22 @@ class DynamicsVisualizer
 					marker.points.emplace_back(); tf::pointKDLToMsg(point_force, marker.points.back()); marker.colors.push_back(RED);
 					marker.points.emplace_back(); tf::pointKDLToMsg(point, marker.points.back()); marker.colors.push_back(BLUE);
 					marker.points.emplace_back(); tf::pointKDLToMsg(point_torque, marker.points.back()); marker.colors.push_back(BLUE);
+			}
+			if (display_twist) {
+				for(int k = 0; k < wrenches.twist.size(); k++) {
+					// get velocity and bring it to limb tip
+					KDL::Twist twist = wrenches.twist[k];
+					KDL::Vector point = wrenches.frame[k].p;
+					twist = twist.RefPoint(point);
+					// velocity visualization
+					KDL::Vector point_force = point + twist.vel; // linear vel visualization
+					KDL::Vector point_torque = point + twist.rot; // angular vel visualization
+					// add to line list
+					marker.points.emplace_back(); tf::pointKDLToMsg(point, marker.points.back()); marker.colors.push_back(GREEN);
+					marker.points.emplace_back(); tf::pointKDLToMsg(point_force, marker.points.back()); marker.colors.push_back(GREEN);
+					marker.points.emplace_back(); tf::pointKDLToMsg(point, marker.points.back()); marker.colors.push_back(YELLOW);
+					marker.points.emplace_back(); tf::pointKDLToMsg(point_torque, marker.points.back()); marker.colors.push_back(YELLOW);
+				}
 			}
 			// publish resulting message
 			markers_pub.publish(marker_array);
@@ -335,6 +356,7 @@ const ColorRGBAInit DynamicsVisualizer::GREEN = ColorRGBAInit(0, 1, 0);
 const ColorRGBAInit DynamicsVisualizer::MAGENTA = ColorRGBAInit(1, 0, 1);
 const ColorRGBAInit DynamicsVisualizer::BLUE = ColorRGBAInit(0, 0, 1);
 const ColorRGBAInit DynamicsVisualizer::LIGHT_BLUE = ColorRGBAInit(0, 1, 1);
+const ColorRGBAInit DynamicsVisualizer::YELLOW = ColorRGBAInit(1, 1, 0);
 
 int main(int argc, char **argv)
 {
