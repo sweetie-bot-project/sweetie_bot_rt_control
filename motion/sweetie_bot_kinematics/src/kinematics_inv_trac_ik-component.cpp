@@ -220,7 +220,9 @@ bool KinematicsInvTracIK::poseToJointState_impl(const sweetie_bot_kinematics_msg
 		// check if velocities present
 		if (limbs_.twist.size() != 0) {
 			// instantaneous inverse kinematics
-			ret =  chain_it->ik_vel_solver->CartToJnt(chain_it->jnt_array_pose, limbs_.twist[k], chain_it->jnt_array_vel); 
+			// KDL kinematics functions utilize pose twist, so we have perform conversion.
+			// Why?!!  Why it is not screw twist?!!
+			ret = chain_it->ik_vel_solver->CartToJnt(chain_it->jnt_array_pose, limbs_.twist[k].RefPoint(limbs_.frame[k].p), chain_it->jnt_array_vel); 
 			if (ret < 0) {
 				this->log(DEBUG) << "Instantaneous IK failed with error code: " << ret << endlog();
 				// fill speed with zeros
