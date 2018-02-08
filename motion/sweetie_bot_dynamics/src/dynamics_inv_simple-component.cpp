@@ -261,11 +261,15 @@ void DynamicsInvSimple::updateStateFromPortsBuffers()
 	rot.normalize();
 	Q[3] = rot.x(); Q[4] = rot.y(); Q[5] = rot.z(); Q[rbdl_model.q_size-1] = rot.w();
 	// base acceeleration: twist time derivative
-	QDDot.head<3>() = ( Map<Vector3d>(base.twist[0].vel.data) - QDot.head<3>() ) / period;
-	QDDot.segment<3>(3) = ( Map<Vector3d>(base.twist[0].rot.data) - QDot.segment<3>(3) ) / period;
-	// base twist
-	QDot.head<3>() = Map<Vector3d>(base.twist[0].vel.data);
-	QDot.segment<3>(3) = Map<Vector3d>(base.twist[0].rot.data);
+	// Convert srew twist to base_link origin speed and angular velocity in base_link frame, because this is what RBDL expects
+	KDL::Vector base_vel = base.twist[0].rot*base.frame[0].p + base.twist[0].vel;
+	KDL::Vector base_rot = base.frame[0].M.Inverse(base.twist[0].rot);
+	// estimate acceleration
+	QDDot.head<3>() = ( Map<Vector3d>(base_vel.data) - QDot.head<3>() ) / period;
+	QDDot.segment<3>(3) = ( Map<Vector3d>(base_rot.data) - QDot.segment<3>(3) ) / period;
+	// base speed
+	QDot.head<3>() = Map<Vector3d>(base_vel.data);
+	QDot.segment<3>(3) = Map<Vector3d>(base_rot.data);
 	// support state
 	for( ContactState& contact : contacts) {
 		contact.is_active = supports.support[contact.index] > 0.0;
@@ -412,9 +416,9 @@ void DynamicsInvSimple::publishStateToPorts()
 		Map< Matrix<double,3,3,Eigen::RowMajor> >(T.M.data) = CalcBodyWorldOrientation(rbdl_model, Q, contact.body_id, false);
 		Map<Vector3d>(T.p.data) = CalcBodyToBaseCoordinates(rbdl_model, Q, contact.body_id, Vector3d::Zero(), false);
 		wrenches.frame.emplace_back(base.frame[0].Inverse()*T);
-		// frame velocities
+		// frame velocities: this is pose twist in world frame, convert to srew twist in base_link frame
 		SpatialVector_t twist = CalcPointVelocity6D(rbdl_model, Q, QDDot, contact.body_id, Vector3d::Zero(), false);
-		wrenches.twist.emplace_back( base.frame[0].Inverse( KDL::Twist(KDL::Vector(twist[0], twist[1], twist[2]), KDL::Vector(twist[3], twist[4], twist[5])) ) ); // vel, rot
+		wrenches.twist.emplace_back( base.frame[0].Inverse( KDL::Twist(KDL::Vector(twist[3], twist[4], twist[5]), KDL::Vector(twist[0], twist[1], twist[2])).RefPoint(-T.p) ) ); // vel, rot
 		// wrences
 		wrenches.wrench.emplace_back(KDL::Wrench::Zero());
 		KDL::Wrench& wrench = wrenches.wrench.back();
@@ -424,8 +428,8 @@ void DynamicsInvSimple::publishStateToPorts()
 				KDL::Vector point_world;
 				// calculate point postion in world coordinates
 				Map<Vector3d>(point_world.data)  = CalcBodyToBaseCoordinates(rbdl_model, Q, contact.body_id, Map<Vector3d>(contact.contact_points[k].data), false);
-				// add to support points list
-				balance.support_points.push_back(point_world);
+				// add to support points list: only first point
+				if (k == 0) balance.support_points.push_back(point_world);
 				// calculate wrench in world coordinates
 				KDL::Vector force = KDL::Vector(lambda_reserved[point_index], lambda_reserved[point_index+1], lambda_reserved[point_index+2]);
 				wrench.force += force;
