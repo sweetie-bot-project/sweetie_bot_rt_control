@@ -2,6 +2,7 @@
 
 #include <rtt/Component.hpp>
 #include <kdl_conversions/kdl_msg.h>
+#include <ros/time.h>
 
 #include <sweetie_bot_orocos_misc/get_subservice_by_type.hpp>
 #include <sweetie_bot_orocos_misc/message_checks.hpp>
@@ -39,13 +40,16 @@ FollowStance::FollowStance(std::string const& name)  :
 	log(logger::categoryFromComponentName(name)),
 	poseToJointStatePublish("poseToJointStatePublish", this->engine()) // operation caller
 {
-	// ports
+	// ports input 
 	this->addPort("in_limbs", in_limbs_port)
 		.doc("Robot limbs postions. They are used only to setup anchors on component start.");
 	this->addPort("in_base", in_base_port)
 		.doc("Robot base link pose in world frame.");
 	this->addPort("in_base_ref", in_base_ref_port)
 		.doc("Target robot base link pose.");
+	this->addPort("in_balance", in_balance_port)
+		.doc("Information about robot balance.");
+	// ports input 
 	this->addPort("out_base_ref", out_base_ref_port)
 		.doc("Base next position to achive target given current robot state. It is computed by component each control cycle.");
 	this->addPort("out_limbs_ref", out_limbs_ref_port)
@@ -66,6 +70,15 @@ FollowStance::FollowStance(std::string const& name)  :
 		.doc("If it is false component ignores in_base_port after receving initial pose. Reference trajectory is calculated without any feedback. In most cases this way is more robust. "
 				"To comform kinematic constraints inverse kinematics should be connected syncronously via poseToJointStatePublish operation. ")
 		.set(false);
+	this->addProperty("balance_check", balance_check)
+		.doc("Disable motions that violate stability condition. If condtions is violated move to failsafe pose.")
+		.set(true);
+	this->addProperty("safe_pose_z_min", safe_pose_z_min)
+		.doc("If static balance condition is violated robot tries to move it center of mass to geometrical center of support polygone (safe pose). This parameter specifies minimal z coordinate of safe pose.")
+		.set(0.0);
+	this->addProperty("safe_pose_z_max", safe_pose_z_max)
+		.doc("If static balance condition is violated robot tries to move it center of mass to geometrical center of support polygone (safe pose). This parameter specifies maximal z coordinate of safe pose.")
+		.set(1.0);
 	// operations: provided
 	this->addOperation("rosSetOperational", &FollowStance::rosSetOperational, this)
 		.doc("ROS compatible start/stop operation (std_srvs::SetBool).");
@@ -105,14 +118,23 @@ bool FollowStance::setupSupports(const vector<string>& support_legs)
 		return false;
 	}
 
-	// contact list
-	supports.name = support_legs;
-	supports.support.assign(support_legs.size(), 1.0);
+    // sort limbs in natural order
+	// TODO more effective? 
+	//std::sort(support_legs.begin(), support_legs.end(), [robot_model](const std::string& s1, const std::string& s1) { return robot_model->getChainIndex(s1) < robot_model->getChainIndex(s2); })
+	std::vector<std::string> kinematic_chains = robot_model->listChains();
 
+	// contact list
 	support_leg_anchors.clear();
+	supports.name.clear();
+	supports.support.clear();
 	supports.contact.clear();
-	for(  const std::string& leg : support_legs ) {
+	for(  const std::string& leg : kinematic_chains ) {
+		// check if leg is marked as support
+		if ( std::find(support_legs.begin(), support_legs.end(), leg) == support_legs.end() ) continue;
+		if (supports.name.size() == support_legs.size()) break;
 		// add contact
+		supports.name.push_back(leg);
+		supports.support.push_back(1.0);
 		supports.contact.push_back(robot_model->getChainDefaultContact(leg)); // TODO contact configuration
 		if (supports.contact.back() == "") {
 			log(ERROR) << "No contact information for chain `" << leg << "`." << endlog();
@@ -126,11 +148,18 @@ bool FollowStance::setupSupports(const vector<string>& support_legs)
 		}
 		support_leg_anchors.push_back( base.frame[0] * limbs.frame[it - limbs.name.begin()] ); // leg position in world frame
 	}
+	if (supports.name.size() == 0) {
+		log(ERROR) << "No correct kinematic chains are supplied." << endlog();
+		return false;
+	}
+	if (supports.name.size() != support_legs.size()) {
+		log(WARN) << "Unknown kinematic chain in support_legs list." << endlog();
+	}
 
 	// limbs will be used as buffer for limb pose publication
-	limbs.name = support_legs;
-	limbs.frame.resize(support_legs.size());
-	limbs.twist.resize(support_legs.size());
+	limbs.name = supports.name;
+	limbs.frame.resize(supports.name.size());
+	limbs.twist.resize(supports.name.size());
 	limbs.wrench.clear();
 
 	if (log(INFO)) {
@@ -187,9 +216,13 @@ bool FollowStance::configureHook()
 		}
 	}
 
+	if (safe_pose_z_min < 0.0 || safe_pose_z_max < safe_pose_z_min) {
+		log(ERROR) << "safe_pose_z properties are incorrect: ensure 0 <= safe_pose_z_min <= safe_pose_z_max." << endlog();
+	}
+
 	// allocate memory
 	int n_chains = support_legs.size();
-	limbs.name = support_legs;
+	limbs.name.resize(n_chains);
 	limbs.frame.resize(n_chains);
 	limbs.twist.resize(n_chains);
 	limbs.wrench.resize(n_chains);
@@ -218,14 +251,80 @@ bool FollowStance::startHook()
 {
 	if (!setupSupports(support_legs)) return false;
 	ik_success = true;
-	resource_client->resourceChangeRequest(support_legs);
+	resource_client->resourceChangeRequest(supports.name);
 
 	// data samples
 	in_base_port.getDataSample(base);
+	in_balance_port.getDataSample(balance);
 
 	// now update hook will be periodically executed
 	log(INFO) << "FollowStance is started !" << endlog();
 	return true;
+}
+
+bool FollowStance::isInsideSupportPolygone(const KDL::Vector point) 
+{
+	if (balance.support_points.size() <= 2) {
+		// too few supports
+		return false;	
+	}
+	else {
+		// check balance condititon: point must be inside polygone
+		double x = balance.support_points[0].x() - balance.support_points.back().x();
+		double y = balance.support_points[0].y() - balance.support_points.back().y();
+		double px = point.x() - balance.support_points.back().x();
+		double py = point.y() - balance.support_points.back().y();
+		bool in_balance =  -y*px + x*py >= 0;
+		// log(WARN) << " x = " << x << " y = " << y << " px = " << px << " py = " << py << " in_balance = " << in_balance <<  endlog();
+		for (int k = 1; k < balance.support_points.size() && in_balance; k++) {
+			// check if point is in left half-plane
+			x = balance.support_points[k].x() - balance.support_points[k-1].x();
+			y = balance.support_points[k].y() - balance.support_points[k-1].y();
+			px = point.x() - balance.support_points[k-1].x();
+			py = point.y() - balance.support_points[k-1].y();
+			in_balance =  -y*px + x*py >= 0;
+			// log(WARN) << " x = " << x << " y = " << y << " px = " << px << " py = " << py << " in_balance = " << in_balance <<  endlog();
+		}
+		return in_balance;
+	}
+}	
+
+void FollowStance::checkBalance() 
+{
+	if (in_balance_port.read(balance, false) != NewData) {
+		// nothing changed 
+		return;
+	}
+
+	// check if target pose satisfies stability conditions 
+	if (! isInsideSupportPolygone(balance.CoM + base_ref.frame[0].p - base.frame[0].p) ) {
+		// stop motion 
+		base_ref.frame[0] = base.frame[0];
+		base_ref.twist[0] = KDL::Twist::Zero();
+
+		log(DEBUG) << " Reference is outside of support polygone: stop at " << base.frame[0].p << endlog();
+	}
+
+	// check if current pose is staticlly stable	
+	if (! isInsideSupportPolygone(balance.CoM)) {
+		// set reference pose to geometrical center
+		KDL::Vector center = KDL::Vector::Zero();
+		for ( const KDL::Vector& p : balance.support_points ) center += p;
+		center = center / balance.support_points.size();
+		center[0] -= balance.CoM.x() - base.frame[0].p.x();
+		center[1] -= balance.CoM.y() - base.frame[0].p.y();
+		// calculate safe height
+		double z = base.frame[0].p.z();
+		if (z > safe_pose_z_max) z = safe_pose_z_max;
+		else if (z < safe_pose_z_min) z = safe_pose_z_min;
+		center[2] = z;
+
+		base_ref.frame[0].p = center;
+		base_ref.twist[0] = KDL::Twist::Zero();
+
+		log(DEBUG) << "CoM is outside of support polygone: stop at " << base.frame[0].p << " move base to " << center << endlog();
+		return;
+	}
 }
 
 
@@ -250,7 +349,7 @@ void FollowStance::updateHook()
 		if (base_pose_feedback || !ik_success) {
 			// get base_link pose: this overrides component state
 			// if IK failed this is the best behavior
-			if (in_base_port.read(base, true) == NoData || !isValidRigidBodyStateFrameTwist(base, 1) || base.name[0] != "base_link") {
+			if (in_base_port.read(base, true) == NoData || !isValidRigidBodyStateNameFrameTwist(base, 1) || base.name[0] != "base_link") {
 				// no information about robot pose --- skip iteration
 				return;
 			}
@@ -266,6 +365,9 @@ void FollowStance::updateHook()
 			}
 		}
 		
+		// check balance (base_ref is chenged if conditions violated)
+		if (balance_check) checkBalance();
+
 		// apply filter to calculate next pose
 		filter->update(base, base_ref, base_next);
 
@@ -276,6 +378,8 @@ void FollowStance::updateHook()
 			limbs.frame[k] =  base_inv * support_leg_anchors[k];
 			limbs.twist[k] = legs_twist;
 		}
+		limbs.header.stamp = ros::Time::now();
+		base_next.header.stamp = ros::Time::now();
 		// pass result to kinematics
 		if (poseToJointStatePublish.ready()) {
 			// syncronous interface

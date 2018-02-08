@@ -13,6 +13,7 @@
 #include <sweetie_bot_kinematics_msgs/typekit/JointStateAccel.h>
 #include <sweetie_bot_kinematics_msgs/typekit/RigidBodyState.h>
 #include <sweetie_bot_kinematics_msgs/typekit/SupportState.h>
+#include <sweetie_bot_kinematics_msgs/typekit/BalanceState.h>
 
 #include <sweetie_bot_logger/logger.hpp>
 #include <sweetie_bot_orocos_misc/simple_action_server.hpp>
@@ -33,6 +34,7 @@ class FollowStance : public RTT::TaskContext
 		// PORTS: input
 		RTT::InputPort<sweetie_bot_kinematics_msgs::RigidBodyState> in_limbs_port;
 		RTT::InputPort<sweetie_bot_kinematics_msgs::RigidBodyState> in_base_port;
+		RTT::InputPort<sweetie_bot_kinematics_msgs::BalanceState> in_balance_port;
 		RTT::InputPort<geometry_msgs::PoseStamped> in_base_ref_port;
 		RTT::InputPort<RTT::os::Timer::TimerId> sync_port;
 		// PORTS: output
@@ -45,6 +47,9 @@ class FollowStance : public RTT::TaskContext
 		double Kv;
 		double period;
 		bool base_pose_feedback;
+		bool balance_check;
+		double safe_pose_z_max;
+		double safe_pose_z_min;
 
 	protected:
 		// OPERATIONS: provides
@@ -66,6 +71,7 @@ class FollowStance : public RTT::TaskContext
 		sweetie_bot_kinematics_msgs::RigidBodyState base; // current pose
 		sweetie_bot_kinematics_msgs::RigidBodyState base_next; // next pose calucalated by component
 		sweetie_bot_kinematics_msgs::RigidBodyState base_ref; // reference pose
+		sweetie_bot_kinematics_msgs::BalanceState balance; // balance
 		sweetie_bot_kinematics_msgs::RigidBodyState limbs;
 		sweetie_bot_kinematics_msgs::SupportState supports;
 		
@@ -76,6 +82,8 @@ class FollowStance : public RTT::TaskContext
 #endif
 	protected:
 		bool setupSupports(const vector<string>& support_legs);
+		void checkBalance() ;
+		bool isInsideSupportPolygone(const KDL::Vector point) ;
 
 	public:
 		FollowStance(std::string const& name);
