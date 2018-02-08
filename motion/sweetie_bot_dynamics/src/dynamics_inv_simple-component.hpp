@@ -5,8 +5,6 @@
 
 #include <rbdl/rbdl.h>
 
-#include <kdl_msgs/typekit/Twist.h>
-#include <geometry_msgs/typekit/WrenchStamped.h>
 #include <sensor_msgs/typekit/JointState.h>
 
 #include <sweetie_bot_logger/logger.hpp>
@@ -15,6 +13,7 @@
 #include <sweetie_bot_kinematics_msgs/typekit/RigidBodyState.h>
 #include <sweetie_bot_kinematics_msgs/typekit/SupportState.h>
 #include <sweetie_bot_kinematics_msgs/typekit/JointStateAccel.h>
+#include <sweetie_bot_kinematics_msgs/typekit/BalanceState.h>
 
 
 namespace sweetie_bot {
@@ -44,6 +43,8 @@ class DynamicsInvSimple : public RTT::TaskContext
 		RTT::OutputPort<sweetie_bot_kinematics_msgs::JointStateAccel> out_joints_accel_port;
 		//RTT::OutputPort<sweetie_bot_kinematics_msgs::SupportState> out_supports_port;
 		RTT::OutputPort<sweetie_bot_kinematics_msgs::RigidBodyState> out_wrenches_port;
+		RTT::OutputPort<sweetie_bot_kinematics_msgs::RigidBodyState> out_base_port;
+		RTT::OutputPort<sweetie_bot_kinematics_msgs::BalanceState> out_balance_port;
 		// properties
 		std::string robot_description;
 		std::vector<std::string> legs;
@@ -87,6 +88,7 @@ class DynamicsInvSimple : public RTT::TaskContext
 		sweetie_bot_kinematics_msgs::RigidBodyState base;	
 		sweetie_bot_kinematics_msgs::SupportState supports;
 		sweetie_bot_kinematics_msgs::RigidBodyState wrenches;
+		sweetie_bot_kinematics_msgs::BalanceState balance;
 
 		// logging
 #ifdef SWEETIEBOT_LOGGER

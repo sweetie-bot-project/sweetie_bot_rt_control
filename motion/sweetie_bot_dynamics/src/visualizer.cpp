@@ -15,7 +15,10 @@
 #include <sweetie_bot_kinematics_msgs/JointStateAccel.h>
 #include <sweetie_bot_kinematics_msgs/SupportState.h>
 #include <sweetie_bot_kinematics_msgs/RigidBodyState.h>
+#include <sweetie_bot_kinematics_msgs/BalanceState.h>
 
+#include <sweetie_bot_orocos_misc/joint_state_check.hpp>
+#include <sweetie_bot_orocos_misc/message_checks.hpp>
 
 struct ColorRGBAInit : public std_msgs::ColorRGBA
 {
@@ -33,6 +36,7 @@ class DynamicsVisualizer
 		typedef sweetie_bot_kinematics_msgs::JointStateAccel JointStateAccel;
 		typedef sweetie_bot_kinematics_msgs::SupportState SupportState;
 		typedef sweetie_bot_kinematics_msgs::RigidBodyState RigidBodyState;
+		typedef sweetie_bot_kinematics_msgs::BalanceState BalanceState;
 		typedef visualization_msgs::MarkerArray MarkerArray;
 		typedef visualization_msgs::Marker Marker;
 
@@ -41,6 +45,8 @@ class DynamicsVisualizer
 		static const ColorRGBAInit GREEN;
 		static const ColorRGBAInit MAGENTA;
 		static const ColorRGBAInit BLUE;
+		static const ColorRGBAInit LIGHT_BLUE;
+		static const ColorRGBAInit YELLOW;
 
 	protected:
 		// NODE INTERFACE
@@ -53,6 +59,7 @@ class DynamicsVisualizer
 		ros::Subscriber joints_accel_sub;
 		ros::Subscriber supports_sub;
 		ros::Subscriber wrenches_sub;
+		ros::Subscriber balance_sub;
 		// tf
 		tf::TransformListener tf_listener;
 		// timer
@@ -63,6 +70,7 @@ class DynamicsVisualizer
 		double point_size_param;
 		double torque_scale_param;
 		double force_scale_param;
+		bool display_twist;
 
 		// robot_model parameters cache
 		std::map<std::string, KDL::Vector> contact_points_cache;
@@ -70,6 +78,7 @@ class DynamicsVisualizer
 		// BUFFERS
 		SupportState supports;
 		RigidBodyState wrenches;
+		BalanceState balance;
 
 	public:
 		DynamicsVisualizer()
@@ -78,8 +87,9 @@ class DynamicsVisualizer
 			joints_accel_sub = node_handler.subscribe<JointStateAccel>("joint_state_accel", 1, &DynamicsVisualizer::callbackJointsAccelSub, this);
 			wrenches_sub = node_handler.subscribe<RigidBodyState>("wrenches", 1, &DynamicsVisualizer::callbackWrenchesSub, this);
 			supports_sub = node_handler.subscribe<SupportState>("supports", 1, &DynamicsVisualizer::callbackSupportsSub, this);
+			balance_sub = node_handler.subscribe<BalanceState>("balance", 1, &DynamicsVisualizer::callbackBalanceSub, this);
 			// output
-			markers_pub = node_handler.advertise<MarkerArray>("marker_array", 2);
+			markers_pub = node_handler.advertise<MarkerArray>("marker_array", 3);
 			joints_pub = node_handler.advertise<JointState>("joint_efforts", 1);	
 
 			// get node parameters
@@ -95,9 +105,12 @@ class DynamicsVisualizer
 			if (!ros::param::get("~force_scale", force_scale_param)) {
 				force_scale_param = 0.01;
 			}
+			if (!ros::param::get("~display_twist", display_twist)) {
+				display_twist = true;
+			}
 
 			// timer
-			timer = node_handler.createTimer(ros::Duration(0.1), &DynamicsVisualizer::loop, this);
+			timer = node_handler.createTimer(ros::Duration(0.05), &DynamicsVisualizer::loop, this);
 			timer.start();
 
 			ROS_INFO("SweeterBot dynamics visualizer started!");
@@ -145,8 +158,7 @@ class DynamicsVisualizer
 
 		void callbackSupportsSub(const SupportState::ConstPtr& msg) 
 		{
-			unsigned int sz = msg->name.size();
-			if (sz == msg->contact.size() && sz == msg->support.size()) {
+			if (sweetie_bot::isValidSupportStateNameSuppCont(*msg)) {
 				// buffer message for following vizualization
 				supports = *msg;
 			}
@@ -154,17 +166,22 @@ class DynamicsVisualizer
 
 		void callbackWrenchesSub(const RigidBodyState::ConstPtr& msg) 
 		{
-			unsigned int sz = msg->name.size();
-			if (sz == msg->wrench.size() && sz == msg->frame.size()) {
+			if (sweetie_bot::isValidRigidBodyStateNameFrame(*msg)) {
 				// buffer message for following vizualization
 				wrenches = *msg;
 			}
+		}
+
+		void callbackBalanceSub(const BalanceState::ConstPtr& msg) 
+		{
+			balance = *msg;
 		}
 
 		void loop(const ros::TimerEvent&) 
 		{
 			if (supports.name.size() > 0) visualizeSupports();
 			if (wrenches.name.size() > 0) visualizeWrenches();
+			visualizeBalance();
 		}
 
 		void visualizeSupports() 
@@ -173,13 +190,12 @@ class DynamicsVisualizer
 			MarkerArray marker_array;
 
 			// add contact points
-			marker_array.markers.resize(2);
+			marker_array.markers.resize(1);
 			Marker& marker_points = marker_array.markers[0];
-			Marker& marker_lines = marker_array.markers[1];
 			// message with points
 			marker_points.header.frame_id = "odom_combined"; // contact points are displayed in world frame
 			marker_points.header.stamp = ros::Time::now();
-			marker_points.ns = "support_contacts";
+			marker_points.ns = "contacts";
 			marker_points.id = 0;
 			marker_points.type = visualization_msgs::Marker::POINTS;
 			marker_points.action = 0; // add/modify 
@@ -188,12 +204,6 @@ class DynamicsVisualizer
 			marker_points.color = RED;
 			marker_points.lifetime = ros::Duration(1.0); // one second
 			marker_points.frame_locked = true; // odom_combined is fixed frame
-			// message with lines
-			marker_lines = marker_points;
-			marker_lines.id = 1;
-			marker_lines.type = visualization_msgs::Marker::LINE_STRIP;
-			marker_lines.scale.x = point_size_param/2; marker_lines.scale.y = 0.0; marker_lines.scale.z = 0.0;
-			marker_lines.color = GREEN;
 
 			for(int k = 0; k < supports.name.size(); k++) {
 				if (supports.contact[k] == "") continue;
@@ -210,8 +220,6 @@ class DynamicsVisualizer
 					if (supports.support[k] > 0.0) {
 						// set color: point is in contact
 						marker_points.colors.push_back(RED);
-						// add point to line strip
-						marker_lines.points.push_back(point_stamped.point);
 					}
 					else {
 						// set color: point is not in contact
@@ -226,11 +234,6 @@ class DynamicsVisualizer
 					ROS_ERROR("ROS error: %s", e.what());
 				}
 			}
-			// close support polygon
-			if (marker_lines.points.size() >= 2) {
-				marker_lines.points.push_back(marker_lines.points.front());
-			}
-
 			// publish resulting message
 			markers_pub.publish(marker_array);
 		}
@@ -239,15 +242,13 @@ class DynamicsVisualizer
 		{
 			// prepare Markers message
 			MarkerArray marker_array;
-
 			// add contact points
-			marker_array.markers.resize(2);
+			marker_array.markers.resize(1);
 			Marker& marker = marker_array.markers[0];
-			Marker& marker_zmp = marker_array.markers[1];
-			// message with points
-			marker.header.frame_id = "base_link"; // forces are supplied in base_link frame
+			// message contact forces vizualization
+			marker.header.frame_id = "odom_combined"; // forces are supplied in base_link frame
 			marker.header.stamp = ros::Time::now();
-			marker.ns = "external_forces";
+			marker.ns = "limbs_external_forces_and_twists";
 			marker.id = 0;
 			marker.type = visualization_msgs::Marker::LINE_LIST;
 			marker.action = 0; // add/modify 
@@ -256,20 +257,13 @@ class DynamicsVisualizer
 			marker.color = RED;
 			marker.lifetime = ros::Duration(1.0); // one second
 			marker.frame_locked = true; // odom_combined is fixed frame
-			// message with ZMP point
-			marker_zmp = marker;
-			marker_zmp.header.frame_id = "odom_combined"; // we can calculate ZMP only on world frame
-			marker_zmp.id = 1;
-			marker_zmp.type = visualization_msgs::Marker::POINTS;
-			marker_zmp.scale.x = point_size_param; marker_zmp.scale.y = point_size_param; marker_zmp.scale.z = 0.0;
-			marker_zmp.color = GREEN;
 
 			// RigidBodyState messge contains all objects in world frame coordinates
-			for(int k = 0; k < wrenches.name.size() - 1; k++) {
+			for(int k = 0; k < wrenches.wrench.size(); k++) {
+					// get wrench and bring it to limb tip
 					KDL::Wrench wrench = wrenches.wrench[k];
-					// move to limb tip 
 					KDL::Vector point = wrenches.frame[k].p;
-					wrench.RefPoint(point); 
+					wrench = wrench.RefPoint(point);
 					// wrench visualization
 					KDL::Vector point_force = point + wrench.force*force_scale_param; // force visualization
 					KDL::Vector point_torque = point + wrench.torque*torque_scale_param; // torque visualization
@@ -279,19 +273,78 @@ class DynamicsVisualizer
 					marker.points.emplace_back(); tf::pointKDLToMsg(point, marker.points.back()); marker.colors.push_back(BLUE);
 					marker.points.emplace_back(); tf::pointKDLToMsg(point_torque, marker.points.back()); marker.colors.push_back(BLUE);
 			}
-			// base_link wrench is already in world frame and contains summ of reaction forces
-			// now calculate ZMP coordinates if it is possible
-			// contact are assumed to be positioned in z = 0 plane
-			if (wrenches.name.size() > 0 && wrenches.name.back() == "base_link") {
-				KDL::Wrench& wrench_sum = wrenches.wrench.back();
-				if (wrench_sum.force.z() > 0.0) {
-					KDL::Vector zmp;
-					zmp[0] = - wrench_sum.torque.y() / wrench_sum.force.z();
-					zmp[1] =   wrench_sum.torque.x() / wrench_sum.force.z();
-					// add zmp marker
-					marker_zmp.points.emplace_back(); tf::pointKDLToMsg(zmp, marker_zmp.points.back()); marker_zmp.colors.push_back(MAGENTA);
+			if (display_twist) {
+				for(int k = 0; k < wrenches.twist.size(); k++) {
+					// get velocity and bring it to limb tip
+					KDL::Twist twist = wrenches.twist[k];
+					KDL::Vector point = wrenches.frame[k].p;
+					twist = twist.RefPoint(point);
+					// velocity visualization
+					KDL::Vector point_force = point + twist.vel; // linear vel visualization
+					KDL::Vector point_torque = point + twist.rot; // angular vel visualization
+					// add to line list
+					marker.points.emplace_back(); tf::pointKDLToMsg(point, marker.points.back()); marker.colors.push_back(GREEN);
+					marker.points.emplace_back(); tf::pointKDLToMsg(point_force, marker.points.back()); marker.colors.push_back(GREEN);
+					marker.points.emplace_back(); tf::pointKDLToMsg(point, marker.points.back()); marker.colors.push_back(YELLOW);
+					marker.points.emplace_back(); tf::pointKDLToMsg(point_torque, marker.points.back()); marker.colors.push_back(YELLOW);
 				}
 			}
+			// publish resulting message
+			markers_pub.publish(marker_array);
+		}
+
+		void visualizeBalance() {
+			// prepare Markers message
+			MarkerArray marker_array;
+			marker_array.markers.resize(2);
+			Marker& marker_zmp = marker_array.markers[0];
+			Marker& marker_lines = marker_array.markers[1];
+			// message with CoP an point
+			marker_zmp.header.frame_id = "odom_combined"; // we can calculate ZMP only on world frame
+			marker_zmp.header.stamp = ros::Time::now();
+			marker_zmp.ns = "balance";
+			marker_zmp.id = 0;
+			marker_zmp.type = visualization_msgs::Marker::POINTS;
+			marker_zmp.action = 0; // add/modify 
+			marker_zmp.pose.orientation.w = 1.0; // other elements are zeros
+			marker_zmp.scale.x = point_size_param; marker_zmp.scale.y = point_size_param; marker_zmp.scale.z = 0.0;
+			marker_zmp.color = GREEN;
+			marker_zmp.lifetime = ros::Duration(1.0); // one second
+			marker_zmp.frame_locked = true; // odom_combined is fixed frame
+			// message with support polygone
+			marker_lines = marker_zmp;
+			marker_lines.id = 1;
+			marker_lines.type = visualization_msgs::Marker::LINE_STRIP;
+			marker_lines.scale.x = point_size_param/2; marker_lines.scale.y = 0.0; marker_lines.scale.z = 0.0;
+			marker_lines.color = GREEN;
+			
+			// use balance message to display CoP and CoM
+			// contact are assumed to be positioned in z = 0 plane
+			// CoP (z = 0)
+			marker_zmp.points.emplace_back(); 
+			tf::pointKDLToMsg(balance.CoP, marker_zmp.points.back());
+			marker_zmp.colors.push_back(MAGENTA);
+			// CoM projection (z = 0)
+			marker_zmp.points.emplace_back(); 
+			tf::pointKDLToMsg(balance.CoM, marker_zmp.points.back());
+			marker_zmp.points.back().z = 0.0;
+			marker_zmp.colors.push_back(LIGHT_BLUE);
+			// CoM 
+			marker_zmp.points.emplace_back(); 
+			tf::pointKDLToMsg(balance.CoM, marker_zmp.points.back());
+			marker_zmp.colors.push_back(LIGHT_BLUE);
+
+			// now add support polygone
+			for(int k = 0; k < balance.support_points.size(); k++) {
+				geometry_msgs::Point point;
+				tf::pointKDLToMsg(balance.support_points[k], point);
+				marker_lines.points.push_back(point);
+			}
+			// close support polygon
+			if (marker_lines.points.size() >= 2) {
+				marker_lines.points.push_back(marker_lines.points.front());
+			}
+
 			// publish resulting message
 			markers_pub.publish(marker_array);
 		}
@@ -302,6 +355,8 @@ const ColorRGBAInit DynamicsVisualizer::RED = ColorRGBAInit(1 ,0, 0);
 const ColorRGBAInit DynamicsVisualizer::GREEN = ColorRGBAInit(0, 1, 0);
 const ColorRGBAInit DynamicsVisualizer::MAGENTA = ColorRGBAInit(1, 0, 1);
 const ColorRGBAInit DynamicsVisualizer::BLUE = ColorRGBAInit(0, 0, 1);
+const ColorRGBAInit DynamicsVisualizer::LIGHT_BLUE = ColorRGBAInit(0, 1, 1);
+const ColorRGBAInit DynamicsVisualizer::YELLOW = ColorRGBAInit(1, 1, 0);
 
 int main(int argc, char **argv)
 {

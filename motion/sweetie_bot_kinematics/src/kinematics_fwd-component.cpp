@@ -2,6 +2,7 @@
 
 #include <rtt/Component.hpp>
 #include <iostream>
+#include <ros/time.h>
 
 #include <sweetie_bot_orocos_misc/joint_state_check.hpp>
 #include <sweetie_bot_orocos_misc/get_subservice_by_type.hpp>
@@ -105,9 +106,7 @@ void KinematicsFwd::updateHook()
 			else {
 				KDL::SetToZero(data.jnt_array_vel.qdot);
 			}
-			// calculate chain pose in absolute coordinates
-			// TODO add Jacobian calulation
-			// TODO exclude extra copy
+			// calculate chain pose
 			KDL::FrameVel frame_vel;
 			int ret = data.fk_vel_solver->JntToCart(data.jnt_array_vel, frame_vel);
 			if (ret < 0){
@@ -116,9 +115,12 @@ void KinematicsFwd::updateHook()
 			}
 			// fill message
 			limbs.frame[k] = frame_vel.value();
-			limbs.twist[k] = frame_vel.deriv();
+			// KDL kinematics functions utilize pose twist, so we have perform conversion and move origin to base_link center.
+			// Why?!!  Why it is not screw twist?!!
+			limbs.twist[k] = frame_vel.deriv().RefPoint(-frame_vel.value().p);
 		}
 		// publish message
+		limbs.header.stamp = ros::Time::now();
 		out_limbs_port.write(limbs);
 	}
 }

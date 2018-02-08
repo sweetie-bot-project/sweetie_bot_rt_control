@@ -177,7 +177,6 @@ inline static Matrix3d S(Vector& w) {
 		 -w.y(), w.x(),  0.0;
 	return S;
 }
-		
 
 void Odometry::estimateVelocity() 
 {
@@ -210,9 +209,9 @@ void Odometry::estimateVelocity()
 				avg_speed += contact_point_speed;
 				center_point += contact_points_body[point_index];
 				// right hand part of angular velocity equation
-				bw += contact_points_body[ind] * contact_point_speed;
+				bw += contact_points_body[point_index] * contact_point_speed;
 				// left-hand part of angular velocity equation
-				Aw += S(contact_points_body[ind]) * S(contact_points_body[ind]).transpose();
+				Aw += S(contact_points_body[point_index]) * S(contact_points_body[point_index]).transpose();
 
 				point_index++;
 			}
@@ -230,7 +229,7 @@ void Odometry::estimateVelocity()
 	Twist body_twist;
 	Map<Vector3d>(body_twist.rot.data) = - Aw.ldlt().solve(Map<Vector3d>(bw.data));
 	// find linear velocity
-	body_twist.vel = - (avg_speed + center_point*body_twist.rot);	
+	body_twist.vel = - (avg_speed - center_point*body_twist.rot);
 	// result
 	body_pose.twist[0] = body_pose.frame[0] * body_twist;
 }
