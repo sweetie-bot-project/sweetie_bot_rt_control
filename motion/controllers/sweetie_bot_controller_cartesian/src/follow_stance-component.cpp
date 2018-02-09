@@ -70,13 +70,16 @@ FollowStance::FollowStance(std::string const& name)  :
 		.doc("If it is false component ignores in_base_port after receving initial pose. Reference trajectory is calculated without any feedback. In most cases this way is more robust. "
 				"To comform kinematic constraints inverse kinematics should be connected syncronously via poseToJointStatePublish operation. ")
 		.set(false);
-	this->addProperty("balance_check", balance_check)
-		.doc("Disable motions that violate stability condition. If condtions is violated move to failsafe pose.")
+	this->addProperty("check_balance", balance_check)
+		.doc("Ignore reference pose that violates static stability conditions.")
 		.set(true);
-	this->addProperty("safe_pose_z_min", safe_pose_z_min)
-		.doc("If static balance condition is violated robot tries to move it center of mass to geometrical center of support polygone (safe pose). This parameter specifies minimal z coordinate of safe pose.")
+	this->addProperty("keep_balance", balance_keep)
+		.doc("If staic stability condtions are violated move to failsafe pose. May not end well.")
+		.set(false);
+	this->addProperty("keep_balance_safe_z_min", safe_pose_z_min)
+		.doc("If static balance condition is violated in 'keep_balace' mode robot tries to move its center of mass to geometrical the center of support polygone (safe pose). This parameter specifies minimal z coordinate of safe pose.")
 		.set(0.0);
-	this->addProperty("safe_pose_z_max", safe_pose_z_max)
+	this->addProperty("keep_balance_safe_z_max", safe_pose_z_max)
 		.doc("If static balance condition is violated robot tries to move it center of mass to geometrical center of support polygone (safe pose). This parameter specifies maximal z coordinate of safe pose.")
 		.set(1.0);
 	// operations: provided
@@ -306,7 +309,7 @@ void FollowStance::checkBalance()
 	}
 
 	// check if current pose is staticlly stable	
-	if (! isInsideSupportPolygone(balance.CoM)) {
+	if (balance_keep && ! isInsideSupportPolygone(balance.CoM)) {
 		// set reference pose to geometrical center
 		KDL::Vector center = KDL::Vector::Zero();
 		for ( const KDL::Vector& p : balance.support_points ) center += p;

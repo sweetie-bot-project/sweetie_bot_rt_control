@@ -5,18 +5,16 @@
 #include <string>
 
 #include <rtt/Component.hpp>
+#include <rtt/os/Timer.hpp>
 
 #include <std_srvs/SetBool.h>
 #include <sensor_msgs/typekit/JointState.h>
 #include <geometry_msgs/typekit/PoseStamped.h>
-#include <kdl_msgs/typekit/Twist.h>
-#include <sweetie_bot_kinematics_msgs/typekit/JointStateAccel.h>
 #include <sweetie_bot_kinematics_msgs/typekit/RigidBodyState.h>
 #include <sweetie_bot_kinematics_msgs/typekit/SupportState.h>
 #include <sweetie_bot_kinematics_msgs/typekit/BalanceState.h>
 
 #include <sweetie_bot_logger/logger.hpp>
-#include <sweetie_bot_orocos_misc/simple_action_server.hpp>
 #include <sweetie_bot_resource_control/resource_client.hpp>
 #include <sweetie_bot_robot_model/robot_model.hpp>
 #include <sweetie_bot_controller_cartesian/filter_rigid_body_state.hpp>
@@ -43,11 +41,10 @@ class FollowStance : public RTT::TaskContext
 		RTT::OutputPort<sweetie_bot_kinematics_msgs::SupportState> out_supports_port;
 		// PROPERTIES
 		std::vector<std::string> support_legs;
-		double Kp;
-		double Kv;
 		double period;
 		bool base_pose_feedback;
 		bool balance_check;
+		bool balance_keep;
 		double safe_pose_z_max;
 		double safe_pose_z_min;
 
