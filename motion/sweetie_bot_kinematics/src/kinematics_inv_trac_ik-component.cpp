@@ -81,7 +81,7 @@ bool KinematicsInvTracIK::configureHook()
 		// check if chain exist
 		if (robot_model_->getChainIndex(name) < 0) {
 			log(ERROR) << "Chain " << name << " is not registered in robot_model." << endlog();
-			return nullptr;
+			return false;
 		}
 		// get kdl_chain
 		Chain chain = robot_model_->getKDLChain(name, true); // we need real and virtual joints
