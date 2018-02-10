@@ -21,12 +21,14 @@
   <depend>eigen_conversions</depend>
   <depend>kdl_conversions</depend>
   <!-- ROS and OROCOS datatypes -->
+  <depend>sensor_msgs</depend>
   <depend>rtt_sensor_msgs</depend>
   <!-- SWEETIEBOT packages -->
   <depend>sweetie_bot_logger</depend>
   <depend>sweetie_bot_robot_model</depend>
   <depend>sweetie_bot_orocos_misc</depend> <!-- actionlib client, JointState checks, find subservice -->
   <!-- SWEETIEBOT datatypes -->
+  <depend>sweetie_bot_kinematics_msgs</depend>
   <depend>rtt_sweetie_bot_kinematics_msgs</depend>
 
   <export>
