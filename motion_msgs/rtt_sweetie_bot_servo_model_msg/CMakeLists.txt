@@ -8,6 +8,5 @@ ros_generate_rtt_service_proxies(sweetie_bot_servo_model_msg)
 
 orocos_generate_package(
   DEPENDS sweetie_bot_servo_model_msg
-  DEPENDS_TARGETS rtt_roscomm  rtt_std_msgs
-
+  DEPENDS_TARGETS rtt_roscomm
 )

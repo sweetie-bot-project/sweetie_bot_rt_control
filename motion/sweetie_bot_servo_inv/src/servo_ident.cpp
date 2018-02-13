@@ -10,12 +10,12 @@ namespace sweetie_bot {
 
 namespace motion {
 
-servo_model_data::servo_model_data(): index(0), ident_started(false), alpha(5), P(5, 5) {
+servo_model_data::servo_model_data(): index(0), ident_started(false), alpha(4), P(4, 4) {
 };
 
 ServoIdent::ServoIdent(std::string const& name) :
 	TaskContext(name),
-	log(logger::categoryFromComponentName(name)), phi(5), L(5) {
+	log(logger::categoryFromComponentName(name)), phi(4), L(4) {
 
 	if (!log.ready()) {
 		RTT::Logger::In in("ServoIdent");
@@ -79,8 +79,7 @@ ServoIdent::ServoIdent(std::string const& name) :
 	default_servo_model.alpha[0] = 0;
 	default_servo_model.alpha[1] = 0;
 	default_servo_model.alpha[2] = 0;
-	default_servo_model.alpha[3] = 0;
-	default_servo_model.alpha[4] = 1;
+	default_servo_model.alpha[3] = 1;
 	default_servo_model.qs = 10;
 	default_servo_model.delta = 1;
 
@@ -100,7 +99,7 @@ bool ServoIdent::sort_servo_models() {
 	std::vector<sweetie_bot_servo_model_msg::ServoModel>::iterator s_iter;
 	int i;
 
-	mdls.assign(joints->name.size(), default_servo_model);
+/mdls.assign(joints->name.size(), default_servo_model);
 
 	for (i = 0; i < joints->name.size(); i++) {
 
@@ -130,9 +129,6 @@ void ServoIdent::prepare_buffers_for_new_joints_size(sweetie_bot_kinematics_msgs
 	effort_joints.effort.assign(n, 0);
 
 	joints_measured = effort_joints;
-
-	velocity_measured_prev.resize(n);
-	num_periods.assign(n, 1);
 
 	joint_accel.name = effort_joints.name;
 	joint_accel.position = effort_joints.position;
@@ -235,48 +231,42 @@ void ServoIdent::updateHook() {
 			effort_joints.position[j] = joints_measured.position[i];
 			effort_joints.velocity[j] = joints_measured.velocity[i];
 
-			effort_joints.effort[j] = joints->effort[j] - (
+			effort_joints.effort[j] =  - (
 				servo_models[j].kp*battery_voltage * (
 					-(joints->position[j] - joints_measured.position[i])
 				)
 				- servo_models[j].alpha[0] * (
 					joints->velocity[j] - joints_measured.velocity[i]
 				)
-				-  servo_models[j].alpha[2] * (
+				-  servo_models[j].alpha[1] * (
 					copysign(1, joints->velocity[j])
 					- copysign(1, joints_measured.velocity[i])
 				)
-				- servo_models[j].alpha[3] * (
+				- servo_models[j].alpha[2] * (
 					copysign(exp(-pow(fabs(joints->velocity[j]/servo_models[j].qs), servo_models[j].delta)),
 						joints->velocity[j])
 					- copysign(exp(-pow(fabs(joints_measured.velocity[i]/servo_models[j].qs), servo_models[j].delta)),
 						joints_measured.velocity[i])
 				)
-			) / servo_models[j].alpha[4];
-			// add acceleration
-			if (!ignore_accel) {
-				effort_joints.effort[j] +=	- servo_models[j].alpha[1]/servo_models[j].alpha[4] * (joints->acceleration[j] - (joints_measured.velocity[i] - velocity_measured_prev[j]) / (period * num_periods[j]));
-			}
+			) / servo_models[j].alpha[3];
 
 			//now do identification, if it is necessary
 			if (iter->second.ident_started) {
 				target_pos = (
 				    servo_models[j].alpha[0] * joints->velocity[j] +
-				    servo_models[j].alpha[2] * copysign(1, joints->velocity[j]) +
-				    servo_models[j].alpha[3] * copysign(exp(-pow(fabs(joints->velocity[j]/servo_models[j].qs),
+				    servo_models[j].alpha[1] * copysign(1, joints->velocity[j]) +
+				    servo_models[j].alpha[2] * copysign(exp(-pow(fabs(joints->velocity[j]/servo_models[j].qs),
 													servo_models[j].delta)), joints->velocity[j]) +
-				    servo_models[j].alpha[4] * joints->effort[j]
+				    servo_models[j].alpha[3] * joints->effort[j]
 				  ) / (servo_models[j].kp*battery_voltage) +
 				  joints->position[j];
 				if (!ignore_accel) target_pos += servo_models[j].alpha[1] * joints->acceleration[j] / (servo_models[j].kp*battery_voltage);
 
 				phi(0) = joints_measured.velocity[i];
-				if (!ignore_accel) phi(1) = (joints_measured.velocity[i] - velocity_measured_prev[j]) / (period * num_periods[j]);
-				else phi(1) = 0.0;
-				phi(2) = copysign(1, joints_measured.velocity[i]);
-				phi(3) = copysign(exp(-pow(fabs(joints_measured.velocity[i]/servo_models[j].qs), servo_models[j].delta)),
+				phi(1) = copysign(1, joints_measured.velocity[i]);
+				phi(2) = copysign(exp(-pow(fabs(joints_measured.velocity[i]/servo_models[j].qs), servo_models[j].delta)),
 						joints_measured.velocity[i]);
-				phi(4) = joints->effort[j];
+				phi(3) = joints->effort[j];
 
 				y = (target_pos - joints_measured.position[i]) * battery_voltage * servo_models[j].kp;
 
@@ -288,17 +278,12 @@ void ServoIdent::updateHook() {
 				iter->second.prec_err_buf.pos_to_put() = prec_err / battery_voltage / servo_models[j].kp;
 			}
 
-			velocity_measured_prev[j] = joints_measured.velocity[i];
-			num_periods[j] = 0;
-
 		}
 
 		out_torque_error_sorted.write(effort_joints);
 
 		//another control cycle is ending...
 		njoints = joints->name.size();
-		for (j = 0; j < njoints; j++)
-				num_periods[j]++;
 	}
 
 	//update battery voltage rate
@@ -331,8 +316,7 @@ bool ServoIdent::startIdentification(std::vector<std::string> names) {
 			iter->second.alpha(1) = servo_models[j].alpha[1];
 			iter->second.alpha(2) = servo_models[j].alpha[2];
 			iter->second.alpha(3) = servo_models[j].alpha[3];
-			iter->second.alpha(4) = servo_models[j].alpha[4];
-			iter->second.P = identity_matrix<double>(5,5);
+			iter->second.P = identity_matrix<double>(4,4);
 			iter->second.prec_err_buf.reset(error_averaging_time / period);
 		}
 	}
@@ -363,7 +347,6 @@ std::vector<std::string> ServoIdent::endIdentification() {
 				servo_models[j].alpha[1] = iter->second.alpha(1);
 				servo_models[j].alpha[2] = iter->second.alpha(2);
 				servo_models[j].alpha[3] = iter->second.alpha(3);
-				servo_models[j].alpha[4] = iter->second.alpha(4);
 				mdls.push_back(servo_models[j]);
 				log(WARN) << "Identification success for " << servo_models[j].name << "!" << "Prec: " << prec << endlog();
 			} else {

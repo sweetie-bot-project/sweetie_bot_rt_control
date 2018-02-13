@@ -14,7 +14,7 @@
 namespace sweetie_bot {
 namespace motion {
 
-class ServoInv7Param : public RTT::TaskContext {
+class ServoInvParam : public RTT::TaskContext {
 
 	protected:
 		// Logger
@@ -54,7 +54,7 @@ class ServoInv7Param : public RTT::TaskContext {
 		double battery_voltage;
 
 	public:
-		ServoInv7Param(std::string const& name);
+		ServoInvParam(std::string const& name);
 		bool startHook();
 		void updateHook();
 		void stopHook();

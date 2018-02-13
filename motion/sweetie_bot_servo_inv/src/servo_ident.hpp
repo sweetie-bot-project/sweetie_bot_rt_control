@@ -26,8 +26,8 @@ namespace motion {
 struct servo_model_data {
 	unsigned int index;
 	bool ident_started;
-	boost::numeric::ublas::c_vector<double, 5> alpha;
-	boost::numeric::ublas::c_matrix<double, 5, 5> P;
+	boost::numeric::ublas::c_vector<double, 4> alpha;
+	boost::numeric::ublas::c_matrix<double, 4, 4> P;
 	ring_buffer<double> prec_err_buf;
 
 	servo_model_data();
@@ -54,18 +54,13 @@ class ServoIdent : public RTT::TaskContext {
 		std::unordered_map<std::string, servo_model_data> servo_models_data;
 
 		//for identification calculations
-		boost::numeric::ublas::c_vector<double, 5> phi;
-		boost::numeric::ublas::c_vector<double, 5> L;
+		boost::numeric::ublas::c_vector<double, 4> phi;
+		boost::numeric::ublas::c_vector<double, 4> L;
 
 		const sweetie_bot_kinematics_msgs::JointStateAccel *joints;
 		sensor_msgs::JointState joints_measured;
 		sensor_msgs::JointState effort_joints;
 		sensor_msgs::BatteryState battery_voltage_buf;
-
-		//count of cycles after getting last measured joint for servo with same number
-		std::vector<unsigned int> num_periods;
-
-		std::vector<double> velocity_measured_prev;
 
 		bool models_vector_was_sorted;
 		bool sort_servo_models();

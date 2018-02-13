@@ -2,7 +2,7 @@
 #include <iostream>
 #include <algorithm>
 
-#include "servo_inv_7param.hpp"
+#include "servo_inv_param.hpp"
 
 using namespace RTT;
 using sweetie_bot::logger::Logger;
@@ -12,12 +12,12 @@ namespace sweetie_bot {
 namespace motion {
 
 
-ServoInv7Param::ServoInv7Param(std::string const& name) :
+ServoInvParam::ServoInvParam(std::string const& name) :
 	TaskContext(name),
 	log(logger::categoryFromComponentName(name)) {
 
 	if (!log.ready()) {
-		RTT::Logger::In in("ServoInv7Param");
+		RTT::Logger::In in("ServoInvParam");
 		RTT::log(RTT::Error) << "Logger is not ready!" << endlog();
 		this->fatal();
 		return;
@@ -51,7 +51,6 @@ ServoInv7Param::ServoInv7Param(std::string const& name) :
 	default_servo_model.alpha[1] = 0;
 	default_servo_model.alpha[2] = 0;
 	default_servo_model.alpha[3] = 0;
-	default_servo_model.alpha[4] = 0;
 	default_servo_model.qs = 1;
 	default_servo_model.delta = 1;
 }
@@ -84,7 +83,7 @@ bool ServoInv7Param::sort_servo_models() {
 	return true;
 }
 
-void ServoInv7Param::prepare_buffers_for_new_joints_size() {
+void ServoInvParam::prepare_buffers_for_new_joints_size() {
 	unsigned int n;
 
 	n = joints.name.size();
@@ -94,7 +93,7 @@ void ServoInv7Param::prepare_buffers_for_new_joints_size() {
 	goals.playtime.assign(n, 0);
 }
 
-bool ServoInv7Param::startHook() {
+bool ServoInvParam::startHook() {
 	in_joints_fixed.getDataSample(joints);
 
 	prepare_buffers_for_new_joints_size();
@@ -108,7 +107,7 @@ bool ServoInv7Param::startHook() {
 	return true;
 }
 
-void ServoInv7Param::updateHook() {
+void ServoInvParam::updateHook() {
 	unsigned int i;
 	unsigned int njoints;
 	std::vector<sweetie_bot_servo_model_msg::ServoModel>::iterator s_iter;
@@ -144,11 +143,10 @@ void ServoInv7Param::updateHook() {
 			//calculate target position using inverse model of the servo
 			goals.target_pos[i] = (
 			    servo_models[i].alpha[0] * joints.velocity[i] +
-			    servo_models[i].alpha[1] * joints.acceleration[i] +
-			    servo_models[i].alpha[2] * copysign(1, joints.velocity[i]) +
-			    servo_models[i].alpha[3] * copysign(exp(-pow(fabs(joints.velocity[i]/servo_models[i].qs),
+			    servo_models[i].alpha[1] * copysign(1, joints.velocity[i]) +
+			    servo_models[i].alpha[2] * copysign(exp(-pow(fabs(joints.velocity[i]/servo_models[i].qs),
 												servo_models[i].delta)), joints.velocity[i]) +
-			    servo_models[i].alpha[4] * joints.effort[i]
+			    servo_models[i].alpha[3] * joints.effort[i]
 			  ) / (servo_models[i].kp*battery_voltage) +
 			  joints.position[i];
 
@@ -173,7 +171,7 @@ void ServoInv7Param::updateHook() {
 		battery_voltage = battery_voltage_buf.voltage;
 }
 
-void ServoInv7Param::stopHook() {
+void ServoInvParam::stopHook() {
 
 	log(INFO) << "Stopped!" << endlog();
 }
@@ -186,11 +184,11 @@ void ServoInv7Param::stopHook() {
  * in one library *and* you may *not* link this library
  * with another component library. Use
  * ORO_CREATE_COMPONENT_TYPE()
- * ORO_LIST_COMPONENT_TYPE(ServoInv7Param)
+ * ORO_LIST_COMPONENT_TYPE(ServoInvParam)
  * In case you want to link with another library that
  * already contains components.
  *
  * If you have put your component class
  * in a namespace, don't forget to add it here too:
  */
-ORO_CREATE_COMPONENT(sweetie_bot::motion::ServoInv7Param)
+ORO_CREATE_COMPONENT(sweetie_bot::motion::ServoInvParam)
