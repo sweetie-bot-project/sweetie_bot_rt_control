@@ -68,6 +68,9 @@ ServoIdent::ServoIdent(std::string const& name) :
 		.doc("Default servo model. Is used for error calculation if specifc model is not provided in servo_model list.");
 	this->addProperty("servo_models", servo_models)
 		.doc("Vector of models.");
+	this->addProperty("ignore_accel", ignore_accel)
+		.doc("Ignore acceleration during model identification. a[1] coefficient will always be equal to zero.")
+		.set(false);
 
 	//this coefficient provides zero torque_error_sorted for model
 	default_servo_model.name = "default";
@@ -239,10 +242,6 @@ void ServoIdent::updateHook() {
 				- servo_models[j].alpha[0] * (
 					joints->velocity[j] - joints_measured.velocity[i]
 				)
-				- servo_models[j].alpha[1] * (
-					joints->acceleration[j]
-					- (joints_measured.velocity[i] - velocity_measured_prev[j]) / (period * num_periods[j])
-				)
 				-  servo_models[j].alpha[2] * (
 					copysign(1, joints->velocity[j])
 					- copysign(1, joints_measured.velocity[i])
@@ -254,22 +253,26 @@ void ServoIdent::updateHook() {
 						joints_measured.velocity[i])
 				)
 			) / servo_models[j].alpha[4];
+			// add acceleration
+			if (!ignore_accel) {
+				effort_joints.effort[j] +=	- servo_models[j].alpha[1]/servo_models[j].alpha[4] * (joints->acceleration[j] - (joints_measured.velocity[i] - velocity_measured_prev[j]) / (period * num_periods[j]));
+			}
 
 			//now do identification, if it is necessary
 			if (iter->second.ident_started) {
 				target_pos = (
 				    servo_models[j].alpha[0] * joints->velocity[j] +
-				    servo_models[j].alpha[1] * joints->acceleration[j] +
 				    servo_models[j].alpha[2] * copysign(1, joints->velocity[j]) +
 				    servo_models[j].alpha[3] * copysign(exp(-pow(fabs(joints->velocity[j]/servo_models[j].qs),
 													servo_models[j].delta)), joints->velocity[j]) +
 				    servo_models[j].alpha[4] * joints->effort[j]
 				  ) / (servo_models[j].kp*battery_voltage) +
 				  joints->position[j];
+				if (!ignore_accel) target_pos += servo_models[j].alpha[1] * joints->acceleration[j] / (servo_models[j].kp*battery_voltage);
 
 				phi(0) = joints_measured.velocity[i];
-				phi(1) = (joints_measured.velocity[i] - velocity_measured_prev[j])
-				/ (period * num_periods[j]);
+				if (!ignore_accel) phi(1) = (joints_measured.velocity[i] - velocity_measured_prev[j]) / (period * num_periods[j]);
+				else phi(1) = 0.0;
 				phi(2) = copysign(1, joints_measured.velocity[i]);
 				phi(3) = copysign(exp(-pow(fabs(joints_measured.velocity[i]/servo_models[j].qs), servo_models[j].delta)),
 						joints_measured.velocity[i]);

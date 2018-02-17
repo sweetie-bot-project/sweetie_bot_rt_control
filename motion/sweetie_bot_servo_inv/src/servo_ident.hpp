@@ -92,6 +92,7 @@ class ServoIdent : public RTT::TaskContext {
 		double battery_voltage;
 		sweetie_bot_servo_model_msg::ServoModel default_servo_model;
 		std::vector<sweetie_bot_servo_model_msg::ServoModel> servo_models;
+		bool ignore_accel;
 
 	public:
 		ServoIdent(std::string const& name);
