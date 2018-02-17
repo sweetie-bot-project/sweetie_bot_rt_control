@@ -90,6 +90,7 @@ class ServoIdent : public RTT::TaskContext {
 		double error_averaging_time;
 		double treshhold;
 		double battery_voltage;
+		sweetie_bot_servo_model_msg::ServoModel default_servo_model;
 		std::vector<sweetie_bot_servo_model_msg::ServoModel> servo_models;
 
 	public:

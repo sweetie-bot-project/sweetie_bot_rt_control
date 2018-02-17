@@ -36,7 +36,7 @@ ServoIdent::ServoIdent(std::string const& name) :
 	this->addPort("servo_models", out_servo_models)
 		.doc("Result of identification.");
 	this->addPort("torque_error_sorted", out_torque_error_sorted)
-		.doc("Prediction error. Desired tourque - counted by model tourque. Position and velocity are current ones");
+		.doc("Prediction error. Desired torque - counted by model torque. Position and velocity are current ones");
 
 	this->addOperation("startIdentification", &ServoIdent::startIdentification, this, OwnThread)
 		.doc("It starts identification of servos.")
@@ -64,8 +64,23 @@ ServoIdent::ServoIdent(std::string const& name) :
 	this->addProperty("battery_voltage", battery_voltage)
 		.doc("Current voltage of the battery.")
 		.set(7);
+	this->addProperty("default_servo_model", default_servo_model)
+		.doc("Default servo model. Is used for error calculation if specifc model is not provided in servo_model list.");
 	this->addProperty("servo_models", servo_models)
 		.doc("Vector of models.");
+
+	//this coefficient provides zero torque_error_sorted for model
+	default_servo_model.name = "default";
+	default_servo_model.kp = 0;
+	default_servo_model.kgear = 1;
+	default_servo_model.alpha[0] = 0;
+	default_servo_model.alpha[1] = 0;
+	default_servo_model.alpha[2] = 0;
+	default_servo_model.alpha[3] = 0;
+	default_servo_model.alpha[4] = 1;
+	default_servo_model.qs = 10;
+	default_servo_model.delta = 1;
+
 }
 
 struct ModelFinder {
@@ -78,24 +93,11 @@ struct ModelFinder {
 };
 
 bool ServoIdent::sort_servo_models() {
-	sweetie_bot_servo_model_msg::ServoModel eq_mdl;
 	std::vector<sweetie_bot_servo_model_msg::ServoModel> mdls;
 	std::vector<sweetie_bot_servo_model_msg::ServoModel>::iterator s_iter;
 	int i;
 
-	//this coefficient provides zero torque_error_sorted for model
-	eq_mdl.name = "";
-	eq_mdl.kp = 0;
-	eq_mdl.kgear = 1;
-	eq_mdl.alpha[0] = 0;
-	eq_mdl.alpha[1] = 0;
-	eq_mdl.alpha[2] = 0;
-	eq_mdl.alpha[3] = 0;
-	eq_mdl.alpha[4] = 1;
-	eq_mdl.qs = 10;
-	eq_mdl.delta = 1;
-
-	mdls.assign(joints->name.size(), eq_mdl);
+	mdls.assign(joints->name.size(), default_servo_model);
 
 	for (i = 0; i < joints->name.size(); i++) {
 
