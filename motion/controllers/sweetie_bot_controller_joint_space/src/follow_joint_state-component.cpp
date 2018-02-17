@@ -23,7 +23,8 @@ std::ostream& operator<<(std::ostream& s, const std::vector<std::string>& string
 
 FollowJointState::FollowJointState(std::string const& name)  : 
 	TaskContext(name, RTT::base::TaskCore::PreOperational),
-	log(logger::categoryFromComponentName(name))
+	log(logger::categoryFromComponentName(name)),
+	action_server(this->provides())
 {
 	this->provides()->doc("Feedforward JointState reference from high-level to agregator.");
 
@@ -69,6 +70,10 @@ FollowJointState::FollowJointState(std::string const& name)  :
 	// Service: reqires
 	robot_model = new sweetie_bot::motion::RobotModel(this);
 	this->requires()->addServiceRequester(ServiceRequester::shared_ptr(robot_model));
+
+	// action server hook registration
+	action_server.setGoalHook(boost::bind(&FollowJointState::newGoalHook, this, _1));
+	action_server.setCancelHook(boost::bind(&FollowJointState::cancelGoalHook, this));
 	
 	// other actions
 	log(INFO) << "FollowJointState is constructed!" << endlog();
@@ -144,6 +149,12 @@ bool FollowJointState::configureHook()
 		log(ERROR) << "RobotModel service is not ready." << endlog();
 		return false;
 	}
+	// Start action server: do not publish feedback
+	if (!action_server.start(false)) {
+		log(ERROR) << "Unable to start action_server." << endlog();
+		return false;
+	}
+
 	n_joints_fullpose = robot_model->listJoints("").size();
 	// build joints index 
 	if (!formJointIndex(controlled_chains)) return false;
@@ -160,6 +171,66 @@ bool FollowJointState::configureHook()
 	return true;
 }
 
+bool FollowJointState::dataOnPortHook( RTT::base::PortInterface* portInterface ) 
+{
+	// Process EventPorts messages callbacks if component is in configured state,
+	// so actionlib hooks works even if component is stopped.
+	//
+	// WARNING: works only in OROCOS 2.9 !!!
+	//
+    return this->isConfigured();
+}
+
+/**
+ * activation or deactivation is requested via actionlib interface
+ */
+void FollowJointState::newGoalHook(const Goal& pending_goal) 
+{
+	log(INFO) << "newGoalHook: new pending goal." << endlog();
+
+	if (pending_goal.operational == false) {
+		//deactivation requested 
+		
+		// active goal result
+		goal_result.error_code = Result::SUCCESSFUL;
+		goal_result.error_string = "Aborted by external request.";
+		// abort active if it presents
+		action_server.acceptPending(goal_result);
+		// stop componet if it was running
+		if (isRunning()) {
+			goal_result.error_string = "Stopped.";
+			action_server.succeedActive(goal_result);
+			stop(); 
+		}
+		else {
+			goal_result.error_string = "Already is stopped.";
+			action_server.succeedActive(goal_result);
+		}
+	}
+	else {
+		// activation requested
+		
+		// check resource set
+		for( const std::string& name : pending_goal.resources )
+			if (robot_model->getChainIndex(name) < 0) {
+				log(ERROR) << "Unknown resources " << name << ". SetOperational action is rejected." << endlog();
+				goal_result.error_code = Result::INVALID_RESOURCE_SET;
+				goal_result.error_string = name;
+				action_server.rejectPending(goal_result);
+				return;
+			}
+
+		// everything is good: accept goal and request resources
+		// active goal result
+		goal_result.error_code = Result::SUCCESSFUL;
+		goal_result.error_string = "Aborted by external request.";
+		action_server.acceptPending(goal_result);
+
+		// forward activation process
+		if (isRunning()) resource_client->resourceChangeRequest(action_server.getActiveGoal()->resources);
+		else start();
+	}
+}
 /* 
  * Tries to make the controller operational. 
  *
@@ -173,7 +244,8 @@ bool FollowJointState::startHook()
 	in_joints_port.getDataSample(actual_fullpose);
 	in_joints_ref_port.getDataSample(ref_pose_unsorted);
 	// request resources
-	resource_client->resourceChangeRequest(controlled_chains);
+	if (action_server.isActive()) resource_client->resourceChangeRequest(action_server.getActiveGoal()->resources); // request resources
+	else resource_client->resourceChangeRequest(controlled_chains); // request default resources
 	// clear sync port buffer
 	RTT::os::Timer::TimerId timer_id;
 	sync_port.readNewest(timer_id);
@@ -182,8 +254,24 @@ bool FollowJointState::startHook()
 	return true;
 }
 
+
+/**
+ * called when resource set cahnged (by this or other component request).
+ */
 bool FollowJointState::resourceChangeHook() 
 {
+	// if there is active goal resource set must be exactly the same
+	if (action_server.isActive()) {
+		if (!resource_client->hasResources(action_server.getActiveGoal()->resources)) {
+			// not all necessary resources present 
+			goal_result.error_code = Result::SUCCESSFUL; // is this normal behavior?
+			goal_result.error_string = "Not all recources is available.";
+			action_server.abortActive(goal_result);
+			// exit operational state
+			return false;
+		}
+	}
+
 	// Controller is able to work with arbitrary joint set.
 	// Just rebuild index and continue.
 	if (!formJointIndex(resource_client->listResources())) return false;
@@ -292,9 +380,6 @@ void FollowJointState::updateHook()
 			// publish without smoothing
 			out_joints_port.write(ref_pose);
 		}
-
-		// publish supports
-		//if (publish_supports) out_supports_port.write(supports);
 	}
 	else if (state == ResourceClient::NONOPERATIONAL) {
 		log(INFO) << "FollowJointState is exiting  operational state !" << endlog();
@@ -309,9 +394,24 @@ void FollowJointState::stopHook()
 {
 	// user calls stop() directly 
 	if (resource_client->isOperational()) resource_client->stopOperational();
-	// deinitialization
-	// release all resources
+	// abort active goal
+	if (action_server.isActive()) {
+		goal_result.error_code = Result::SUCCESSFUL;
+		goal_result.error_string = "Stopped.";
+		action_server.abortActive(goal_result);
+	}
 	log(INFO) << "FollowJointState is stopped!" << endlog();
+}
+
+void FollowJointState::cancelGoalHook() 
+{
+	log(INFO) << "cancelGoalHoook: abort active goal." << endlog();
+	// cancel active goal (or do nothing)
+	goal_result.error_code = Result::SUCCESSFUL;
+	goal_result.error_string = "Canceled by user request.";
+	action_server.succeedActive(goal_result);
+	// stop
+	stop();
 }
 
 void FollowJointState::cleanupHook() 

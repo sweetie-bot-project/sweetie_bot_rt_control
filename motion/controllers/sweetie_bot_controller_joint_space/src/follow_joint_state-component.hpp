@@ -11,11 +11,15 @@
 #include <std_srvs/SetBool.h>
 #include <sensor_msgs/typekit/JointState.h>
 #include <sweetie_bot_kinematics_msgs/typekit/SupportState.h>
+#include <sweetie_bot_orocos_misc/simple_action_server.hpp>
+#include <sweetie_bot_resource_control_msgs/typekit/SetOperationalResult.h>
+#include <sweetie_bot_resource_control_msgs/typekit/SetOperationalAction.h>
 
 #include <sweetie_bot_logger/logger.hpp>
 #include <sweetie_bot_resource_control/resource_client.hpp>
 #include <sweetie_bot_robot_model/robot_model.hpp>
 #include <sweetie_bot_controller_joint_space/filter_joint_state.hpp>
+#include <sweetie_bot_orocos_misc/simple_action_server.hpp>
 
 namespace sweetie_bot {
 namespace motion {
@@ -24,6 +28,9 @@ namespace controller {
 
 class FollowJointState : public RTT::TaskContext
 {
+	protected:
+		// Goal, Feedback, Result typedefs
+		ACTION_DEFINITION(sweetie_bot_resource_control_msgs::SetOperationalAction);	
 	protected:
 		// COMPONENT INTERFACE
 		//
@@ -51,6 +58,19 @@ class FollowJointState : public RTT::TaskContext
 		// SERVICES: internal interface
 		sweetie_bot::motion::ResourceClientInterface * resource_client; // resource client
 		sweetie_bot::motion::filter::FilterJointStateInterface * filter; // trajectory smoother
+
+	protected:
+		// ACTIONLIB:
+		// Simple action server
+		OrocosSimpleActionServer<sweetie_bot_resource_control_msgs::SetOperationalAction> action_server;
+		// enable port callbacks in configured state
+		bool dataOnPortHook(RTT::base::PortInterface* portInterface);
+		// new pending goal is received
+		void newGoalHook(const Goal& goal);
+		// active goal is being canceled
+		void cancelGoalHook();
+		// buffer
+		Result goal_result;
 
 	protected:
 		struct JointIndex {
