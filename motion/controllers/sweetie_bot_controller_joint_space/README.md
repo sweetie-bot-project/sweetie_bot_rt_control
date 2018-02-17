@@ -22,7 +22,7 @@ OROCOS component which control robot movements by publishing reference robot pos
 	Possible usage pattern: connect `joint_state_publiser` GUI to `in_joints_ref` and `out_joints_src_reset` ports.
 
 * `ExecuteJointTrajectory` provides `FollowJointTrajectory` actionlib server. Received trajectory is interpolated by
-    thrid order splne, only trajectory point positions are used, information about speed abd acceleration is ignored.
+    thrid order spline, only trajectory point positions are used, information about speed abd acceleration is ignored.
 	Component uses filter plugin to merge current robot pose (`in_joints_sorted` port) and publish pose on `out_joints_ref_fixed` port.
 
 * `MainTorqueSwitch` switches servos off when it is active using. The names of `HerkulexSched` and `HerkulexArray` components 

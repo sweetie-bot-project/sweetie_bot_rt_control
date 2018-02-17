@@ -1,5 +1,5 @@
-#ifndef OROCOS_SWEETIE_BOT_CONTROLLER_FOLLOW_SATNCE_HPP
-#define OROCOS_SWEETIE_BOT_CONTROLLER_FOLLOW_SATNCE_HPP
+#ifndef OROCOS_SWEETIE_BOT_CONTROLLER_FOLLOW_POSE_HPP
+#define OROCOS_SWEETIE_BOT_CONTROLLER_FOLLOW_POSE_HPP
 
 #include <vector>
 #include <string>
@@ -12,7 +12,6 @@
 #include <geometry_msgs/typekit/PoseStamped.h>
 #include <sweetie_bot_kinematics_msgs/typekit/RigidBodyState.h>
 #include <sweetie_bot_kinematics_msgs/typekit/SupportState.h>
-#include <sweetie_bot_kinematics_msgs/typekit/BalanceState.h>
 
 #include <sweetie_bot_logger/logger.hpp>
 #include <sweetie_bot_resource_control/resource_client.hpp>
@@ -24,7 +23,7 @@ namespace motion {
 namespace controller {
 
 
-class FollowStance : public RTT::TaskContext
+class FollowPose : public RTT::TaskContext
 {
 	protected:
 		// COMPONENT INTERFACE
@@ -32,21 +31,14 @@ class FollowStance : public RTT::TaskContext
 		// PORTS: input
 		RTT::InputPort<sweetie_bot_kinematics_msgs::RigidBodyState> in_limbs_port;
 		RTT::InputPort<sweetie_bot_kinematics_msgs::RigidBodyState> in_base_port;
-		RTT::InputPort<sweetie_bot_kinematics_msgs::BalanceState> in_balance_port;
-		RTT::InputPort<geometry_msgs::PoseStamped> in_base_ref_port;
+		RTT::InputPort<geometry_msgs::PoseStamped> in_pose_ref_port;
 		RTT::InputPort<RTT::os::Timer::TimerId> sync_port;
 		// PORTS: output
 		RTT::OutputPort<sweetie_bot_kinematics_msgs::RigidBodyState> out_limbs_ref_port;
-		RTT::OutputPort<sweetie_bot_kinematics_msgs::RigidBodyState> out_base_ref_port;
 		RTT::OutputPort<sweetie_bot_kinematics_msgs::SupportState> out_supports_port;
 		// PROPERTIES
-		std::vector<std::string> support_legs;
+		std::string controlled_chain;
 		double period;
-		bool base_pose_feedback;
-		bool balance_check;
-		bool balance_keep;
-		double safe_pose_z_max;
-		double safe_pose_z_min;
 
 	protected:
 		// OPERATIONS: provides
@@ -62,14 +54,12 @@ class FollowStance : public RTT::TaskContext
 
 	protected:
 		// COMPONENT STATE
-		std::vector<KDL::Frame> support_leg_anchors; 
-		bool ik_success;
+		int chain_index;
 		// ports buffers
-		sweetie_bot_kinematics_msgs::RigidBodyState base; // current pose
-		sweetie_bot_kinematics_msgs::RigidBodyState base_next; // next pose calucalated by component
-		sweetie_bot_kinematics_msgs::RigidBodyState base_ref; // reference pose
-		sweetie_bot_kinematics_msgs::BalanceState balance; // balance
-		sweetie_bot_kinematics_msgs::RigidBodyState limbs;
+		sweetie_bot_kinematics_msgs::RigidBodyState limbs; // limb current pose
+		sweetie_bot_kinematics_msgs::RigidBodyState limb_ref; // desired limb pose
+		sweetie_bot_kinematics_msgs::RigidBodyState limb_next; // next pose calucalated by component
+		sweetie_bot_kinematics_msgs::RigidBodyState base; // bse_link pose
 		sweetie_bot_kinematics_msgs::SupportState supports;
 		
 #ifdef SWEETIEBOT_LOGGER
@@ -77,13 +67,8 @@ class FollowStance : public RTT::TaskContext
 #else
 		sweetie_bot::logger::LoggerRTT log;
 #endif
-	protected:
-		bool setupSupports(const vector<string>& support_legs);
-		void checkBalance() ;
-		bool isInsideSupportPolygone(const KDL::Vector point) ;
-
 	public:
-		FollowStance(std::string const& name);
+		FollowPose(std::string const& name);
 
 		bool resourceChangedHook();
 

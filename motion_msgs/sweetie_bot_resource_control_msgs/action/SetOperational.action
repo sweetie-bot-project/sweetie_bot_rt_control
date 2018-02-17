@@ -14,7 +14,6 @@
 bool operational
 string[] resources
 ---
----
 int32 error_code
 string error_string
 
@@ -23,4 +22,5 @@ int32 COMPONENT_IS_NOT_READY = -1 # controller is not configured properly.
 int32 INVALID_RESOURCE_SET = -2 # Unable to start with prescribed resource set (for example, cannot use head as support leg, or cann't balance on one leg).
 int32 START_CONDITIONS_VIOLATED = -3 # In current robot state controller cann't start. 
 int32 EXECUTION_ERROR = -4 # Internal error of started controller.
+---
 
