@@ -35,11 +35,25 @@ ServoInv7Param::ServoInv7Param(std::string const& name) :
 	this->addProperty("period", period)
 		.doc("Control cycle duration (seconds).")
 		.set(0.0224);
+	this->addProperty("default_servo_model", default_servo_model)
+		.doc("If servo does not present in servo_model list default model is used.");
 	this->addProperty("servo_models", servo_models)
 		.doc("Vector of the models of the servos. It is automatically sorted in the order corresponding to the first message on joint_fixed port. You should not change it after this moment!");
 	this->addProperty("battery_voltage", battery_voltage)
 		.doc("Current voltage of the battery. Updating manually or from battery_state port.")
 		.set(7);
+
+	// set default model to equal
+	default_servo_model.name = "default";
+	default_servo_model.kp = 1;
+	default_servo_model.kgear = 1;
+	default_servo_model.alpha[0] = 0;
+	default_servo_model.alpha[1] = 0;
+	default_servo_model.alpha[2] = 0;
+	default_servo_model.alpha[3] = 0;
+	default_servo_model.alpha[4] = 0;
+	default_servo_model.qs = 1;
+	default_servo_model.delta = 1;
 }
 
 struct ModelFinder {
@@ -52,24 +66,11 @@ struct ModelFinder {
 };
 
 bool ServoInv7Param::sort_servo_models() {
-	sweetie_bot_servo_model_msg::ServoModel eq_mdl;
 	std::vector<sweetie_bot_servo_model_msg::ServoModel> mdls;
 	std::vector<sweetie_bot_servo_model_msg::ServoModel>::iterator s_iter;
 	int i;
 
-	//this coefficient provides equal target position for model
-	eq_mdl.name = "";
-	eq_mdl.kp = 1 / battery_voltage;
-	eq_mdl.kgear = 1;
-	eq_mdl.alpha[0] = 0;
-	eq_mdl.alpha[1] = 0;
-	eq_mdl.alpha[2] = 0;
-	eq_mdl.alpha[3] = 0;
-	eq_mdl.alpha[4] = 0;
-	eq_mdl.qs = 10;
-	eq_mdl.delta = 1;
-
-	mdls.assign(joints.name.size(), eq_mdl);
+	mdls.assign(joints.name.size(), default_servo_model);
 
 	for (i = 0; i < joints.name.size(); i++) {
 

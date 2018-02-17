@@ -49,7 +49,7 @@ class ServoInv7Param : public RTT::TaskContext {
 
 		// PROPERTIES
 		double period;
-
+		sweetie_bot_servo_model_msg::ServoModel default_servo_model;
 		std::vector<sweetie_bot_servo_model_msg::ServoModel> servo_models;
 		double battery_voltage;
 
