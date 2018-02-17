@@ -26,16 +26,16 @@ ServoIdent::ServoIdent(std::string const& name) :
 
 	this->addEventPort("sync_step", in_sync_step)
 		.doc("Timer event indicating beginig of next herck_sched cycle.");
-	this->addPort("joints_accel_fixed", in_joints_fixed)
+	this->addPort("in_joints_accel_fixed", in_joints_fixed)
 		.doc("Desired joints state. Order of joints should not change.");
-	this->addPort("joints_measured", in_joints_measured)
+	this->addPort("in_joints_measured", in_joints_measured)
 		.doc("Some measured joints state.");
-	this->addEventPort("battery_state", in_battery_state)
+	this->addEventPort("in_battery_state", in_battery_state)
 		.doc("Port for updating current voltage of the battery.");
 
-	this->addPort("servo_models", out_servo_models)
+	this->addPort("out_servo_models", out_servo_models)
 		.doc("Result of identification.");
-	this->addPort("torque_error_sorted", out_torque_error_sorted)
+	this->addPort("out_torques", out_torque_error_sorted)
 		.doc("Prediction error. Desired torque - counted by model torque. Position and velocity are current ones");
 
 	this->addOperation("startIdentification", &ServoIdent::startIdentification, this, OwnThread)

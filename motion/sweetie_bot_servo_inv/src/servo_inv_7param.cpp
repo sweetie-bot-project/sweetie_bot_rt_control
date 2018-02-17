@@ -23,13 +23,13 @@ ServoInv7Param::ServoInv7Param(std::string const& name) :
 		return;
 	}
 
-	this->addEventPort("joints_accel_fixed", in_joints_fixed)
+	this->addEventPort("in_joints_accel_fixed", in_joints_fixed)
 		.doc("Desired joints state with acceleration. Order of joints should not change.");
-	this->addEventPort("servo_models", in_servo_models)
+	this->addEventPort("in_servo_models", in_servo_models)
 		.doc("Port for updating list of servo's models.");
-	this->addEventPort("battery_state", in_battery_state)
+	this->addEventPort("in_battery_state", in_battery_state)
 		.doc("Port for updating current voltage of the battery.");
-	this->addPort("goals", out_goals)
+	this->addPort("out_goals", out_goals)
 		.doc("Position controlled servos goals.");
 
 	this->addProperty("period", period)
