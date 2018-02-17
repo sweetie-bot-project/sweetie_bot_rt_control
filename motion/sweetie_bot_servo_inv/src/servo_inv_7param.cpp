@@ -70,14 +70,13 @@ bool ServoInv7Param::sort_servo_models() {
 	std::vector<sweetie_bot_servo_model_msg::ServoModel>::iterator s_iter;
 	int i;
 
-	mdls.assign(joints.name.size(), default_servo_model);
-
 	for (i = 0; i < joints.name.size(); i++) {
-
-		mdls[i].name = joints.name[i];
-		s_iter = std::find_if(servo_models.begin(), servo_models.end(), ModelFinder(mdls[i].name));
-		if (s_iter != servo_models.end())
-			mdls[i] = *s_iter;
+		s_iter = std::find_if(servo_models.begin(), servo_models.end(), ModelFinder(joints.name[i]));
+		if (s_iter != servo_models.end()) mdls.push_back(*s_iter);
+		else {
+			mdls.push_back(default_servo_model);
+			mdls.back().name = joints.name[i];
+		}
 	}
 
 	servo_models = mdls;
