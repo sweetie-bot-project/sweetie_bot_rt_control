@@ -23,7 +23,7 @@
 #include <orocos/sweetie_bot_herkulex_msgs/typekit/ServoGoal.h>
 >>>>>>> faf9920... sweetie_bot_servo_ident: Added servo_goals input port and sign_t function.:motion/sweetie_bot_servo_ident/src/servo_ident.hpp
 
-#include "ring_buffer.hpp"
+#include <sweetie_bot_common/ring_buffer.hpp>
 
 namespace sweetie_bot {
 namespace motion {

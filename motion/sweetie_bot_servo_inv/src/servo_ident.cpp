@@ -157,12 +157,8 @@ void ServoIdent::prepare_buffers_for_new_joints_size(sweetie_bot_kinematics_msgs
 	goal.playtime.assign(n, 0);
 
 	n = control_delay;
-	joints_buf.reset(n);
-	goals_buf.reset(n);
-	for (i = 0; i <= n; i++) {
-		joints_buf.pos_to_put() = joint_accel;
-		goals_buf.pos_to_put() = goal;
-	}
+	joints_buf.reset(n, joint_accel);
+	goals_buf.reset(n, goal);
 	joints = &joints_buf.pos_to_get();
 	goals = &goals_buf.pos_to_get();
 }
@@ -209,8 +205,9 @@ void ServoIdent::updateHook() {
 
 			if (!models_vector_was_sorted) {
 
-				joints_buf.init();
-				goals_buf.init();
+				for (int n = 0; n < joints_buf.delay_value(); n++)
+					joints_buf.pos_to_put();
+				joints = &joints_buf.pos_to_get();
 				models_vector_was_sorted = sort_servo_models();
 				prepare_buffers_for_new_joints_size(*joints);
 				log(INFO) << "Servo models was sorted. Now you should not change it's order!" << endlog();
@@ -341,14 +338,16 @@ std::vector<std::string> ServoIdent::endIdentification() {
 	std::unordered_map<std::string, servo_model_data>::iterator iter;
 	std::vector<std::string> names;
 	std::vector<sweetie_bot_servo_model_msg::ServoModel> mdls;
-	unsigned int j;
+	unsigned int j, n;
 	double prec;
 
 	for (iter = servo_models_data.begin(); iter != servo_models_data.end(); iter++) {
 
 		if (iter->second.ident_started) {
 
-			prec = iter->second.prec_err_buf.average_elem();
+			for (prec = 0, n = 0; n <= iter->second.prec_err_buf.delay_value(); n++)
+				prec += abs(iter->second.prec_err_buf[n]);
+			prec = prec / (iter->second.prec_err_buf.delay_value() + 1);
 			j = iter->second.index;
 			if (prec <= treshhold) {
 
