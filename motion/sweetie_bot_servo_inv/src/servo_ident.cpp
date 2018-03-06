@@ -264,7 +264,7 @@ void ServoIdent::updateHook() {
 			effort_joints.velocity[j] = joints_measured.velocity[i];
 
 			effort_joints.effort[j] = (
-				(goals->target_pos[j] - joints->position[j]) * servo_models[j].kp*battery_voltage 
+				(goals->target_pos[j] - joints_measured.position[j]) * servo_models[j].kp*battery_voltage
 				- servo_models[j].alpha[0] * joints_measured.velocity[i]
 				- servo_models[j].alpha[1] * sign_t(joints_measured.velocity[i])
 				- servo_models[j].alpha[2] * sign_t(joints_measured.velocity[i]) * 
