@@ -30,7 +30,7 @@ if (NOT OROCOS-RTT_FOUND)
 endif()
 
 # Devel include support
-find_package(catkin REQUIRED sweetie_bot_logger)
+find_package(catkin REQUIRED sweetie_bot_logger REQUIRED sweetie_bot_common)
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 # Defines the orocos_* cmake macros. See that file for additional

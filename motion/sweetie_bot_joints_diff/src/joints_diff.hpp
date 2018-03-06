@@ -10,6 +10,8 @@
 #include <sensor_msgs/typekit/JointState.h>
 #include <sweetie_bot_kinematics_msgs/typekit/JointStateAccel.h>
 
+#include <sweetie_bot_common/ring_buffer.hpp>
+
 namespace sweetie_bot {
 namespace motion {
 
@@ -27,7 +29,15 @@ class JointsDiff : public RTT::TaskContext
 		sensor_msgs::JointState joints;
 		sweetie_bot_kinematics_msgs::JointStateAccel joints_accel;
 
+		ring_buffer<std::vector<double>> joints_buf;
+
 		std::vector<double> vel_prev;
+		std::vector<double> filter;
+		std::vector<double> d_filter;
+		std::vector<double> d2_filter;
+
+		unsigned int njoints;
+		bool new_cycle;
 
 	// COMPONENT INTERFACE
 	protected:
@@ -38,6 +48,12 @@ class JointsDiff : public RTT::TaskContext
 
 		// PROPERTIES
 		double period;
+		bool filter_position;
+		bool calc_velocity;
+		bool calc_acceleration;
+		std::vector<double> filter_param;
+		std::vector<double> d_filter_param;
+		std::vector<double> d2_filter_param;
 
 	public:
 		JointsDiff(std::string const& name);
