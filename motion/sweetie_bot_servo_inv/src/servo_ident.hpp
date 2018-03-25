@@ -65,8 +65,8 @@ class ServoIdent : public RTT::TaskContext {
 
 		const sweetie_bot_kinematics_msgs::JointStateAccel *joints;
 		const sweetie_bot_herkulex_msgs::ServoGoal *goals;
-		sensor_msgs::JointState joints_measured;
-		sensor_msgs::JointState effort_joints;
+		sweetie_bot_joint_state_accel_msg::JointStateAccel joints_measured;
+		sweetie_bot_joint_state_accel_msg::JointStateAccel effort_joints;
 		sensor_msgs::BatteryState battery_voltage_buf;
 
 		bool models_vector_was_sorted;
@@ -81,11 +81,11 @@ class ServoIdent : public RTT::TaskContext {
 		RTT::InputPort<RTT::os::Timer::TimerId> in_sync_step;
 		RTT::InputPort<sweetie_bot_kinematics_msgs::JointStateAccel> in_joints_fixed;
 		RTT::InputPort<sweetie_bot_herkulex_msgs::ServoGoal> in_goals;
-		RTT::InputPort<sensor_msgs::JointState> in_joints_measured;
+		RTT::InputPort<sweetie_bot_joint_state_accel_msg::JointStateAccel> in_joints_measured;
 		RTT::InputPort<sensor_msgs::BatteryState> in_battery_state;
 
 		RTT::OutputPort<std::vector<sweetie_bot_servo_model_msg::ServoModel>> out_servo_models;
-		RTT::OutputPort<sensor_msgs::JointState> out_torque_error_sorted;
+		RTT::OutputPort<sweetie_bot_joint_state_accel_msg::JointStateAccel> out_torque_error_sorted;
 
 		// PROPERTIES
 		double period;

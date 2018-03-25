@@ -37,6 +37,7 @@ class ServoInvParam : public RTT::TaskContext {
 		//helper functions
 		bool sort_servo_models();
 		void prepare_buffers_for_new_joints_size();
+		double sign_t(double vel);
 
 	// COMPONENT INTERFACE
 	protected:
@@ -50,6 +51,8 @@ class ServoInvParam : public RTT::TaskContext {
 		// PROPERTIES
 		double period;
 		sweetie_bot_servo_model_msg::ServoModel default_servo_model;
+		double sign_dead_zone;
+
 		std::vector<sweetie_bot_servo_model_msg::ServoModel> servo_models;
 		double battery_voltage;
 

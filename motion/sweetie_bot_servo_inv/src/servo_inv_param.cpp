@@ -42,6 +42,9 @@ ServoInvParam::ServoInvParam(std::string const& name) :
 	this->addProperty("battery_voltage", battery_voltage)
 		.doc("Current voltage of the battery. Updating manually or from battery_state port.")
 		.set(7);
+	this->addProperty("sign_dead_zone", sign_dead_zone)
+		.doc("Dead zone for detecting sign of velocity, rad/s, should be positive.")
+		.set(0.001);
 
 	// set default model to equal
 	default_servo_model.name = "default";
@@ -51,8 +54,6 @@ ServoInvParam::ServoInvParam(std::string const& name) :
 	default_servo_model.alpha[1] = 0;
 	default_servo_model.alpha[2] = 0;
 	default_servo_model.alpha[3] = 0;
-	default_servo_model.qs = 1;
-	default_servo_model.delta = 1;
 }
 
 struct ModelFinder {
@@ -64,10 +65,22 @@ struct ModelFinder {
 	}
 };
 
-bool ServoInv7Param::sort_servo_models() {
+double ServoInvParam::sign_t(double vel) {
+
+	if (vel < -sign_dead_zone)
+		return -1;
+	else if (vel > sign_dead_zone)
+		return 1;
+	else
+		return 0;
+}
+
+bool ServoInvParam::sort_servo_models() {
 	std::vector<sweetie_bot_servo_model_msg::ServoModel> mdls;
 	std::vector<sweetie_bot_servo_model_msg::ServoModel>::iterator s_iter;
 	int i;
+
+	mdls.assign(joints.name.size(), default_servo_model);
 
 	for (i = 0; i < joints.name.size(); i++) {
 		s_iter = std::find_if(servo_models.begin(), servo_models.end(), ModelFinder(joints.name[i]));
@@ -142,11 +155,10 @@ void ServoInvParam::updateHook() {
 
 			//calculate target position using inverse model of the servo
 			goals.target_pos[i] = (
-			    servo_models[i].alpha[0] * joints.velocity[i] +
-			    servo_models[i].alpha[1] * copysign(1, joints.velocity[i]) +
-			    servo_models[i].alpha[2] * copysign(exp(-pow(fabs(joints.velocity[i]/servo_models[i].qs),
-												servo_models[i].delta)), joints.velocity[i]) +
-			    servo_models[i].alpha[3] * joints.effort[i]
+			    servo_models[i].alpha[0] * joints.acceleration[i] +
+			    servo_models[i].alpha[1] * joints.velocity[i] +
+			    servo_models[i].alpha[2] * sign_t(joints.velocity[i])
+			    - servo_models[i].alpha[3] * joints.effort[i]
 			  ) / (servo_models[i].kp*battery_voltage) +
 			  joints.position[i];
 
