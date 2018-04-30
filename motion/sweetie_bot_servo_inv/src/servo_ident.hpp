@@ -56,6 +56,11 @@ class ServoIdent : public RTT::TaskContext {
 		ring_buffer<sweetie_bot_kinematics_msgs::JointStateAccel> joints_buf;
 		ring_buffer<sweetie_bot_herkulex_msgs::ServoGoal> goals_buf;
 
+		ring_buffer<std::vector<double>> measured_pos_buf;
+		std::vector<double> pos_measured;
+		std::vector<double> position;
+		std::vector<double> velocity;
+
 		//map servos names and some helper data
 		std::unordered_map<std::string, servo_model_data> servo_models_data;
 
@@ -65,7 +70,7 @@ class ServoIdent : public RTT::TaskContext {
 
 		const sweetie_bot_kinematics_msgs::JointStateAccel *joints;
 		const sweetie_bot_herkulex_msgs::ServoGoal *goals;
-		sweetie_bot_joint_state_accel_msg::JointStateAccel joints_measured;
+		sensor_msgs::JointState joints_measured;
 		sweetie_bot_joint_state_accel_msg::JointStateAccel effort_joints;
 		sensor_msgs::BatteryState battery_voltage_buf;
 
@@ -73,6 +78,8 @@ class ServoIdent : public RTT::TaskContext {
 		bool sort_servo_models();
 		void prepare_buffers_for_new_joints_size(sweetie_bot_kinematics_msgs::JointStateAccel const& jnt);
 		double sign_t(double vel);
+		double n_sign_t(double vel);
+		double calc_median(double a, double b, double c);
 
 
 	// COMPONENT INTERFACE
@@ -81,7 +88,7 @@ class ServoIdent : public RTT::TaskContext {
 		RTT::InputPort<RTT::os::Timer::TimerId> in_sync_step;
 		RTT::InputPort<sweetie_bot_kinematics_msgs::JointStateAccel> in_joints_fixed;
 		RTT::InputPort<sweetie_bot_herkulex_msgs::ServoGoal> in_goals;
-		RTT::InputPort<sweetie_bot_joint_state_accel_msg::JointStateAccel> in_joints_measured;
+		RTT::InputPort<sensor_msgs::JointState> in_joints_measured;
 		RTT::InputPort<sensor_msgs::BatteryState> in_battery_state;
 
 		RTT::OutputPort<std::vector<sweetie_bot_servo_model_msg::ServoModel>> out_servo_models;

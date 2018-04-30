@@ -52,7 +52,7 @@ ServoIdent::ServoIdent(std::string const& name) :
 		.doc("Control cycle duration (seconds).")
 		.set(0.0224);
 	this->addProperty("control_delay", control_delay)
-		.doc("Control cycle delay (number of cycles). You should set it before start.")
+		.doc("Control cycle delay (number of cycles). You should set it before start. This module add +1 to delay. If you system has k period delay, you must set control_delay = k + 1.")
 		.set(0);
 	this->addProperty("relaxation_factor", relaxation_factor)
 		.doc("Relaxation factor for OLQ.")
@@ -106,6 +106,31 @@ double ServoIdent::sign_t(double vel) {
 		return 0;
 }
 
+double ServoIdent::n_sign_t(double vel) {
+
+	if (vel < -sign_dead_zone)
+		return 0;
+	else if (vel > sign_dead_zone)
+		return 0;
+	else
+		return 1;
+}
+
+double ServoIdent::calc_median(double a, double b, double c)
+{
+	double tmp;
+	if (a > b) {
+		tmp = a;
+		a = b;
+		b = tmp;
+	}
+	if (c < a)
+		return a;
+	if (c > b)
+		return b;
+	return c;
+}
+
 bool ServoIdent::sort_servo_models() {
 	std::vector<sweetie_bot_servo_model_msg::ServoModel> mdls;
 	std::vector<sweetie_bot_servo_model_msg::ServoModel>::iterator s_iter;
@@ -141,7 +166,15 @@ void ServoIdent::prepare_buffers_for_new_joints_size(sweetie_bot_joint_state_acc
 	effort_joints.acceleration.assign(n, 0);
 	effort_joints.effort.assign(n, 0);
 
-	joints_measured = effort_joints;
+	joints_measured.name = jnt.name;
+	joints_measured.position.assign(n, 0);
+	joints_measured.velocity.assign(n, 0);
+	joints_measured.effort.assign(n, 0);
+
+	position = joints_measured.position;
+	velocity = joints_measured.velocity;
+	pos_measured = joints_measured.position;
+	measured_pos_buf.reset(2, pos_measured);
 
 	goal.name = jnt.name;
 	goal.target_pos.assign(n, 0);
@@ -190,6 +223,7 @@ void ServoIdent::updateHook() {
 			njoints = joints->name.size();
 			if (njoints != joints->position.size() || njoints != joints->velocity.size() || njoints != joints->acceleration.size() || njoints != joints->effort.size()) {
 
+				joints_buf.pos_to_reput() = joints_buf[1];
 				log(WARN) << "joints message has incorrect structure." << endlog();
 				return;
 			}
@@ -229,8 +263,7 @@ void ServoIdent::updateHook() {
 
 			njoints = joints_measured.name.size();
 
-			if (njoints != joints_measured.position.size() || njoints != joints_measured.velocity.size()
-					|| njoints != joints_measured.acceleration.size()) {
+			if (njoints != joints_measured.position.size() || njoints != joints_measured.velocity.size()) {
 
 				log(WARN) << "joints_measured message has incorrect structure." << endlog();
 				return;
@@ -252,27 +285,34 @@ void ServoIdent::updateHook() {
 
 			j = iter->second.index;
 
-			effort_joints.position[j] = joints_measured.position[i];
-			effort_joints.velocity[j] = joints_measured.velocity[i];
-			effort_joints.acceleration[j] = joints_measured.acceleration[i];
+			pos_measured[j] = joints_measured.position[i];
+			//velocity[j] = calc_median(pos_measured[j] -  measured_pos_buf[0][j],
+			//	measured_pos_buf[0][j] -  measured_pos_buf[1][j],
+			//	measured_pos_buf[1][j] -  measured_pos_buf[2][j])/period;
+			velocity[j] = (pos_measured[j] -  measured_pos_buf[2][j])/3/period;
+			position[j] = measured_pos_buf[0][j];
 
 			effort_joints.effort[j] = (
-				- (goals->target_pos[j] - joints_measured.position[j]) * servo_models[j].kp * battery_voltage
-				+ servo_models[j].alpha[0] * joints_measured.acceleration[i]
-				+ servo_models[j].alpha[1] * joints_measured.velocity[i]
-				+ servo_models[j].alpha[2] * sign_t(joints_measured.velocity[i])
+				- (goals->target_pos[j] - position[j]) * servo_models[j].kp * battery_voltage
+				+ servo_models[j].alpha[0] * joints->acceleration[j]
+				+ servo_models[j].alpha[1] * velocity[j]
+				+ servo_models[j].alpha[2] * sign_t(joints->velocity[j])
 				) / servo_models[j].alpha[3];
+			//effort_joints.effort[j] = effort_joints.effort[j]
+			//	- sign_t((goals->target_pos[j] - position[j]) * servo_models[j].kp * battery_voltage)
+			//	* n_sign_t(velocity[j]) * (0.14198/2.0);
 			effort_joints.effort[j] = effort_joints.effort[j] - joints->effort[j];
 
 			//now do identification, if it is necessary
-			if (iter->second.ident_started){
+			if (iter->second.ident_started && (abs(velocity[j]) > 0.1)){
+				//FIXME: velocity threshold and accelerations
 
-				phi(0) = joints_measured.acceleration[i];
-				phi(1) = joints_measured.velocity[i];
-				phi(2) = sign_t(joints_measured.velocity[i]);
+				phi(0) = joints->acceleration[j];
+				phi(1) = velocity[j];
+				phi(2) = sign_t(velocity[j]);
 				phi(3) = -joints->effort[j];
 
-				y = (goals->target_pos[j] - joints_measured.position[i]) * battery_voltage * servo_models[j].kp;
+				y = (goals->target_pos[j] - position[j]) * battery_voltage * servo_models[j].kp;
 
 				den = relaxation_factor + inner_prod(prod(phi, iter->second.P), phi);
 				prec_err = y - inner_prod(phi, iter->second.alpha);
@@ -283,8 +323,15 @@ void ServoIdent::updateHook() {
 			}
 
 		}
+		if (i == 0)
+			log(WARN) << "Wasn't get all measurments " << i << endlog();
+		measured_pos_buf.pos_to_put() = pos_measured;
+		effort_joints.position = position;
+		effort_joints.velocity = velocity;
 
 		out_torque_error_sorted.write(effort_joints);
+	} else {
+		log(WARN) << "skipp" << endlog();
 	}
 
 	//update battery voltage rate
