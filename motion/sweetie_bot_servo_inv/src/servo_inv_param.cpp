@@ -103,7 +103,7 @@ void ServoInvParam::prepare_buffers_for_new_joints_size() {
 
 	goals.name = joints.name;
 	goals.target_pos.assign(n, 0);
-	goals.playtime.assign(n, 0);
+	goals.playtime.assign(n, 0.0112);
 }
 
 bool ServoInvParam::startHook() {
