@@ -94,6 +94,7 @@ void JointsDiff::updateHook()
 			njoints = joints.name.size();
 			joints_buf.reset(max(filter.size(), max(d_filter.size(), d2_filter.size())), joints.position);
 			joints_accel.acceleration.assign(njoints, 0);
+			log(WARN) << "changed joints size." << endlog();
 			return;
 
 		}
