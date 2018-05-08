@@ -10,6 +10,8 @@ cmake_minimum_required(VERSION 2.6.3)
 #
 project(sweetie_bot_agregator)
 
+include_directories( /usr/include/eigen3 )
+
 ### c++11 support ###
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 
