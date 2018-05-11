@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 2.6.3)
 project(sweetie_bot_orocos_misc)
 
 ### c++11 support ###
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)

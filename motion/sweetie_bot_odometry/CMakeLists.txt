@@ -27,7 +27,7 @@ endif()
 
 ### General Dependencies ###
 find_package(Eigen3 REQUIRED)
-include_directories(${eigen3_INCLUDE_DIRS})
+include_directories("${EIGEN3_INCLUDE_DIR}")
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
