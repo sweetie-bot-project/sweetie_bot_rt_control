@@ -27,6 +27,7 @@ endif()
 
 ### General dependencies ###
 #find_package(Boost REQUIRED COMPONENTS graph filesystem system thread regex)
+find_package(Boost REQUIRED COMPONENTS thread)
 
 ### ROS Dependencies ###
 
