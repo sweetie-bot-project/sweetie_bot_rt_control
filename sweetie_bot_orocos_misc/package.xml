@@ -21,7 +21,6 @@
   <depend>kdl_msgs</depend>
   <!-- SWEETIEBOT packages -->
   <!-- SWEETIEBOT datatypes -->
-  <depend>sweetie_bot_kinematics_msgs</depend>
   <depend>rtt_sweetie_bot_kinematics_msgs</depend>
 
   <export>
