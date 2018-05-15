@@ -37,6 +37,7 @@ if (NOT (alglib_INCLUDE_DIR AND alglib_LIBRARY))
 endif()
 include_directories(include ${alglib_INCLUDE_DIR})
 #find_package(Boost REQUIRED COMPONENTS graph filesystem system thread regex)
+find_package(Boost REQUIRED COMPONENTS thread)
 
 
 ### ROS Dependencies ###
