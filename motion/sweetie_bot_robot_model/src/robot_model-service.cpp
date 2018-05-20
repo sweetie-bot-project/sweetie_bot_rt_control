@@ -12,8 +12,6 @@
 
 #include <sweetie_bot_logger/logger.hpp>
 
-//#include <rtt/PropertyBag.hpp>
-
 using namespace std;
 using namespace RTT;
 using namespace KDL;
@@ -84,14 +82,14 @@ class RobotModelService : public RobotModelInterface, public Service {
 			this->addProperty("robot_description", robot_description_)
 				.doc("Robot description in URDF format");
 			this->addProperty("chains", chains_prop_)
-				.doc("Joint groups (kinematics chains) descriptions (PropertuBag). Format: \n"
+				.doc("Joint groups (kinematics chains) descriptions (PropertyBag). Format: \n"
 					 "\t\t\t{\n"
 					 "\t\t\t    PropertyBag chain_name1 { string first_link, string last_link, string default_contact },\n"
 					 "\t\t\t    PropertyBag chain_name2 { ... }\n"
 					 "\t\t\t    ...\n"
 					 "\t\t\t}");
 			this->addProperty("contacts", contacts_prop_)
-				.doc("Contact description (PropertuBag). 'points' field contains an equivalent set of fixed points in last_link frame. Format: \n"
+				.doc("Contact description (PropertyBag). 'points' field contains an equivalent set of fixed points in last_link frame. Format: \n"
 					 "\t\t\t{\n"
 					 "\t\t\t    PropertyBag contact_name1 { KDL::Vector[] points },\n"
 					 "\t\t\t    PropertyBag contact_name2 { ... }\n"
@@ -162,16 +160,31 @@ class RobotModelService : public RobotModelInterface, public Service {
 
 		bool configure()
 		{
+			// Check cpf file is loaded
+			if(chains_prop_.empty())
+			{
+				log(ERROR) << "The property 'chains' is empty! Check .cpf file existence and its loaded correctly." <<endlog();
+				return false;
+			}
+
 			if (is_configured) {
-				// this->log(WARN) << "RobotModel is already configured!" << endlog();
+				this->log(WARN) << "RobotModel is already configured!" << endlog();
 				return true;
 			}
+
 			// Load URDF robot description into KDL Tree
+			if( robot_description_ == "")
+			{
+				log(ERROR) << "robot_description parameter is empty!" <<endlog();
+				return false;
+			}
+
 			if (!kdl_parser::treeFromString(robot_description_, tree_)) {
 				this->log(ERROR) << "Failed to construct kdl tree!" <<endlog();
 				cleanup();
 				return false;
 			}
+			log(DEBUG) << "Loaded " << tree_.getNrOfSegments() << " segments and " << tree_.getNrOfJoints() << " joints from robot_description to KDL::Tree" <<endlog();
 
 			// Get contacts from properties
 			if (!readContacts()) {

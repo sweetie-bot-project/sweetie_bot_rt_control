@@ -15,11 +15,13 @@
 
   <!-- ROS and OROCOS packages -->
   <depend>rtt</depend>
+  <depend>ocl</depend>
   <depend>rtt_ros</depend>
   <depend>orocos_kdl</depend>
   <!-- ROS and OROCOS datatypes -->
   <depend>sensor_msgs</depend>
   <depend>rtt_sensor_msgs</depend>
+  <depend>kdl_msgs</depend>
   <!-- SWEETIEBOT packages -->
   <depend>sweetie_bot_logger</depend>
   <depend>sweetie_bot_robot_model</depend>

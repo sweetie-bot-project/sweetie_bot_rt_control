@@ -10,10 +10,10 @@
 # Creates a component library libagregator-<target>.so
 # and installs in the directory lib/orocos/sweetie_bot_agregator/
 #
-orocos_component(agregator agregator-component.hpp agregator-component.cpp) # ...you may add multiple source files
+orocos_component(agregator agregator-component.cpp) # ...you may add multiple source files
 #
 # You may add multiple orocos_component statements.
-target_link_libraries(agregator ${catkin_LIBRARIES})
+#target_link_libraries(agregator ${catkin_LIBRARIES} ${rocos_kdl_LIBRARIES} ${USE_OROCOS_LIBRARIES})
 
 #
 # Additional headers:

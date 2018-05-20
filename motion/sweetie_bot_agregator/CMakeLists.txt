@@ -14,7 +14,7 @@ find_package(Eigen3 REQUIRED)
 include_directories("${EIGEN3_INCLUDE_DIR}")
 
 ### c++11 support ###
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 # Logger selection
 set(LOGGER_DEFAULT "" CACHE STRING "Default logger for all packages (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
@@ -30,6 +30,7 @@ endif()
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
+#find_package(orocos_kdl REQUIRED)
 find_package(catkin REQUIRED COMPONENTS rtt_ros)
 include_directories(${catkin_INCLUDE_DIRS})
 
@@ -46,8 +47,10 @@ add_subdirectory( src )
 ### Orocos Package Exports and Install Targets ###
 
 # Scripts installation
-install(DIRECTORY scripts
-	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(DIRECTORY scripts launch
+	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+	USE_SOURCE_PERMISSIONS)
 
 # Export package information (replaces catkin_package() macro) 
 orocos_generate_package(DEPENDS rtt_ros)
+
