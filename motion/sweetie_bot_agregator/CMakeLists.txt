@@ -51,6 +51,13 @@ install(DIRECTORY scripts launch
 	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 	USE_SOURCE_PERMISSIONS)
 
-# Export package information (replaces catkin_package() macro) 
+# Export package information (replaces catkin_package() macro)
 orocos_generate_package(DEPENDS rtt_ros)
 
+if (DEFINED _pkgconfig_error)
+if (${_pkgconfig_error})
+	message(FATAL_ERROR ${_pkgconfig_error})
+endif()
+else()
+	message(FATAL_ERROR ${_pkgconfig_error})
+endif()
