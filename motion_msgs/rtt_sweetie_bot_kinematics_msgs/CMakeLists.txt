@@ -13,3 +13,11 @@ orocos_generate_package(
   DEPENDS sweetie_bot_kinematics_msgs
   DEPENDS_TARGETS rtt_roscomm rtt_std_msgs rtt_geometry_msgs rtt_kdl_msgs
 )
+
+if (DEFINED _pkgconfig_error)
+if (${_pkgconfig_error})
+	message(FATAL_ERROR ${_pkgconfig_error})
+endif()
+else()
+	message(FATAL_ERROR ${_pkgconfig_error})
+endif()

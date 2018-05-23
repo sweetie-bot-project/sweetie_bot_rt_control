@@ -26,4 +26,3 @@ orocos_service(resource_client_dummy_service resource_client_dummy-service.cpp) 
 # orocos_install_headers(include/sweetie_bot_resource_control/sweetie_bot_resource_control_service.hpp)
 #
 # You may add multiple orocos_install_headers statements.
-
