@@ -111,6 +111,8 @@ bool KinematicsInvTracIK::configureHook()
 	joints_.velocity.reserve(n_joints);
 	// data samples
 	out_joints_port_.setDataSample(joints_);
+	in_joints_seed_port_.getDataSample(joints_);
+	in_limbs_port_.getDataSample(limbs_);
 	// reserve memory
 	joints_.name.reserve(n_joints_fullpose_);
 	joints_.position.reserve(n_joints_fullpose_);
@@ -168,8 +170,8 @@ std::shared_ptr<TRAC_IK::TRAC_IK> KinematicsInvTracIK::getIKSolver(const string&
 bool KinematicsInvTracIK::startHook()
 {
 	// get data samples
-	in_limbs_port_.getDataSample(limbs_);
-	in_joints_seed_port_.getDataSample(joints_);
+	//in_limbs_port_.getDataSample(limbs_);
+	//in_joints_seed_port_.getDataSample(joints_);
 	// read seed pose
 	if (in_joints_seed_port_.read(joints_, true) != NoData && isValidJointStatePos(joints_, n_joints_fullpose_)) {
 		// update seeds
@@ -308,9 +310,11 @@ bool KinematicsInvTracIK::poseToJointStatePublish(const sweetie_bot_kinematics_m
 
 void KinematicsInvTracIK::updateHook()
 {
+	int j = 0;
 	// Check if new seeds arrived
 	if ( in_joints_seed_port_.read(joints_, false) == NewData ) {
 		if (isValidJointStatePos(joints_, n_joints_fullpose_)) {
+			j++;
 			// update seeds
 			for ( KinematicChainData& chain_data : chain_data_ ) {
 				chain_data.jnt_array_seed_pose.data = Eigen::Map<Eigen::VectorXd>( &joints_.position[chain_data.index_begin], chain_data.size );
@@ -322,11 +326,13 @@ void KinematicsInvTracIK::updateHook()
 	}
 
 	// Check for IK requests
+	int l = 0;
 	while ( in_limbs_port_.read(limbs_) == NewData ) {
 		// process received message
 		poseToJointStatePublish(limbs_);
+		l++;
 	}
-
+	log(DEBUG) << "Update hook executed: " << j << " joints and " << l << " limbs processed." <<endlog();
 }
 
 void KinematicsInvTracIK::stopHook() 
