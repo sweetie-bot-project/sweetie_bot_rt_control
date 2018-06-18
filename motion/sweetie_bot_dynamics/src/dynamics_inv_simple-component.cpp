@@ -456,6 +456,7 @@ void DynamicsInvSimple::publishStateToPorts()
 	// calculte center of mass
 	{ 
 		Vector3_t CoM;
+		//Utils::CalcCenterOfMass(rbdl_model, Q, QDot, nullptr, balance.mass, CoM, nullptr, nullptr, nullptr, nullptr, false);
 		Utils::CalcCenterOfMass(rbdl_model, Q, QDot, balance.mass, CoM, nullptr, nullptr, false);
 		Map<Vector3d>(balance.CoM.data) = CoM;
 	}
