@@ -28,17 +28,21 @@ Components depend on `robot_model` service which provides URDF robot model and l
 ```
 roslaunch sweetie_bot_kinematics test_kinematics.launch
 rostopic echo /kinematics/output_limb_state
-roscd sweetie_bot_kinematics scripts
-rosbag play zero_joints.bag
-rosbag play brohoof_joints.bag
+rosrun sweetie_bot_kinematics send_joints_zero.sh
+rosrun sweetie_bot_kinematics send_joints_brohoof.sh
 ```
+
+You should see an output message on the `output_limb_state` topic.
 
 ### Inverse kinematics
 
 ```
 roslaunch sweetie_bot_kinematics test_kinematics.launch
 rostopic echo /kinematics/output_joint_state
-roscd sweetie_bot_kinematics scripts
-rosbag play zero_limbs.bag
-rosbag play brohoof_limbs.bag
+rosrun sweetie_bot_kinematics send_joints_seed.sh
+rosrun sweetie_bot_kinematics send_limbs_zero.sh
+rosrun sweetie_bot_kinematics send_limbs_brohoof.sh
 ```
+
+You should see two output message on the `output_joint_state` topic and should not see any error on a component.
+

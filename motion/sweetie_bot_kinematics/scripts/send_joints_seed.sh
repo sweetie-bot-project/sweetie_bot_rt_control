@@ -1,4 +1,6 @@
 #!/bin/sh
+ROSTOPIC=/kinematics/input_joint_seed
+ROSTYPE=sensor_msgs/JointState
 VARIABLE="
 {
  header: auto,
@@ -10,13 +12,13 @@ VARIABLE="
         'joint55', 'joint56',
         'joint_eyes_focus_x', 'joint_eyes_focus_y', 'joint_eyes_focus_z'
        ],
- position: [0.11, 0.12, 0.13, 0.14, 0.15, 0.16,
-            0.21, 0.22, 0.23, 0.24, 0.25, 0.26,
-            0.31, 0.32, 0.33, 0.34, 0.35, 0.36,
-            0.41, 0.42, 0.43, 0.44, 0.45, 0.46,
-            0.51, 0.52, 0.53, 0.54,
-            0.55, 0.56,
-            0.61, 0.62, 0.63
+ position: [0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
+            0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
+            0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
+            0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
+            0.00, 0.00, 0.00, 0.00,
+            0.00, 0.00,
+            0.00, 0.00, 0.00
            ],
  velocity: [],
  effort:   []
@@ -24,5 +26,5 @@ VARIABLE="
 
 echo "<<<" "$VARIABLE" "\n<<<"
 echo ">>>"
-rostopic pub /kinematics/input_joint_seed sensor_msgs/JointState --once "$VARIABLE"
+rostopic pub $ROSTOPIC $ROSTYPE --once "$VARIABLE"
 echo ">>>"
