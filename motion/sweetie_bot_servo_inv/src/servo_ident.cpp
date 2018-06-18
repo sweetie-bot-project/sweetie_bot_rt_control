@@ -301,7 +301,7 @@ void ServoIdent::updateHook() {
 			//effort_joints.effort[j] = effort_joints.effort[j]
 			//	- sign_t((goals->target_pos[j] - position[j]) * servo_models[j].kp * battery_voltage)
 			//	* n_sign_t(velocity[j]) * (0.14198/2.0);
-			effort_joints.effort[j] = effort_joints.effort[j] - joints->effort[j];
+			//effort_joints.effort[j] = effort_joints.effort[j] - joints->effort[j];
 
 			//now do identification, if it is necessary
 			if (iter->second.ident_started && (abs(velocity[j]) > 0.1)){
@@ -326,7 +326,7 @@ void ServoIdent::updateHook() {
 		if (i == 0)
 			log(WARN) << "Wasn't get all measurments " << i << endlog();
 		measured_pos_buf.pos_to_put() = pos_measured;
-		effort_joints.position = position;
+		effort_joints.position = pos_measured;//position;
 		effort_joints.velocity = velocity;
 
 		out_torque_error_sorted.write(effort_joints);
