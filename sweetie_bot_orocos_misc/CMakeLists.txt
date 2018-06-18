@@ -15,7 +15,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
-find_package(catkin REQUIRED COMPONENTS rtt_ros)
+# TODO add orocos_kdl. Now it causes the error.
+find_package(catkin REQUIRED COMPONENTS rtt_ros actionlib kdl_msgs sensor_msgs geometry_msgs sweetie_bot_kinematics_msgs)
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 ### Orocos Dependencies ###
