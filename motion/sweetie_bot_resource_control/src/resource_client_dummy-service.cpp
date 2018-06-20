@@ -50,6 +50,11 @@ class ResourceClientDummyService :
 			return false;
 		}
 
+		bool isNonOperational() const
+		{
+			return !is_operational;
+		}
+
 		int getState() const {
 			if (is_operational) return ResourceClient::OPERATIONAL;
 			else return ResourceClient::NONOPERATIONAL;
