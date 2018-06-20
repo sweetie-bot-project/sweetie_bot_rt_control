@@ -1,5 +1,5 @@
 orocos_component(follow_stance follow_stance-component.cpp) # ...you may add multiple source files
-target_link_libraries(follow_stance ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES})
+target_link_libraries(follow_stance ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES} actionlib_controller_base)
 
 orocos_component(follow_pose follow_pose-component.cpp) # ...you may add multiple source files
 target_link_libraries(follow_pose ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES})
