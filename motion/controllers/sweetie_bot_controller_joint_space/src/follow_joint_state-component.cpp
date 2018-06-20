@@ -8,12 +8,7 @@
 using namespace RTT;
 using namespace std;
 
-namespace sweetie_bot {
-namespace motion {
-namespace controller {
-
-
-std::ostream& operator<<(std::ostream& s, const std::vector<std::string>& strings) 
+inline std::ostream& operator<<(std::ostream& s, const std::vector<std::string>& strings) 
 {
 	s << "[ ";
 	for(auto it = strings.begin(); it != strings.end(); it++) s << *it << ", ";
@@ -21,18 +16,18 @@ std::ostream& operator<<(std::ostream& s, const std::vector<std::string>& string
 	return s;
 }
 
+namespace sweetie_bot {
+namespace motion {
+namespace controller {
+
+
 FollowJointState::FollowJointState(std::string const& name)  : 
-	TaskContext(name, RTT::base::TaskCore::PreOperational),
-	log(logger::categoryFromComponentName(name)),
-	action_server(this->provides())
+	ActionlibControllerBase(name)
 {
 	this->provides()->doc("Feedforward JointState reference from high-level to agregator.");
 
 	// ports
 	// PORTS: input
-	this->addEventPort("sync", sync_port)
-		.doc("Timer syncronization event. This event triggers controller execution cycle.");
-
 	this->addPort("in_joints_sorted", in_joints_port).
 		doc("Full sorted actual robot pose (from sensors or from agregator).");
 
@@ -50,11 +45,6 @@ FollowJointState::FollowJointState(std::string const& name)  :
 		doc("Active contact list. All controlled kinematic chains are assumed free.");
 
 	// properties
-	this->addProperty("controlled_chains", controlled_chains).
-		doc("List of controlled joint groups (kinematic chains, resources).");
-	this->addProperty("period", period)
-		.doc("Discretization period (s)");
-
 	this->addProperty("activation_delay", activation_delay).
 		doc("After start wait for activation_delay seconds before start processing input and publish actual pose on out_joints_src_reset.")
 		.set(0.0);
@@ -63,17 +53,9 @@ FollowJointState::FollowJointState(std::string const& name)  :
 		doc("Publish list of active contacts. All controlled kinematic chains are assumed free.")
 		.set(true);
 
-	// operations: provided
-	this->addOperation("rosSetOperational", &FollowJointState::rosSetOperational, this)
-		.doc("ROS compatible start/stop operation (std_srvs::SetBool).");
-
-	// Service: reqires
+	// Service: requires
 	robot_model = new sweetie_bot::motion::RobotModel(this);
 	this->requires()->addServiceRequester(ServiceRequester::shared_ptr(robot_model));
-
-	// action server hook registration
-	action_server.setGoalHook(boost::bind(&FollowJointState::newGoalHook, this, _1));
-	action_server.setCancelHook(boost::bind(&FollowJointState::cancelGoalHook, this));
 	
 	// other actions
 	log(INFO) << "FollowJointState is constructed!" << endlog();
@@ -102,13 +84,8 @@ bool FollowJointState::formJointIndex(const vector<string>& controlled_chains)
 		}
 	}
 	if (log(INFO)) {
-		// TODO overload something?
-		log() << "Controlled chains: [ "; 
-		for(auto it = controlled_chains.begin(); it != controlled_chains.end(); it++) log() << *it << ", ";
-		log() << " ]." << endlog();
-		log(INFO) << "Controlled joints: [ "; 
-		for(auto it = ref_pose.name.begin(); it != ref_pose.name.end(); it++) log() << *it << ", ";
-		log() << " ]." << endlog();
+		log() << "Controlled chains: " << controlled_chains << endlog();
+		log() << "Controlled joints: " << ref_pose.name << endlog();
 	}
 
 	// allocate memory
@@ -129,16 +106,9 @@ bool FollowJointState::formJointIndex(const vector<string>& controlled_chains)
 }
 
 
-bool FollowJointState::configureHook()
+bool FollowJointState::configureHook_impl()
 {
 	// INITIALIZATION
-	// check if ResourceClient Service presents
-	resource_client = getSubServiceByType<ResourceClientInterface>(this->provides().get());
-	if (!resource_client) {
-		log(ERROR) << "ResourceClient plugin is not loaded." << endlog();
-		return false;
-	}
-	resource_client->setResourceChangeHook(boost::bind(&FollowJointState::resourceChangeHook, this));
 	// check if filter present
 	filter = getSubServiceByType<filter::FilterJointStateInterface>(this->provides().get());
 	if (filter) {
@@ -149,12 +119,6 @@ bool FollowJointState::configureHook()
 		log(ERROR) << "RobotModel service is not ready." << endlog();
 		return false;
 	}
-	// Start action server: do not publish feedback
-	if (!action_server.start(false)) {
-		log(ERROR) << "Unable to start action_server." << endlog();
-		return false;
-	}
-
 	n_joints_fullpose = robot_model->listJoints("").size();
 	// build joints index 
 	if (!formJointIndex(controlled_chains)) return false;
@@ -171,66 +135,6 @@ bool FollowJointState::configureHook()
 	return true;
 }
 
-bool FollowJointState::dataOnPortHook( RTT::base::PortInterface* portInterface ) 
-{
-	// Process EventPorts messages callbacks if component is in configured state,
-	// so actionlib hooks works even if component is stopped.
-	//
-	// WARNING: works only in OROCOS 2.9 !!!
-	//
-    return this->isConfigured();
-}
-
-/**
- * activation or deactivation is requested via actionlib interface
- */
-void FollowJointState::newGoalHook(const Goal& pending_goal) 
-{
-	log(INFO) << "newGoalHook: new pending goal." << endlog();
-
-	if (pending_goal.operational == false) {
-		//deactivation requested 
-		
-		// active goal result
-		goal_result.error_code = Result::SUCCESSFUL;
-		goal_result.error_string = "Aborted by external request.";
-		// abort active if it presents
-		action_server.acceptPending(goal_result);
-		// stop componet if it was running
-		if (isRunning()) {
-			goal_result.error_string = "Stopped.";
-			action_server.succeedActive(goal_result);
-			stop(); 
-		}
-		else {
-			goal_result.error_string = "Already is stopped.";
-			action_server.succeedActive(goal_result);
-		}
-	}
-	else {
-		// activation requested
-		
-		// check resource set
-		for( const std::string& name : pending_goal.resources )
-			if (robot_model->getChainIndex(name) < 0) {
-				log(ERROR) << "Unknown resources " << name << ". SetOperational action is rejected." << endlog();
-				goal_result.error_code = Result::INVALID_RESOURCE_SET;
-				goal_result.error_string = name;
-				action_server.rejectPending(goal_result);
-				return;
-			}
-
-		// everything is good: accept goal and request resources
-		// active goal result
-		goal_result.error_code = Result::SUCCESSFUL;
-		goal_result.error_string = "Aborted by external request.";
-		action_server.acceptPending(goal_result);
-
-		// forward activation process
-		if (isRunning()) resource_client->resourceChangeRequest(action_server.getActiveGoal()->resources);
-		else start();
-	}
-}
 /* 
  * Tries to make the controller operational. 
  *
@@ -239,39 +143,17 @@ void FollowJointState::newGoalHook(const Goal& pending_goal)
  * in the updateHook if all resources were allocated or not, if some are lacking.
  * This is checked using the controller's resourceChangedHook.
  */
-bool FollowJointState::startHook()
+bool FollowJointState::startHook_impl()
 {
 	in_joints_port.getDataSample(actual_fullpose);
 	in_joints_ref_port.getDataSample(ref_pose_unsorted);
-	// request resources
-	if (action_server.isActive()) resource_client->resourceChangeRequest(action_server.getActiveGoal()->resources); // request resources
-	else resource_client->resourceChangeRequest(controlled_chains); // request default resources
-	// clear sync port buffer
-	RTT::os::Timer::TimerId timer_id;
-	sync_port.readNewest(timer_id);
-	// now update hook will be periodically executed
+	// now update hook will be periodically executed if controller is operational
 	log(INFO) << "FollowJointState is started !" << endlog();
 	return true;
 }
 
-
-/**
- * called when resource set cahnged (by this or other component request).
- */
-bool FollowJointState::resourceChangeHook() 
+bool FollowJointState::resourceChangeHook_impl() 
 {
-	// if there is active goal resource set must be exactly the same
-	if (action_server.isActive()) {
-		if (!resource_client->hasResources(action_server.getActiveGoal()->resources)) {
-			// not all necessary resources present 
-			goal_result.error_code = Result::SUCCESSFUL; // is this normal behavior?
-			goal_result.error_string = "Not all recources is available.";
-			action_server.abortActive(goal_result);
-			// exit operational state
-			return false;
-		}
-	}
-
 	// Controller is able to work with arbitrary joint set.
 	// Just rebuild index and continue.
 	if (!formJointIndex(resource_client->listResources())) return false;
@@ -279,7 +161,7 @@ bool FollowJointState::resourceChangeHook()
 	// inform about support state change
 	if (publish_supports) out_supports_port.write(supports);
 
-	// Now we are starting potion. Due to activation_delay 
+	// Now we are starting motion. Due to activation_delay 
 	// reference position is not available. So we have to guess it.
 	// Choice: stop in current position.
 	
@@ -308,133 +190,85 @@ bool FollowJointState::resourceChangeHook()
 	return true;
 }
 
-void FollowJointState::updateHook()
+void FollowJointState::updateHook_impl()
 {
-	// let resource_client do it stuff
-	resource_client->step();	
-
-	// syncronize with sync messages
-	{
-		RTT::os::Timer::TimerId unused;
-		if (sync_port.read(unused) != NewData) return;
-	}
-
-	// main operational 
-	int state = resource_client->getState();
-	if (state & ResourceClient::OPERATIONAL) {
-		// read port
-		if (in_joints_port.read(actual_fullpose, false) == NewData) {
-			// copy controlled joint from actual_pose
-			if (isValidJointStatePos(actual_fullpose, n_joints_fullpose)) {
-				for(JointIndexes::const_iterator it = controlled_joints.begin(); it != controlled_joints.end(); it++) {
-					actual_pose.position[it->second.index] = actual_fullpose.position[it->second.index_fullpose];
-					if (actual_fullpose.velocity.size()) actual_pose.velocity[it->second.index] = actual_fullpose.velocity[it->second.index_fullpose];
-					else actual_pose.velocity[it->second.index] = 0;
-					//TODO effort support
-				}
+	// read port
+	if (in_joints_port.read(actual_fullpose, false) == NewData) {
+		// copy controlled joint from actual_pose
+		if (isValidJointStatePos(actual_fullpose, n_joints_fullpose)) {
+			for(JointIndexes::const_iterator it = controlled_joints.begin(); it != controlled_joints.end(); it++) {
+				actual_pose.position[it->second.index] = actual_fullpose.position[it->second.index_fullpose];
+				if (actual_fullpose.velocity.size()) actual_pose.velocity[it->second.index] = actual_fullpose.velocity[it->second.index_fullpose];
+				else actual_pose.velocity[it->second.index] = 0;
+				//TODO effort support
 			}
 		}
+	}
 
-		// delay actulal input processing
-		// This delay allows non-relatime components to adapt to robot pose.
-		if (os::TimeService::Instance()->secondsSince(activation_timestamp) < activation_delay) {
-			// publish pose for non-realtime controller to adjust it to current pose
-			out_joints_src_reset_port.write(actual_fullpose);
-		}
-		else {
-			// read port	
-			if (in_joints_ref_port.read(ref_pose_unsorted, false) == NewData) {
-				// copy controlled joint to ref_pose
-				if (isValidJointStateNamePos(ref_pose_unsorted)) {
-					for(int i = 0; i < ref_pose_unsorted.name.size(); i++) {
-						JointIndexes::const_iterator found = controlled_joints.find(ref_pose_unsorted.name[i]);
-						if (found != controlled_joints.end()) {
-							// we control this joint so copy it
-							ref_pose.position[found->second.index] = ref_pose_unsorted.position[i];
-							if (ref_pose_unsorted.velocity.size()) ref_pose.velocity[found->second.index] = ref_pose_unsorted.velocity[i];
-							else ref_pose.velocity[found->second.index] = 0.0;
-							//TODO effort support
-						}
+	// delay actulal input processing
+	// This delay allows non-relatime components to adapt to robot pose.
+	if (os::TimeService::Instance()->secondsSince(activation_timestamp) < activation_delay) {
+		// publish pose for non-realtime controller to adjust it to current pose
+		out_joints_src_reset_port.write(actual_fullpose);
+	}
+	else {
+		// read port	
+		if (in_joints_ref_port.read(ref_pose_unsorted, false) == NewData) {
+			// copy controlled joint to ref_pose
+			if (isValidJointStateNamePos(ref_pose_unsorted)) {
+				for(int i = 0; i < ref_pose_unsorted.name.size(); i++) {
+					JointIndexes::const_iterator found = controlled_joints.find(ref_pose_unsorted.name[i]);
+					if (found != controlled_joints.end()) {
+						// we control this joint so copy it
+						ref_pose.position[found->second.index] = ref_pose_unsorted.position[i];
+						if (ref_pose_unsorted.velocity.size()) ref_pose.velocity[found->second.index] = ref_pose_unsorted.velocity[i];
+						else ref_pose.velocity[found->second.index] = 0.0;
+						//TODO effort support
 					}
 				}
 			}
 		}
+	}
+
+	if (log(DEBUG)) {
+		double t = os::TimeService::Instance()->secondsSince(activation_timestamp);
+		log() << " t = " << t << " actual: " << actual_pose << endlog();
+		log() << " t = " << t << " ref: " << ref_pose << endlog();
+	}
+	// perform trajectory smoothing
+	// actual_pose represents state and is modified in place
+	if (filter && filter->update(actual_pose, ref_pose, actual_pose)){
+		// now refrence in actual_pose
+		out_joints_port.write(actual_pose);
 
 		if (log(DEBUG)) {
 			double t = os::TimeService::Instance()->secondsSince(activation_timestamp);
-			log() << " t = " << t << " actual: " << actual_pose << endlog();
-			log() << " t = " << t << " ref: " << ref_pose << endlog();
+			log() << " t = " << t << " filtered: " << actual_pose << endlog();
 		}
-		// perform trajectory smoothing
-		// actual_pose represents state and is modified in place
-		if (filter && filter->update(actual_pose, ref_pose, actual_pose)){
-			// now refrence in actual_pose
-			out_joints_port.write(actual_pose);
+	}
+	else {
+		// publish without smoothing
+		out_joints_port.write(ref_pose);
+	}
 
-			if (log(DEBUG)) {
-				double t = os::TimeService::Instance()->secondsSince(activation_timestamp);
-				log() << " t = " << t << " filtered: " << actual_pose << endlog();
-			}
-		}
-		else {
-			// publish without smoothing
-			out_joints_port.write(ref_pose);
-		}
-	}
-	else if (state == ResourceClient::NONOPERATIONAL) {
-		log(INFO) << "FollowJointState is exiting  operational state !" << endlog();
-		this->stop();
-	}
+	// publish supports
+	if (publish_supports) out_supports_port.write(supports);
 }
 
 /* 
  * Preempts the controllers and releases its resources.
  */
-void FollowJointState::stopHook() 
+void FollowJointState::stopHook_impl() 
 {
-	// user calls stop() directly 
-	if (resource_client->isOperational()) resource_client->stopOperational();
-	// abort active goal
-	if (action_server.isActive()) {
-		goal_result.error_code = Result::SUCCESSFUL;
-		goal_result.error_string = "Stopped.";
-		action_server.abortActive(goal_result);
-	}
+	// deinitialization
+	// release all resources
 	log(INFO) << "FollowJointState is stopped!" << endlog();
 }
 
-void FollowJointState::cancelGoalHook() 
-{
-	log(INFO) << "cancelGoalHoook: abort active goal." << endlog();
-	// cancel active goal (or do nothing)
-	goal_result.error_code = Result::SUCCESSFUL;
-	goal_result.error_string = "Canceled by user request.";
-	action_server.succeedActive(goal_result);
-	// stop
-	stop();
-}
-
-void FollowJointState::cleanupHook() 
+void FollowJointState::cleanupHook_impl() 
 {
 	// free memory, close files and etc
 	log(INFO) << "FollowJointState cleaning up !" << endlog();
-}
-
-/**
- * ROS comaptible start/stop operation.
- */
-bool FollowJointState::rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp)
-{
-	if (req.data) {
-		resp.success = isRunning() || start();
-		resp.message = "start() is called.";
-	}
-	else {
-		stop();
-		resp.success = true;
-		resp.message = "stop() is called.";
-	}
-	return true;
 }
 
 } // namespace controller

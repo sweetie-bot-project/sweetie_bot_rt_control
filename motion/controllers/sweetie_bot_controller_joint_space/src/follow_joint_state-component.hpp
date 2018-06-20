@@ -21,21 +21,19 @@
 #include <sweetie_bot_controller_joint_space/filter_joint_state.hpp>
 #include <sweetie_bot_orocos_misc/simple_action_server.hpp>
 
+#include <sweetie_bot_resource_control/actionlib_controller_base.hpp>
+
 namespace sweetie_bot {
 namespace motion {
 namespace controller {
 
 
-class FollowJointState : public RTT::TaskContext
+class FollowJointState : public ActionlibControllerBase
 {
-	protected:
-		// Goal, Feedback, Result typedefs
-		ACTION_DEFINITION(sweetie_bot_resource_control_msgs::SetOperationalAction);	
 	protected:
 		// COMPONENT INTERFACE
 		//
 		// PORTS: input
-		RTT::InputPort<RTT::os::Timer::TimerId> sync_port;
 		RTT::InputPort<sensor_msgs::JointState> in_joints_port;
 		RTT::InputPort<sensor_msgs::JointState> in_joints_ref_port;
 		// PORTS: output
@@ -43,34 +41,17 @@ class FollowJointState : public RTT::TaskContext
 		RTT::OutputPort<sensor_msgs::JointState> out_joints_src_reset_port;
 		RTT::OutputPort<sweetie_bot_kinematics_msgs::SupportState> out_supports_port;
 		// PROPERTIES
-		std::vector<std::string> controlled_chains;
 		double activation_delay;
-		double period;
 		bool publish_supports;
 	protected:
 		// OPERATIONS: provides
-		bool rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp);
 		// OPERATIONS: requires
 		// SERVICES: provides
 		// SERVICES: required
 		sweetie_bot::motion::RobotModel * robot_model; // joints list, kinematics chains access
 		int n_joints_fullpose;
 		// SERVICES: internal interface
-		sweetie_bot::motion::ResourceClientInterface * resource_client; // resource client
 		sweetie_bot::motion::filter::FilterJointStateInterface * filter; // trajectory smoother
-
-	protected:
-		// ACTIONLIB:
-		// Simple action server
-		OrocosSimpleActionServer<sweetie_bot_resource_control_msgs::SetOperationalAction> action_server;
-		// enable port callbacks in configured state
-		bool dataOnPortHook(RTT::base::PortInterface* portInterface);
-		// new pending goal is received
-		void newGoalHook(const Goal& goal);
-		// active goal is being canceled
-		void cancelGoalHook();
-		// buffer
-		Result goal_result;
 
 	protected:
 		struct JointIndex {
@@ -92,23 +73,18 @@ class FollowJointState : public RTT::TaskContext
 		sensor_msgs::JointState ref_pose; // controlled joints ref position
 		sweetie_bot_kinematics_msgs::SupportState supports; // contact list buffer
 		
-#ifdef SWEETIEBOT_LOGGER
-		sweetie_bot::logger::SWEETIEBOT_LOGGER log;
-#else
-		sweetie_bot::logger::LoggerRTT log;
-#endif
-
 	public:
 		FollowJointState(std::string const& name);
 
-		bool resourceChangeHook();
+	protected:
+		bool resourceChangeHook_impl();
 		bool formJointIndex(const vector<string>& controlled_chains);
 
-		bool configureHook(); 
-		bool startHook();
-		void updateHook();
-		void stopHook();
-		void cleanupHook();
+		bool configureHook_impl(); 
+		bool startHook_impl();
+		void updateHook_impl();
+		void stopHook_impl();
+		void cleanupHook_impl();
 };
 
 } // namespace controller
