@@ -36,8 +36,7 @@ namespace motion {
 namespace controller {
 
 FollowPose::FollowPose(std::string const& name)  : 
-	TaskContext(name, RTT::base::TaskCore::PreOperational),
-	log(logger::categoryFromComponentName(name)),
+	ActionlibControllerBase(name),
 	poseToJointStatePublish("poseToJointStatePublish", this->engine()) // operation caller
 {
 	// ports input 
@@ -52,17 +51,9 @@ FollowPose::FollowPose(std::string const& name)  :
 		.doc("Limb next position to achive target given current robot state. It is computed by component each control cycle. ");
 	this->addPort("out_supports", out_supports_port)
 		.doc("Active contact list.");
-	this->addEventPort("sync", sync_port)
-		.doc("Timer syncronization port.");
 
 	// properties
-	this->addProperty("controlled_chain", controlled_chain).
-		doc("Robot kinematic chain which is controlled.");
-	this->addProperty("period", period)
-		.doc("Discretization period (s).");
 	// operations: provided
-	this->addOperation("rosSetOperational", &FollowPose::rosSetOperational, this)
-		.doc("ROS compatible start/stop operation (std_srvs::SetBool).");
 	// operations: required
 	this->requires()->addOperationCaller(poseToJointStatePublish); // kinematics service
 
@@ -73,22 +64,9 @@ FollowPose::FollowPose(std::string const& name)  :
 	log(INFO) << "FollowPose is constructed!" << endlog();
 }
 
-bool FollowPose::resourceChangedHook()
-{
-	return resource_client->hasResource(controlled_chain);
-}
-
-bool FollowPose::configureHook()
+bool FollowPose::configureHook_impl()
 {
 	// INITIALIZATION
-	// check if ResourceClient Service presents: try to find it amoung loaded services
-	resource_client = getSubServiceByType<ResourceClientInterface>(this->provides().get());
-	if (!resource_client) {
-		log(ERROR) << "ResourceClient plugin is not loaded." << endlog();
-		return false;
-	}
-	resource_client->setResourceChangeHook(boost::bind(&FollowPose::resourceChangedHook, this));
-
 	// check if filter present
 	filter = getSubServiceByType<filter::FilterRigidBodyStateInterface>(this->provides().get());
 	if (!filter) {
@@ -129,18 +107,44 @@ bool FollowPose::configureHook()
 	return true;
 }
 
-bool FollowPose::startHook()
+bool FollowPose::startHook_impl()
 {
-	// check if controlled chain is sane
-	chain_index = robot_model->getChainIndex(controlled_chain);
+
+	// data samples
+	in_base_port.getDataSample(base);
+	in_limbs_port.getDataSample(limbs);
+
+	// now update hook will be periodically executed
+	log(INFO) << "FollowPose is started !" << endlog();
+	return true;
+}
+
+
+bool FollowPose::checkResourceSet_impl(const std::vector<std::string>& controlled_chains) 
+{
+	// check if controlled chains is sane
+	if (controlled_chains.size() != 1) {
+		log(ERROR) << "FollowPose can control only one kinematics chain." << endlog();
+		return false;
+	}
+	return true;
+}
+
+bool FollowPose::resourceChangedHook_impl(const std::vector<std::string>& controlled_chains)
+{
+	// check in resource available
+	// we do not have to test size: checkResourceSet_impl was called before
+	if (!resource_client->hasResource(controlled_chains[0])) return false;
+
+	chain_index = robot_model->getChainIndex(controlled_chains[0]);
 	if (chain_index < 0) {
-		log(ERROR) << "Kinematic chain " << controlled_chain << " is not registered in robot model." << endlog();
+		log(ERROR) << "Kinematic chain " << controlled_chains[0] << " is not registered in robot model." << endlog();
 		return false;
 	}
 
 	// set chain name in output messages
-	limb_next.name[0] = controlled_chain;
-	supports.name[0] = controlled_chain;
+	limb_next.name[0] = controlled_chains[0];
+	supports.name[0] = controlled_chains[0];
 
 	// set reference pose to current limb pose
 	// check if limb data is available
@@ -161,129 +165,83 @@ bool FollowPose::startHook()
 		return false;
 	}
 
-	// resource request
-	resource_client->resourceChangeRequest(supports.name);
-	log(INFO) << "FollowPose controlled chain: " << controlled_chain << " chain_index = " << chain_index << endlog();
-
-	// data samples
-	in_base_port.getDataSample(base);
-	in_limbs_port.getDataSample(limbs);
-
-	// now update hook will be periodically executed
-	log(INFO) << "FollowPose is started !" << endlog();
+	log(INFO) << "FollowPose controlled chain: " << controlled_chains[0] << " chain_index = " << chain_index << endlog();
 	return true;
 }
 
-void FollowPose::updateHook()
+
+void FollowPose::updateHook_impl()
 {
-	// let resource_client do it stuff
-	resource_client->step();	
+	// publish support state
+	out_supports_port.write(supports);
 
-	// syncronize with sync messages
+	// get current base pose and speed
+	if (in_base_port.read(base, false) == NewData) {
+		if (!isValidRigidBodyStateNameFrameTwist(base, 1) || base.name[0] != "base_link") {
+			log(WARN) << "Incorrect base_link pose is received. Skip iteration." << endlog();
+			return;
+		}
+	}
+	if (in_limbs_port.read(limbs, false) == NewData) {
+		if (!isValidRigidBodyStateNameFrameTwist(limbs) || limbs.name.size() < chain_index) {
+			log(WARN) << "Incorrect limb poses message is received. Skip iteration." << endlog();
+			return;
+		}
+	}
+
+	// get reference pose
 	{
-		RTT::os::Timer::TimerId unused;
-		if (sync_port.read(unused) != NewData) return;
+		geometry_msgs::PoseStamped pose_stamped;
+		if (in_pose_ref_port.read(pose_stamped, false) == NewData) {
+			// convert to KDL 
+			normalizeQuaternionMsg(pose_stamped.pose.orientation);
+			tf::poseMsgToKDL(pose_stamped.pose, limb_ref.frame[0]);
+		}
+	}
+	
+	// convert to world frame
+	// TODO perform calculation in base_link frame: add to filter reference speed handling
+	limb_next.frame[0] = base.frame[0]*limbs.frame[chain_index];
+	limb_next.twist[0] = base.twist[0] + base.frame[0]*limbs.twist[chain_index];
+
+	// apply filter to calculate next pose
+	filter->update(limb_next, limb_ref, limb_next);
+
+	// return back to base_link frame and correct speed
+	limb_next.frame[0] = base.frame[0].Inverse()*limb_next.frame[0];
+	limb_next.twist[0] = base.frame[0].Inverse(limb_next.twist[0] - base.twist[0]);
+	limb_next.header.stamp = ros::Time::now();
+
+	bool ik_success = true;
+	// pass result to kinematics
+	if (poseToJointStatePublish.ready()) {
+		// syncronous interface
+		ik_success = poseToJointStatePublish(limb_next);
+	} 
+	else {
+		// async interface
+		out_limbs_ref_port.write(limb_next);
 	}
 
-	// main operational 
-	int state = resource_client->getState();
-	if (state & ResourceClient::OPERATIONAL) {
-
-		// publish support state
-		out_supports_port.write(supports);
-
-		// get current base pose and speed
-		if (in_base_port.read(base, false) == NewData) {
-			if (!isValidRigidBodyStateNameFrameTwist(base, 1) || base.name[0] != "base_link") {
-				log(WARN) << "Incorrect base_link pose is received. Skip iteration." << endlog();
-				return;
-			}
-		}
-		if (in_limbs_port.read(limbs, false) == NewData) {
-			if (!isValidRigidBodyStateNameFrameTwist(limbs) || limbs.name.size() < chain_index) {
-				log(WARN) << "Incorrect limb poses message is received. Skip iteration." << endlog();
-				return;
-			}
-		}
-
-		// get reference pose
-		{
-			geometry_msgs::PoseStamped pose_stamped;
-			if (in_pose_ref_port.read(pose_stamped, false) == NewData) {
-				// convert to KDL 
-				normalizeQuaternionMsg(pose_stamped.pose.orientation);
-				tf::poseMsgToKDL(pose_stamped.pose, limb_ref.frame[0]);
-			}
-		}
-		
-		// convert to world frame
-		// TODO perform calculation in base_link frame: add to filter reference speed handling
-		limb_next.frame[0] = base.frame[0]*limbs.frame[chain_index];
-		limb_next.twist[0] = base.twist[0] + base.frame[0]*limbs.twist[chain_index];
-
-		// apply filter to calculate next pose
-		filter->update(limb_next, limb_ref, limb_next);
-
-		// return back to base_link frame and correct speed
-		limb_next.frame[0] = base.frame[0].Inverse()*limb_next.frame[0];
-		limb_next.twist[0] = base.frame[0].Inverse(limb_next.twist[0] - base.twist[0]);
-		limb_next.header.stamp = ros::Time::now();
-
-		bool ik_success = true;
-		// pass result to kinematics
-		if (poseToJointStatePublish.ready()) {
-			// syncronous interface
-			ik_success = poseToJointStatePublish(limb_next);
-		} 
-		else {
-			// async interface
-			out_limbs_ref_port.write(limb_next);
-		}
-
-		if (log(DEBUG)) {
-			log() << "ik_success = " << ik_success << " sync_mode = " << poseToJointStatePublish.ready() << " chain_index = "  << chain_index << endlog();
-		}
-
-	}
-	else if (state == ResourceClient::NONOPERATIONAL) {
-		log(INFO) << "FollowPose is exiting  operational state !" << endlog();
-		this->stop();
+	if (log(DEBUG)) {
+		log() << "ik_success = " << ik_success << " sync_mode = " << poseToJointStatePublish.ready() << " chain_index = "  << chain_index << endlog();
 	}
 }
 
 /* 
  * Preempts the controllers and releases its resources.
  */
-void FollowPose::stopHook() 
+void FollowPose::stopHook_impl() 
 {
-	// user calls stop() directly 
-	if (resource_client->isOperational()) resource_client->stopOperational();
 	// deinitialization
 	// release all resources
 	log(INFO) << "FollowPose is stopped!" << endlog();
 }
 
-void FollowPose::cleanupHook() 
+void FollowPose::cleanupHook_impl() 
 {
 	// free memory, close files and etc
 	log(INFO) << "FollowPose cleaning up !" << endlog();
-}
-
-/**
- * ROS comaptible start/stop operation.
- */
-bool FollowPose::rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp)
-{
-	if (req.data) {
-		resp.success = start();
-		resp.message = "start() is called.";
-	}
-	else {
-		stop();
-		resp.success = true;
-		resp.message = "stop() is called.";
-	}
-	return true;
 }
 
 } // namespace controller
