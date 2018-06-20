@@ -77,7 +77,7 @@ class FollowJointState : public ActionlibControllerBase
 		FollowJointState(std::string const& name);
 
 	protected:
-		bool resourceChangeHook_impl();
+		bool resourceChangedHook_impl(const std::vector<std::string>& requested_resource_set);
 		bool formJointIndex(const vector<string>& controlled_chains);
 
 		bool configureHook_impl(); 

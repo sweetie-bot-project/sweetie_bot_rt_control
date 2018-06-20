@@ -152,7 +152,7 @@ bool FollowJointState::startHook_impl()
 	return true;
 }
 
-bool FollowJointState::resourceChangeHook_impl() 
+bool FollowJointState::resourceChangedHook_impl(const std::vector<std::string>& requested_resource_set)
 {
 	// Controller is able to work with arbitrary joint set.
 	// Just rebuild index and continue.
@@ -252,7 +252,7 @@ void FollowJointState::updateHook_impl()
 	}
 
 	// publish supports
-	if (publish_supports) out_supports_port.write(supports);
+	// if (publish_supports) out_supports_port.write(supports);
 }
 
 /* 
