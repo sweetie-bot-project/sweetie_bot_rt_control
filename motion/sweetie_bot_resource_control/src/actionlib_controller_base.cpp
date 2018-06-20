@@ -246,15 +246,13 @@ void ActionlibControllerBase::stopHook()
 
 void ActionlibControllerBase::cancelGoalHook() 
 {
+	log(INFO) << "actionlib: cancel request for active goal. Actionlib isActive() " << action_server.isActive()<< endlog();
 	// cancel active goal (or do nothing)
-	if (action_server.isActive()) {
-		log(INFO) << "actionlib: cancel request for active goal." << endlog();
-		goal_result.error_code = Result::SUCCESSFUL;
-		goal_result.error_string = "Canceled by cancel request.";
-		action_server.succeedActive(goal_result);
-		// stop only if we canceled active goal.
-		stop();
-	}
+	goal_result.error_code = Result::SUCCESSFUL;
+	goal_result.error_string = "Canceled by cancel request.";
+	action_server.cancelActive(goal_result);
+	// stop only if we canceled active goal.
+	stop();
 }
 
 void ActionlibControllerBase::cleanupHook() 
