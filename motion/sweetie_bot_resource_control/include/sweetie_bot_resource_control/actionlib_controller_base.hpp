@@ -97,7 +97,7 @@ class ActionlibControllerBase : public RTT::TaskContext
 		virtual bool configureHook_impl();
 		/**
 		 * @brief Implement this function to restrict acceptible resources sets.
-		 * Always called after configureHook_impl(). 
+		 * Always called after configureHook_impl() and before actual resource request to check if desired resource set is sane.
 		 * @param resource_set A resource set to test.
 		 * @return true if provided set is acceptible for component.
 		 **/
@@ -110,7 +110,7 @@ class ActionlibControllerBase : public RTT::TaskContext
 		virtual bool startHook_impl();
 		/**
 		 * @brief Implement reaction on resource set change.
-		 * Always called after startHook_impl(). Acquired resource set can be accessed via @c resource_client field.
+		 * Always called after startHook_impl() and checkResourceSet_impl(). Acquired resource set can be accessed via @c resource_client field.
 		 * This function must reinitialize controller to run with different resource set or return failure.
 		 * @param requested_resource_set Resource set requested from arbiter. 
 		 * @return true to activate controller.

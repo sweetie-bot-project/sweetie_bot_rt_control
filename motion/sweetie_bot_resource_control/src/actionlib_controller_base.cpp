@@ -154,8 +154,15 @@ void ActionlibControllerBase::newGoalHook(const Goal& pending_goal)
 bool ActionlibControllerBase::startHook()
 {
 	// request resources
-	if (action_server.isActive()) resource_client->resourceChangeRequest(action_server.getActiveGoal()->resources); // request resources
-	else resource_client->resourceChangeRequest(controlled_chains); // request default resources
+	if (action_server.isActive()) {
+		resource_client->resourceChangeRequest(action_server.getActiveGoal()->resources); // request resources
+	}
+	else {
+		// check if resource set is sane
+		if (!checkResourceSet_impl(controlled_chains)) return false;
+		// request default resources
+		resource_client->resourceChangeRequest(controlled_chains); 
+	}
 	// clear sync port buffer
 	RTT::os::Timer::TimerId timer_id;
 	sync_port.readNewest(timer_id);
@@ -201,6 +208,9 @@ bool ActionlibControllerBase::resourceChangeHook()
 		return is_operational;
 	}
 	else {
+		// check if desired set od controlled_chains is sane.
+		if (!checkResourceSet_impl(controlled_chains)) return false;
+		// call implemetation of resourceChangedHook.
 		return resourceChangedHook_impl(controlled_chains);
 	}
 }
