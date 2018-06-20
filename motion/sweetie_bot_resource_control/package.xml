@@ -18,6 +18,7 @@
   <!-- ROS and OROCOS datatypes -->
   <!-- SWEETIEBOT packages -->
   <depend>sweetie_bot_logger</depend>
+  <depend>sweetie_bot_orocos_misc</depend>
   <!-- SWEETIEBOT datatypes -->
   <depend>sweetie_bot_resource_control_msgs</depend>
   <depend>rtt_sweetie_bot_resource_control_msgs</depend>
