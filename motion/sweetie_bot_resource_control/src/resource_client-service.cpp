@@ -249,6 +249,11 @@ class ResourceClientService : public ResourceClientInterface, public RTT::Servic
 			return state & ResourceClient::PENDING;
 		}
 
+		bool isNonOperational() const
+		{
+			return state == ResourceClient::NONOPERATIONAL;
+		}
+
 		int getState() const
 		{
 			return state;
