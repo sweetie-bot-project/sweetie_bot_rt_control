@@ -5,6 +5,7 @@ orocos_component(animation_joint_trajectory animation_joint_trajectory-component
 target_link_libraries(animation_joint_trajectory ${alglib_LIBRARY})
 
 orocos_component(torque_main_switch torque_main_switch-component.cpp) # ...you may add multiple source files
+target_link_libraries(torque_main_switch actionlib_controller_base)
 
 orocos_service(filter_joint_state_exp_service filter_joint_state_exp-service.cpp) # only one service per library!
 

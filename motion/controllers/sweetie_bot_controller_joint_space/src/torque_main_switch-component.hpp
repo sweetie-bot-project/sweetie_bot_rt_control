@@ -11,12 +11,14 @@
 #include <sweetie_bot_resource_control/resource_client.hpp>
 #include <sweetie_bot_robot_model/robot_model.hpp>
 
+#include <sweetie_bot_resource_control/actionlib_controller_base.hpp>
+
 namespace sweetie_bot {
 namespace motion {
 namespace controller {
 
 
-class TorqueMainSwitch : public RTT::TaskContext
+class TorqueMainSwitch : public ActionlibControllerBase
 {
 	protected:
 		typedef sensor_msgs::JointState JointState;
@@ -25,7 +27,6 @@ class TorqueMainSwitch : public RTT::TaskContext
 		// COMPONENT INTERFACE
 		//
 		// PORTS: input
-		RTT::InputPort<RTT::os::Timer::TimerId> sync_port;
 		RTT::InputPort<JointState> in_joints_port;
 		// PORTS: output
 		RTT::OutputPort<JointState> out_joints_port;
@@ -35,38 +36,33 @@ class TorqueMainSwitch : public RTT::TaskContext
 		bool velocity_zeroing;
 	protected:
 		// OPERATIONS: provides
-		bool rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp);
 		// OPERATIONS: requires
 		// SERVICES: provides
 		// SERVICES: required
 		sweetie_bot::motion::RobotModel * robot_model; // joints list, kinematics chains access
 		// SERVICES: internal interface
-		sweetie_bot::motion::ResourceClientInterface * resource_client; // resource client
 
 	protected:
 		// COMPONENT STATE
 		std::vector< RTT::OperationCaller<bool(bool)> > torque_off_callers; // operation callers to control servos torque
-		std::vector< std::string > controlled_chains; // list of controlled chains
+		// std::vector< std::string > controlled_chains; // list of controlled chains (inherited from ActionlibControllerBase)
 		// ports buffers
 		JointState actual_fullpose; // buffer for input port in_joints_port
 		
-#ifdef SWEETIEBOT_LOGGER
-		sweetie_bot::logger::SWEETIEBOT_LOGGER log;
-#else
-		sweetie_bot::logger::LoggerRTT log;
-#endif
-
 	public:
 		TorqueMainSwitch(std::string const& name);
 
+	protected:
 		bool setSchedulersActive(bool is_active);
 		bool setAllServosTorqueFree(bool torque_is_off);
 
-		bool configureHook(); 
-		bool startHook();
-		void updateHook();
-		void stopHook();
-		void cleanupHook();
+		bool checkResourceSet_impl(const std::vector<std::string>& desired_resource_set);
+
+		bool configureHook_impl(); 
+		bool startHook_impl();
+		void updateHook_impl();
+		void stopHook_impl();
+		void cleanupHook_impl();
 };
 
 } // namespace controller
