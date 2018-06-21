@@ -120,7 +120,12 @@ void ActionlibControllerBase::newGoalHook(const Goal& pending_goal)
 			<< ", resource client state: " << resource_client->getState() << ", actionlib isActive(): " << action_server.isActive() << endlog();
 		
 		// check resource set
-		if (!checkResourceSet_impl(pending_goal.resources)) {
+		bool resource_set_is_good;
+		// TODO better API to simpilfy check if resource set is default
+		if (pending_goal.resources.size() > 0) resource_set_is_good = checkResourceSet_impl(pending_goal.resources);
+		else  resource_set_is_good = checkResourceSet_impl(controlled_chains); // default resource set
+
+		if (resource_set_is_good) {
 			goal_result.error_code = Result::INVALID_RESOURCE_SET;
 			goal_result.error_string = "Resource set is rejected.";
 			action_server.rejectPending(goal_result);
@@ -135,7 +140,9 @@ void ActionlibControllerBase::newGoalHook(const Goal& pending_goal)
 
 		// forward activation process
 		if (isRunning()) {
-			resource_client->resourceChangeRequest(action_server.getActiveGoal()->resources);
+			const std::vector<std::string>& resources = action_server.getActiveGoal()->resources;
+			if (resources.size() > 0) resource_client->resourceChangeRequest(resources); // nonemty resource set
+			else resource_client->resourceChangeRequest(controlled_chains); // default resource set
 		}
 		else {
 			// start() request necessary resources from active goal and start component.
@@ -155,7 +162,10 @@ bool ActionlibControllerBase::startHook()
 {
 	// request resources
 	if (action_server.isActive()) {
-		resource_client->resourceChangeRequest(action_server.getActiveGoal()->resources); // request resources
+		const std::vector<std::string>& resources = action_server.getActiveGoal()->resources;
+		// request resources
+		if (resources.size() > 0) resource_client->resourceChangeRequest(resources); // nonemty resource set
+		else resource_client->resourceChangeRequest(controlled_chains); // default resource set
 	}
 	else {
 		// check if resource set is sane

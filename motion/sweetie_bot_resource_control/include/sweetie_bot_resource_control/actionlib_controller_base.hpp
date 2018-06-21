@@ -26,6 +26,10 @@ namespace controller {
  * Controller with SetOperational interface able to control arbitrary or specific sets of resources.
  * SetOperationalGoal provide activation or deactivation request and a set of resources.
  *
+ * If component is activated by start() or resSetOperationl() call resources from `controlled_chains` prperty are acquired.
+ * If actionlib is used desired resurce set is provided inside goal request. If this list is empty default 
+ * set from `controlled_chains` property is used. 
+ *
  * This class implements ActionServer interface and ResourceClientInterface, so a component subclass should
  * only implements following methods.
  * @code
@@ -93,13 +97,16 @@ class ActionlibControllerBase : public RTT::TaskContext
 		/**
 		 * @brief @c configureHook() inplementation. 
 		 * Called after resource_client and ActionServer are configured. Should contain component initialization.
+		 * Controllers which works with only specific resource set may set `controlled_chains` property here.
 		 **/	
 		virtual bool configureHook_impl();
 		/**
 		 * @brief Implement this function to restrict acceptible resources sets.
 		 * Always called after configureHook_impl() and before actual resource request to check if desired resource set is sane.
-		 * @param resource_set A resource set to test.
+		 * @param resource_set A resource set to test. If it is enty @a controlled_chains property will be used.
 		 * @return true if provided set is acceptible for component.
+		 *
+		 * TODO cahnge semantics of checkResourceSet_impl(): allow it to change desired resource set.
 		 **/
 		virtual bool checkResourceSet_impl(const std::vector<std::string>& resource_set);
 		/**
