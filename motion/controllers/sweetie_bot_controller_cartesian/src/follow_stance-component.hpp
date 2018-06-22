@@ -42,11 +42,12 @@ class FollowStance : public ActionlibControllerBase
 		RTT::OutputPort<sweetie_bot_kinematics_msgs::SupportState> out_supports_port;
 		// PROPERTIES
 		// std::vector<std::string> support_legs; use controlled_chains instead
-		bool base_pose_feedback;
+		bool pose_feedback;
 		bool balance_check;
 		bool balance_keep;
 		double safe_pose_z_max;
 		double safe_pose_z_min;
+		unsigned int activation_delay;
 
 	protected:
 		// OPERATIONS: provides
@@ -60,15 +61,18 @@ class FollowStance : public ActionlibControllerBase
 
 	protected:
 		// COMPONENT STATE
-		std::vector<KDL::Frame> support_leg_anchors; 
+		std::vector<KDL::Frame> support_leg_anchors; // positions of legs in world frame (WARNING at start component!)
+		std::vector<unsigned int> support_leg_index; // position index of support legs in in_limbs_fixed message
 		bool ik_success;
+		unsigned int activation_delay_counter;
 		// ports buffers
-		sweetie_bot_kinematics_msgs::RigidBodyState base; // current pose
+		sweetie_bot_kinematics_msgs::RigidBodyState base; // current pose received from in_base
 		sweetie_bot_kinematics_msgs::RigidBodyState base_next; // next pose calucalated by component
-		sweetie_bot_kinematics_msgs::RigidBodyState base_ref; // reference pose
-		sweetie_bot_kinematics_msgs::BalanceState balance; // balance
-		sweetie_bot_kinematics_msgs::RigidBodyState limbs;
-		sweetie_bot_kinematics_msgs::SupportState supports;
+		sweetie_bot_kinematics_msgs::RigidBodyState base_ref; // reference pose received from in_base_ref
+		sweetie_bot_kinematics_msgs::BalanceState balance; // balance 
+		sweetie_bot_kinematics_msgs::RigidBodyState limbs; // calculated reference pose to publish on out_port
+		sweetie_bot_kinematics_msgs::RigidBodyState limbs_full; // received limbs state on in_limbs_fixed
+		sweetie_bot_kinematics_msgs::SupportState supports; // support state to publish
 		
 	protected:
 		bool setupSupports(const vector<string>& support_legs);
