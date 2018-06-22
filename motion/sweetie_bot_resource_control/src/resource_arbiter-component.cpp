@@ -86,9 +86,6 @@ void ResourceArbiter::processResourceRequest(ResourceRequest& resourceRequestMsg
 
 	// Register new client if necessary.
 	ClientInfo& requester = clients[resourceRequestMsg.requester_name];
-	// disown resources if component is operational 
-	// TODO more effective
-	if (requester.state != ResourceClient::NONOPERATIONAL) disownResources(resourceRequestMsg.requester_name);
 	// Now process request and change resource assigment. 
 	ResourceSet requested_resources;
 	for (auto resource = resourceRequestMsg.resources.begin(); resource != resourceRequestMsg.resources.end(); resource++) {
@@ -114,11 +111,39 @@ void ResourceArbiter::processResourceRequest(ResourceRequest& resourceRequestMsg
 		}
 		requested_resources.insertByIndex(res_info_pair->second.index);
 	} 
+
+	// preserve client state
+	bool was_nonoperational = requester.state == ResourceClient::NONOPERATIONAL;
+
 	// Update client iformation.
 	requester.state |= ResourceClient::PENDING; // NONOPERATIONAL -> PENDING or OPERATIONAL -> OPERATIONAL_PENDING
 	requester.last_request = requested_resources;
 	requester.request_id = resourceRequestMsg.request_id;
 	requester.seq = seq++; // assign and increase request counter
+
+	// if client was active disown non-requested resources
+	if (!was_nonoperational) {
+		// iterate over resources 
+		for (Resources::iterator res_info_pair = resources.begin(); res_info_pair != resources.end(); res_info_pair++) {
+			// check if resource is not requested but owned by component
+			if (!requested_resources.findByIndex(res_info_pair->second.index) && res_info_pair->second.owner == resourceRequestMsg.requester_name) {
+				// try to find component which should repossess resource
+				Clients::iterator repossessor = clients.end();
+				for (Clients::iterator client = clients.begin(); client != clients.end(); client++) {
+					// it must be OPERATIONAL and contain resource in its last request 
+					if ( (client->second.state & ResourceClient::OPERATIONAL) && client->second.last_request.findByIndex(res_info_pair->second.index) ) {
+						// it must have maximal sequence number
+						if ( repossessor == clients.end() || repossessor->second.seq < client->second.seq ) {
+							repossessor = client;
+						}
+					}
+				}
+				if (repossessor != clients.end()) res_info_pair->second.owner = repossessor->first;
+				else res_info_pair->second.owner = "none";
+				log(DEBUG) << "ResourceArbiter: resource `" << res_info_pair->first << "` released (component deactivation) and assigned to `" << res_info_pair->second.owner <<  "`." << RTT::endlog();
+			}
+		}
+	}
 }
 
 /* 
@@ -178,34 +203,6 @@ void ResourceArbiter::sendControllersStateMsg()
 	controllers_state_port.write(controllers_state_msg);
 }
 
-/**
- * Disown all resources of specified client.
- * @param client_name Resource client name which resources should be disowned.
- * @return true if resource assigment has changed.
- **/
-bool ResourceArbiter::disownResources(const std::string client_name) {
-	bool assigment_changed = false;
-	for (Resources::iterator resource = resources.begin(); resource != resources.end(); resource++) {
-		if (resource->second.owner == client_name) {
-			assigment_changed = true;
-			// try to find component which should repossess resource
-			Clients::iterator repossessor = clients.end();
-			for (Clients::iterator client = clients.begin(); client != clients.end(); client++) {
-				// it must be OPERATIONAL, contain resource in its last request and have different name 
-				if ( (client->second.state & ResourceClient::OPERATIONAL) && client->second.last_request.findByIndex(resource->second.index) && client->first != client_name ) {
-					// it must have maximal sequence number
-					if ( repossessor == clients.end() || repossessor->second.seq < client->second.seq ) {
-						repossessor = client;
-					}
-				}
-			}
-			if (repossessor != clients.end()) resource->second.owner = repossessor->first;
-			else resource->second.owner = "none";
-			log(DEBUG) << "ResourceArbiter: resource `" << resource->first << "` released (component deactivation) and assigned to `" << resource->second.owner <<  "`." << RTT::endlog();
-		}
-	}
-	return assigment_changed;
-}
 
 /* Process resource requester state report.
  *
@@ -236,7 +233,27 @@ bool ResourceArbiter::processResourceRequesterState(ResourceRequesterState& reso
 	else {
 		client.state = ResourceClient::NONOPERATIONAL;
 		// reassign resources of a deactivated component
-		return disownResources(resourceRequesterStateMsg.requester_name); // return true if assigment is changed
+		bool assigment_changed = false;
+		for (Resources::iterator resource = resources.begin(); resource != resources.end(); resource++) {
+			if (resource->second.owner == resourceRequesterStateMsg.requester_name) {
+				assigment_changed = true;
+				// try to find component which should repossess resource
+				Clients::iterator repossessor = clients.end();
+				for (Clients::iterator client = clients.begin(); client != clients.end(); client++) {
+					// it must be OPERATIONAL, contain resource in its last request and have different name 
+					if ( (client->second.state & ResourceClient::OPERATIONAL) && client->second.last_request.findByIndex(resource->second.index) ) {
+						// it must have maximal sequence number
+						if ( repossessor == clients.end() || repossessor->second.seq < client->second.seq ) {
+							repossessor = client;
+						}
+					}
+				}
+				if (repossessor != clients.end()) resource->second.owner = repossessor->first;
+				else resource->second.owner = "none";
+				log(DEBUG) << "ResourceArbiter: resource `" << resource->first << "` released (component deactivation) and assigned to `" << resource->second.owner <<  "`." << RTT::endlog();
+			}
+		}
+		return assigment_changed;
 	}
 }
 
