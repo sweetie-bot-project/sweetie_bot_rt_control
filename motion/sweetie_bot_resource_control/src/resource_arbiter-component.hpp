@@ -117,6 +117,7 @@ class ResourceArbiter : public RTT::TaskContext
 		// TODO: priorities, queue of requesters, partial allocation and reallocation, etc.
 
 	protected:
+		bool disownResources(const std::string client_name);
 		void processResourceRequest(ResourceRequest& resourceRequestMsg);
 		bool processResourceRequesterState(ResourceRequesterState& resourceRequesterStateMsg);
 		void sendResourceAssigmentMsg();
