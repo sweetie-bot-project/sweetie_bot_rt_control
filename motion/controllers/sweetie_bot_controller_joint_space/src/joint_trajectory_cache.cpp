@@ -147,8 +147,24 @@ void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory
 	//perform interpolation
 	this->joint_splines.resize(n_joints);
 	for(int joint = 0; joint < n_joints; joint++) {
-		// alglib::spline1dbuildcubic(t, joint_trajectory[joint], n_samples, 1, 0.0, 1, 0.0, this->joint_splines[joint]);
-		alglib::spline1dbuildakima(t, joint_trajectory[joint], this->joint_splines[joint]);
+		//alglib::spline1dbuildcubic(t, joint_trajectory[joint], n_samples, 1, 0.0, 1, 0.0, this->joint_splines[joint]);
+
+		JointSpline akima_tmp_spline;
+		alglib::spline1dbuildakima(t, joint_trajectory[joint], akima_tmp_spline);
+
+		double dirty;
+		alglib::real_1d_array d;
+		d.setlength(n_samples);
+		for (int i = 1; i < (n_samples - 1); i++) {
+			spline1ddiff(akima_tmp_spline, t[i], dirty, d[i], dirty);
+		}
+
+		// Set up first and last point to 0 velocity
+		d[0] = 0.0;
+		d[n_samples - 1] = 0.0;
+
+		spline1dbuildhermite(t, joint_trajectory[joint], d, this->joint_splines[joint]);
+
 		// velocity an acceleration is ignored
 	}
 	this->goal_time = trajectory.points[n_samples-1].time_from_start.toSec();
