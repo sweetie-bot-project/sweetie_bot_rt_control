@@ -146,24 +146,35 @@ void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory
 	}
 	//perform interpolation
 	this->joint_splines.resize(n_joints);
+
+	JointSpline akima_tmp_spline;
+	alglib::real_1d_array d;
+	double dirty;
 	for(int joint = 0; joint < n_joints; joint++) {
 		//alglib::spline1dbuildcubic(t, joint_trajectory[joint], n_samples, 1, 0.0, 1, 0.0, this->joint_splines[joint]);
 
-		JointSpline akima_tmp_spline;
+		//
+		// Build custom akima spline with zero velocity at edge points
+		//
 		alglib::spline1dbuildakima(t, joint_trajectory[joint], akima_tmp_spline);
 
-		double dirty;
-		alglib::real_1d_array d;
+		// In order to do this calculate derivatives from simple akima spline in each interpolation point
 		d.setlength(n_samples);
 		for (int i = 1; i < (n_samples - 1); i++) {
-			spline1ddiff(akima_tmp_spline, t[i], dirty, d[i], dirty);
+			// Detect internal stop points
+			if (joint_trajectory[joint][i - 1] == joint_trajectory[joint][i] || joint_trajectory[joint][i] == joint_trajectory[joint][i + 1]) {
+				d[i] = 0.0; // For detected point derivative (velocity) will be zero
+			} else {
+				alglib::spline1ddiff(akima_tmp_spline, t[i], dirty, d[i], dirty);
+			}
 		}
 
-		// Set up first and last point to 0 velocity
+		// Set up first and last point to 0 velocity in order to avoid an outliers at the edges of trajectory
 		d[0] = 0.0;
 		d[n_samples - 1] = 0.0;
 
-		spline1dbuildhermite(t, joint_trajectory[joint], d, this->joint_splines[joint]);
+		// Putting it all together with use of hermite spline building function
+		alglib::spline1dbuildhermite(t, joint_trajectory[joint], d, this->joint_splines[joint]);
 
 		// velocity an acceleration is ignored
 	}
