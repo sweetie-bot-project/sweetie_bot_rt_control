@@ -1,5 +1,5 @@
 orocos_component(follow_joint_state follow_joint_state-component.cpp) # ...you may add multiple source files
-target_link_libraries(follow_joint_state actionlib_controller_base)
+target_link_libraries(follow_joint_state ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES} ${Boost_LIBRARIES})
 
 orocos_component(animation_joint_trajectory animation_joint_trajectory-component.cpp animation_joint_trajectory-base.cpp joint_trajectory_cache.cpp) # ...you may add multiple source files
 target_link_libraries(animation_joint_trajectory ${alglib_LIBRARY} ${Boost_LIBRARIES})

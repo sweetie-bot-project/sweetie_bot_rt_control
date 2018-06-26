@@ -15,6 +15,7 @@
 
   <!-- ROS and OROCOS packages -->
   <depend>rtt</depend>
+  <depend>rtt_actionlib</depend>
   <!-- ROS and OROCOS datatypes -->
   <!-- SWEETIEBOT packages -->
   <depend>sweetie_bot_logger</depend>
