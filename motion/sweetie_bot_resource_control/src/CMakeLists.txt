@@ -14,6 +14,7 @@ orocos_component(resource_arbiter resource_arbiter-component.cpp) # ...you may a
 #target_link_libraries(resource_arbiter ${USE_OROCOS_LIBRARIES} ${catkin_LIBRARIES})
 
 orocos_service(resource_client_service resource_client-service.cpp) # only one service per library!
+
 orocos_service(resource_client_dummy_service resource_client_dummy-service.cpp) # only one service per library!
 
 #

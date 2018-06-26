@@ -35,6 +35,8 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 # listed in the package.xml file
 include_directories(${USE_OROCOS_INCLUDE_DIRS})
 
+find_package(Boost REQUIRED COMPONENTS thread)
+
 ### Orocos Targets ###
 
 # Include src/ directory.
@@ -43,7 +45,7 @@ add_subdirectory( src )
 # Libraries: only .so modules from root CMakeLists are added to *.pc file.
 orocos_library(actionlib_controller_base src/actionlib_controller_base.cpp)
 set_target_properties(actionlib_controller_base PROPERTIES COMPILE_FLAGS "-DRTT_STATIC")
-#target_link_libraries(actionlib_controller_base ${USE_OROCOS_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(actionlib_controller_base ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES})
 
 ### Orocos Package Exports and Install Targets ###
 
