@@ -25,6 +25,9 @@ KinematicsFwd::KinematicsFwd(string const& name) :
 
 	this->addProperty( "kinematic_chains", chain_names )
 		.doc( "List of kinematic chains for which poses are calculated.");
+	this->addProperty( "virtual_links", virtual_links )
+		.doc( "If kinematics chain ends with virtual links publish pose of the last virtual link instead real one.")
+		.set(true);
 
 	// Service: reqires
 	robot_model = new sweetie_bot::motion::RobotModel(this);
@@ -49,7 +52,7 @@ bool KinematicsFwd::configureHook()
 		KinematicChainData data;
 		// add information about chain
 		// get kinematic chain
-		Chain chain = robot_model->getKDLChain(name, false); // we need only real joints
+		Chain chain = robot_model->getKDLChain(name, virtual_links);  // if virtual_links is true receive chain with virtual links
 		if (chain.segments.size() == 0) {
 			this->log(ERROR) << "Kinematic chain " << name << " does not exist." << endlog();
 			return false;

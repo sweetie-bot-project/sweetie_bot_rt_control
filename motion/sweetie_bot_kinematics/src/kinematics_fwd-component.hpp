@@ -43,6 +43,7 @@ class KinematicsFwd : public RTT::TaskContext
 		RTT::OutputPort<sweetie_bot_kinematics_msgs::RigidBodyState> out_limbs_port;
 		// properties
 		std::vector<std::string> chain_names;
+		bool virtual_links;
 		// subservices
 		RobotModel * robot_model;
 
