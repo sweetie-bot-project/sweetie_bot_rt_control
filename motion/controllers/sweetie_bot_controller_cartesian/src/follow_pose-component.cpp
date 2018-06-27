@@ -69,10 +69,10 @@ bool FollowPose::configureHook_impl()
 	// INITIALIZATION
 	// check if filter present
 	filter = getSubServiceByType<filter::FilterRigidBodyStateInterface>(this->provides().get());
-	if (!filter) {
+	/*if (!filter) {
 		log(ERROR) << "RigidBodyState filter service is not loaded." << endlog();
 		return false;
-	}
+	}*/
 
 	// check if RobotModel Service presents
 	if (!robot_model->ready() || !robot_model->isConfigured()) {
@@ -160,7 +160,7 @@ bool FollowPose::resourceChangedHook_impl(const std::vector<std::string>& contro
 	// limb pose in world frame
 	limb_ref.frame[0] = base.frame[0]*limbs.frame[chain_index];
 	// reset filter
-	if (!filter->reset(limb_ref, period)) {
+	if (filter && !filter->reset(limb_ref, period)) {
 		log(ERROR) << "RigidBodyState filter reset has failed." << endlog();
 		return false;
 	}
@@ -204,12 +204,18 @@ void FollowPose::updateHook_impl()
 	limb_next.frame[0] = base.frame[0]*limbs.frame[chain_index];
 	limb_next.twist[0] = base.twist[0] + base.frame[0]*limbs.twist[chain_index];
 
-	// apply filter to calculate next pose
-	filter->update(limb_next, limb_ref, limb_next);
-
-	// return back to base_link frame and correct speed
-	limb_next.frame[0] = base.frame[0].Inverse()*limb_next.frame[0];
-	limb_next.twist[0] = base.frame[0].Inverse(limb_next.twist[0] - base.twist[0]);
+	if (filter) {
+		// apply filter to calculate next pose
+		filter->update(limb_next, limb_ref, limb_next);
+		// return back to base_link frame and correct speed
+		limb_next.frame[0] = base.frame[0].Inverse()*limb_next.frame[0];
+		limb_next.twist[0] = base.frame[0].Inverse(limb_next.twist[0] - base.twist[0]);
+	}
+	else {
+		// move immediately to ref pose
+		limb_next.frame[0] = base.frame[0].Inverse()*limb_ref.frame[0];
+		limb_next.twist[0] = base.frame[0].Inverse(-base.twist[0]);
+	}
 	limb_next.header.stamp = ros::Time::now();
 
 	bool ik_success = true;
