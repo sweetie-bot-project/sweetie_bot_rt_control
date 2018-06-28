@@ -17,12 +17,6 @@
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/vector.hpp>
 
-<<<<<<< HEAD:motion/sweetie_bot_servo_inv/src/servo_ident.hpp
-=======
-#include <orocos/sweetie_bot_joint_state_accel_msg/typekit/JointStateAccel.h>
-#include <orocos/sweetie_bot_herkulex_msgs/typekit/ServoGoal.h>
->>>>>>> faf9920... sweetie_bot_servo_ident: Added servo_goals input port and sign_t function.:motion/sweetie_bot_servo_ident/src/servo_ident.hpp
-
 #include <sweetie_bot_common/ring_buffer.hpp>
 
 namespace sweetie_bot {
@@ -71,7 +65,7 @@ class ServoIdent : public RTT::TaskContext {
 		const sweetie_bot_kinematics_msgs::JointStateAccel *joints;
 		const sweetie_bot_herkulex_msgs::ServoGoal *goals;
 		sensor_msgs::JointState joints_measured;
-		sweetie_bot_joint_state_accel_msg::JointStateAccel effort_joints;
+		sweetie_bot_kinematics_msgs::JointStateAccel effort_joints;
 		sensor_msgs::BatteryState battery_voltage_buf;
 
 		bool models_vector_was_sorted;
@@ -92,7 +86,7 @@ class ServoIdent : public RTT::TaskContext {
 		RTT::InputPort<sensor_msgs::BatteryState> in_battery_state;
 
 		RTT::OutputPort<std::vector<sweetie_bot_servo_model_msg::ServoModel>> out_servo_models;
-		RTT::OutputPort<sweetie_bot_joint_state_accel_msg::JointStateAccel> out_torque_error_sorted;
+		RTT::OutputPort<sweetie_bot_kinematics_msgs::JointStateAccel> out_torque_error_sorted;
 
 		// PROPERTIES
 		double period;

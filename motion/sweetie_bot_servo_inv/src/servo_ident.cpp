@@ -153,7 +153,7 @@ bool ServoIdent::sort_servo_models() {
 	return true;
 }
 
-void ServoIdent::prepare_buffers_for_new_joints_size(sweetie_bot_joint_state_accel_msg::JointStateAccel const& jnt) {
+void ServoIdent::prepare_buffers_for_new_joints_size(sweetie_bot_kinematics_msgs::JointStateAccel const& jnt) {
 	sweetie_bot_herkulex_msgs::ServoGoal goal;
 	unsigned int i;
 	unsigned int n;
