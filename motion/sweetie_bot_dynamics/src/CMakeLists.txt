@@ -14,7 +14,8 @@
 #target_link_libraries(kinematics ${catkin_LIBRARIES})
 
 orocos_component(dynamics_inv_simple dynamics_inv_simple-component.hpp dynamics_inv_simple-component.cpp) # ...you may add multiple source files
-target_link_libraries(dynamics_inv_simple ${RBDL_LDFLAGS} ${catkin_LIBRARIES} ${RBDL_URDFREADER_LIBRARY})
+target_link_libraries(dynamics_inv_simple ${catkin_LIBRARIES} ${RBDL_URDFREADER_LIBRARY})
+set_target_properties(dynamics_inv_simple PROPERTIES LINK_FLAGS "${RBDL_LDFLAGS}")
 
 add_executable(visualizer visualizer.cpp)
 target_link_libraries(visualizer ${catkin_LIBRARIES})
@@ -31,4 +32,3 @@ install(TARGETS visualizer
 #orocos_install_headers(kinematics-component.hpp) # ...you may add multiple header files
 #
 # You may add multiple orocos_install_headers statements.
-

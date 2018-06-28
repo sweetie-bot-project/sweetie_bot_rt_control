@@ -11,11 +11,12 @@ cmake_minimum_required(VERSION 2.6.3)
 project(sweetie_bot_orocos_misc)
 
 ### c++11 support ###
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
-find_package(catkin REQUIRED COMPONENTS rtt_ros)
+# TODO add orocos_kdl. Now it causes the error.
+find_package(catkin REQUIRED COMPONENTS rtt_ros actionlib kdl_msgs sensor_msgs geometry_msgs sweetie_bot_kinematics_msgs)
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 ### Orocos Dependencies ###
@@ -26,7 +27,7 @@ include_directories(${USE_OROCOS_INCLUDE_DIRS})
 ### Orocos Targets ###
 
 # Libraries: only .so modules from root CMakeLists are added to *.pc file.
-orocos_library(sweetie_bot_orocos_misc src/message_checks.cpp src/math.cpp) 
+orocos_library(sweetie_bot_orocos_misc src/message_checks.cpp src/math.cpp)
 # Include src/ directory.
 add_subdirectory( src )
 
@@ -35,5 +36,13 @@ add_subdirectory( src )
 # Generate install targets for header files
 orocos_install_headers(DIRECTORY include/${PROJECT_NAME}/)
 
-# Export package information (replaces catkin_package() macro) 
+# Export package information (replaces catkin_package() macro)
 orocos_generate_package(INCLUDE_DIRS include DEPENDS rtt_ros)
+
+if (DEFINED _pkgconfig_error)
+if (${_pkgconfig_error})
+	message(FATAL_ERROR ${_pkgconfig_error})
+endif()
+else()
+	message(FATAL_ERROR ${_pkgconfig_error})
+endif()

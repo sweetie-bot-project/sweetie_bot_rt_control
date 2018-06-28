@@ -18,12 +18,14 @@
 #include <sweetie_bot_robot_model/robot_model.hpp>
 #include <sweetie_bot_controller_cartesian/filter_rigid_body_state.hpp>
 
+#include <sweetie_bot_resource_control/actionlib_controller_base.hpp>
+
 namespace sweetie_bot {
 namespace motion {
 namespace controller {
 
 
-class FollowPose : public RTT::TaskContext
+class FollowPose : public ActionlibControllerBase
 {
 	protected:
 		// COMPONENT INTERFACE
@@ -32,24 +34,19 @@ class FollowPose : public RTT::TaskContext
 		RTT::InputPort<sweetie_bot_kinematics_msgs::RigidBodyState> in_limbs_port;
 		RTT::InputPort<sweetie_bot_kinematics_msgs::RigidBodyState> in_base_port;
 		RTT::InputPort<geometry_msgs::PoseStamped> in_pose_ref_port;
-		RTT::InputPort<RTT::os::Timer::TimerId> sync_port;
 		// PORTS: output
 		RTT::OutputPort<sweetie_bot_kinematics_msgs::RigidBodyState> out_limbs_ref_port;
 		RTT::OutputPort<sweetie_bot_kinematics_msgs::SupportState> out_supports_port;
 		// PROPERTIES
-		std::string controlled_chain;
-		double period;
 
 	protected:
 		// OPERATIONS: provides
-		bool rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp);
 		// OPERATIONS: requires
 		RTT::OperationCaller<bool(const sweetie_bot_kinematics_msgs::RigidBodyState&)> poseToJointStatePublish;
 		// SERVICES: provides
 		// SERVICES: required
 		sweetie_bot::motion::RobotModel * robot_model;
 		// SERVICES: internal interface
-		sweetie_bot::motion::ResourceClientInterface * resource_client;
 		sweetie_bot::motion::filter::FilterRigidBodyStateInterface * filter; // trajectory smoother
 
 	protected:
@@ -62,21 +59,18 @@ class FollowPose : public RTT::TaskContext
 		sweetie_bot_kinematics_msgs::RigidBodyState base; // bse_link pose
 		sweetie_bot_kinematics_msgs::SupportState supports;
 		
-#ifdef SWEETIEBOT_LOGGER
-		sweetie_bot::logger::SWEETIEBOT_LOGGER log;
-#else
-		sweetie_bot::logger::LoggerRTT log;
-#endif
 	public:
 		FollowPose(std::string const& name);
 
-		bool resourceChangedHook();
+	protected:
+		bool checkResourceSet_impl(const std::vector<std::string>& desired_resource_set);
+		bool resourceChangedHook_impl(const std::vector<std::string>& requested_resource_set);
 
-		bool configureHook(); 
-		bool startHook();
-		void updateHook();
-		void stopHook();
-		void cleanupHook();
+		bool configureHook_impl(); 
+		bool startHook_impl();
+		void updateHook_impl();
+		void stopHook_impl();
+		void cleanupHook_impl();
 };
 
 } // namespace controller

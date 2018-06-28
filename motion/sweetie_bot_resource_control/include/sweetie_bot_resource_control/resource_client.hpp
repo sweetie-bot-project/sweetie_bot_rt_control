@@ -22,6 +22,7 @@ class ResourceClientInterface
 
   	 virtual bool isOperational() const = 0;
   	 virtual bool isPending() const = 0;
+  	 virtual bool isNonOperational() const = 0;
   	 virtual int getState() const = 0;
   	 virtual bool hasResource(const std::string& resource) const = 0;
   	 virtual bool hasResources(const std::vector<std::string>& resource_list) const = 0;

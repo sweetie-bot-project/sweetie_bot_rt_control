@@ -25,6 +25,9 @@ KinematicsFwd::KinematicsFwd(string const& name) :
 
 	this->addProperty( "kinematic_chains", chain_names )
 		.doc( "List of kinematic chains for which poses are calculated.");
+	this->addProperty( "virtual_links", virtual_links )
+		.doc( "If kinematics chain ends with virtual links publish pose of the last virtual link instead real one.")
+		.set(true);
 
 	// Service: reqires
 	robot_model = new sweetie_bot::motion::RobotModel(this);
@@ -49,7 +52,7 @@ bool KinematicsFwd::configureHook()
 		KinematicChainData data;
 		// add information about chain
 		// get kinematic chain
-		Chain chain = robot_model->getKDLChain(name, false); // we need only real joints
+		Chain chain = robot_model->getKDLChain(name, virtual_links);  // if virtual_links is true receive chain with virtual links
 		if (chain.segments.size() == 0) {
 			this->log(ERROR) << "Kinematic chain " << name << " does not exist." << endlog();
 			return false;
@@ -81,6 +84,7 @@ bool KinematicsFwd::configureHook()
 	joints.velocity.resize(n_joints);
 	// data samples
 	out_limbs_port.setDataSample(limbs);
+	in_joints_port.getDataSample(joints);
 
 	this->log(INFO) << "KinematicsFwd is configured." <<endlog();
 	return true;
@@ -93,10 +97,11 @@ bool KinematicsFwd::startHook(){
 
 void KinematicsFwd::updateHook()
 {
+	int k;
 	if ( in_joints_port.read(joints, false) == NewData && isValidJointStatePos(joints, n_joints) ) {
 		// we received valid JointState message
 		// calculate tip pose for each chain
-		for (int k = 0; k < chain_data.size(); k++ ) {
+		for (k = 0; k < chain_data.size(); k++ ) {
 			KinematicChainData& data = chain_data[k];
 			// get chain pose in joint space
 			data.jnt_array_vel.q.data = Eigen::VectorXd::Map( &joints.position[data.index_begin], data.size );
@@ -123,6 +128,7 @@ void KinematicsFwd::updateHook()
 		limbs.header.stamp = ros::Time::now();
 		out_limbs_port.write(limbs);
 	}
+	log(DEBUG) << "Update hook executed: " << k << " joints processed." <<endlog();
 }
 
 void KinematicsFwd::stopHook() 

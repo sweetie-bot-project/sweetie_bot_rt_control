@@ -27,7 +27,7 @@ endif()
 
 ### General Dependencies ###
 find_package(PkgConfig)
-pkg_check_modules(RBDL REQUIRED rbdl)
+pkg_check_modules(RBDL REQUIRED rbdl<=2.5.0)
 find_library(RBDL_URDFREADER_LIBRARY NAMES rbdl_urdfreader PATHS ${RBDL_LIBRARY_DIRS})
 if (RBDL_URDFREADER_LIBRARY-NOTFOUND)
 	message(FATAL_ERROR "Unable to find rbdl_urdfreader library.")
@@ -58,5 +58,13 @@ add_subdirectory( src )
 #install(DIRECTORY launch
 #	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
-# Export package information (replaces catkin_package() macro) 
+# Export package information (replaces catkin_package() macro)
 orocos_generate_package(DEPENDS rtt_ros)
+
+if (DEFINED _pkgconfig_error)
+if (${_pkgconfig_error})
+	message(FATAL_ERROR ${_pkgconfig_error})
+endif()
+else()
+	message(FATAL_ERROR ${_pkgconfig_error})
+endif()

@@ -1,5 +1,6 @@
 # Загрузка поддержки взаимодействия с ROS
 import("rtt_ros");
+ros.import("kdl_typekit");
 ros.import("rtt_rospack");
 ros.import("sweetie_bot_logger");
 ros.import("rtt_sensor_msgs");
@@ -31,8 +32,9 @@ var double TIMER_PERIOD = 0.023;
 herk_timer.startTimer(0, TIMER_PERIOD);
 
 # Загружаем параметры из xml файла.
-sweetie_bot_agregator.marshalling.loadProperties(ros.find("sweetie_bot_proto2_description") + "/robots/chains.cpf");
+sweetie_bot_agregator.marshalling.loadServiceProperties(ros.find("sweetie_bot_proto2_deploy") + "/default/kinematic_chains.cpf","robot_model");
 sweetie_bot_agregator.rosparam.getParam("/", "robot_model")
+sweetie_bot_agregator.publish_on_timer=true
 
 # Create ROS mapping 
 stream("sweetie_bot_agregator.in_joints", ros.topic("/agregator/input_joint_state"))

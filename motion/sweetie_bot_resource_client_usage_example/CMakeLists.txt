@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 2.6.3)
 project(sweetie_bot_resource_client_usage_example)
 
 ### c++11 support ###
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 ### SweetieBot Logger configuration ###
 set(LOGGER_DEFAULT "" CACHE STRING "Default logger for all packages (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
@@ -27,6 +27,7 @@ endif()
 
 ### General dependencies ###
 #find_package(Boost REQUIRED COMPONENTS graph filesystem system thread regex)
+find_package(Boost REQUIRED COMPONENTS thread)
 
 ### ROS Dependencies ###
 
@@ -50,11 +51,19 @@ add_subdirectory( src )
 install(DIRECTORY scripts
 	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 # Launch installation
-install(DIRECTORY launch 
+install(DIRECTORY launch
 	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 # python node installation
-catkin_install_python(PROGRAMS test_client_actionlib.py 
+catkin_install_python(PROGRAMS test_client_actionlib.py
 	DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
-# Export package information (replaces catkin_package() macro) 
+# Export package information (replaces catkin_package() macro)
 orocos_generate_package(DEPENDS rtt_ros Boost)
+
+if (DEFINED _pkgconfig_error)
+if (${_pkgconfig_error})
+	message(FATAL_ERROR ${_pkgconfig_error})
+endif()
+else()
+	message(FATAL_ERROR ${_pkgconfig_error})
+endif()

@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 2.6.3)
 project(sweetie_bot_servo_inv)
 
 ### c++11 support ###
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 set(LOGGER_DEFAULT "" CACHE STRING "Default logger for all packages (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
 set(LOGGER_SERVO_INV "" CACHE STRING "Logger for servo_inv package (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
@@ -45,5 +45,13 @@ add_subdirectory( src )
 install(DIRECTORY scripts
 	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
-# Export package information (replaces catkin_package() macro) 
+# Export package information (replaces catkin_package() macro)
 orocos_generate_package(DEPENDS rtt_ros)
+
+if (DEFINED _pkgconfig_error)
+if (${_pkgconfig_error})
+	message(FATAL_ERROR ${_pkgconfig_error})
+endif()
+else()
+	message(FATAL_ERROR ${_pkgconfig_error})
+endif()

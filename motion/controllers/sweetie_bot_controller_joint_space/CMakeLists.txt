@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 2.6.3)
 project(sweetie_bot_controller_joint_space)
 
 ### c++11 support ###
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 ### SweetieBot Logger configuration ###
 set(LOGGER_DEFAULT "" CACHE STRING "Default logger for all packages (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
@@ -25,7 +25,11 @@ else()
 	add_definitions(-DSWEETIEBOT_LOGGER=LoggerRTT)
 endif()
 
+
 ### General dependencies ###
+find_package(Eigen3 REQUIRED)
+include_directories("${EIGEN3_INCLUDE_DIR}")
+
 find_path(alglib_INCLUDE_DIR interpolation.h PATH_SUFFIXES libalglib alglib)
 find_library(alglib_LIBRARY NAMES alglib)
 if (NOT (alglib_INCLUDE_DIR AND alglib_LIBRARY))
@@ -33,6 +37,8 @@ if (NOT (alglib_INCLUDE_DIR AND alglib_LIBRARY))
 endif()
 include_directories(include ${alglib_INCLUDE_DIR})
 #find_package(Boost REQUIRED COMPONENTS graph filesystem system thread regex)
+find_package(Boost REQUIRED COMPONENTS thread)
+
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
@@ -52,8 +58,15 @@ add_subdirectory( src )
 ### Orocos Package Exports and Install Targets ###
 
 #Install headers: OROCOS automatically place them in `orocos/package_name/` directory.
-orocos_install_headers(include/sweetie_bot_controller_joint_space/filter_joint_state.hpp) 
+orocos_install_headers(include/sweetie_bot_controller_joint_space/filter_joint_state.hpp)
 
-# Export package information (replaces catkin_package() macro) 
+# Export package information (replaces catkin_package() macro)
 orocos_generate_package(INCLUDE_DIRS include DEPENDS rtt_ros)
 
+if (DEFINED _pkgconfig_error)
+if (${_pkgconfig_error})
+	message(FATAL_ERROR ${_pkgconfig_error})
+endif()
+else()
+	message(FATAL_ERROR ${_pkgconfig_error})
+endif()

@@ -4,9 +4,9 @@
 #include <rtt/Service.hpp>
 #include <rtt/plugin/ServicePlugin.hpp>
 
-#include <sweetie_bot_resource_control_msgs/ResourceRequest.h>
-#include <sweetie_bot_resource_control_msgs/ResourceRequesterState.h>
-#include <sweetie_bot_resource_control_msgs/ResourceAssignment.h>
+#include <sweetie_bot_resource_control_msgs/typekit/ResourceRequest.h>
+#include <sweetie_bot_resource_control_msgs/typekit/ResourceRequesterState.h>
+#include <sweetie_bot_resource_control_msgs/typekit/ResourceAssignment.h>
 
 
 #include <sweetie_bot_logger/logger.hpp>
@@ -48,6 +48,11 @@ class ResourceClientDummyService :
 
 		bool isPending() const {
 			return false;
+		}
+
+		bool isNonOperational() const
+		{
+			return !is_operational;
 		}
 
 		int getState() const {

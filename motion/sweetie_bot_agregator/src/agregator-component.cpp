@@ -52,17 +52,28 @@ bool Agregator::configureHook()
   // construct joint group index
   chain_index_.clear();
   chain_default_contacts_.clear();
+
+  log(DEBUG) << "Loading " << n_chains << " chains: ";
   for(int i = 0; i < n_chains; i++) {
     chain_index_[output_support_state_.name[i]] = i;
-	chain_default_contacts_.push_back( robot_model_->getChainDefaultContact(output_support_state_.name[i]) );
+
+    log() << output_support_state_.name[i] << " ";
+    chain_default_contacts_.push_back( robot_model_->getChainDefaultContact(output_support_state_.name[i]) );
   }
+  log()<<endlog();
+
   // get list of all joint names
   output_joint_state_.name = robot_model_->listJoints("");
   int n_joints = output_joint_state_.name.size();
   // construct joint index
   joint_index_.clear();
-  for(int i = 0; i < n_joints; i++) 
-	  joint_index_[output_joint_state_.name[i]] = i;
+  log(DEBUG) << "Loading " << n_joints << " joints: ";
+  for(int i = 0; i < n_joints; i++) {
+    joint_index_[output_joint_state_.name[i]] = i;
+    if (i<10) log() << output_joint_state_.name[i] << " ";
+  }
+  log() << "..." <<endlog();
+
   // reserve memory
   output_joint_state_.position.assign(n_joints, 0.0);
   output_joint_state_.velocity.assign(n_joints, 0.0);
@@ -128,8 +139,10 @@ void Agregator::updateHook(){
     for(int j = 0; j < input_joint_state_.name.size(); j++)
     {
       auto it = joint_index_.find(input_joint_state_.name[j]);
-      if (it == joint_index_.end()) continue; // Joint not found in message
-
+      if (it == joint_index_.end()) {
+	      log(DEBUG) << "Joint " << input_joint_state_.name[j].c_str() <<" not found in message" << endlog();
+	      continue; // Joint not found in message
+      }
       // copy position data
       output_joint_state_.position[it->second] = input_joint_state_.position[j];
       // copy non empty velocity data
@@ -152,7 +165,7 @@ void Agregator::updateHook(){
   if (sync_port_.read(timer_id) == NewData) {
     publish_joint_state = publish_on_timer_;
 
-    log(DEBUG) << "Timer sync event." << endlog();
+    //log(DEBUG) << "Timer sync event." << endlog();
   }
 
   // Check if support state was updated
@@ -161,26 +174,40 @@ void Agregator::updateHook(){
   while ( (input_port_support_state_.read(input_support_state_, false) == NewData) and (req_count < max_requests_per_cycle) )
   {
     req_count++;
-	if (!isValidSupportStateNameSupp(input_support_state_)) continue;
+    if (!isValidSupportStateNameSupp(input_support_state_)) {
+	log(DEBUG) << "Support State Name Supp is not valid" << endlog();
+	continue;
+    }
 
     for(int j = 0; j < input_support_state_.name.size(); j++)
     {
       auto it = chain_index_.find(input_support_state_.name[j]);
-      if (it == chain_index_.end()) continue; // Unknown joint group
+      if (it == chain_index_.end()) {
+	log(DEBUG) << "Unknown joint group" << endlog();
+	continue; // Unknown joint group
+      }
 
-	  // copy support value
+      // copy support value
       output_support_state_.support[it->second] = input_support_state_.support[j];
-	  // copy contact name or repace with default
-	  if (input_support_state_.contact.size()) output_support_state_.contact[it->second] = input_support_state_.contact[j];
-      else output_support_state_.contact[it->second] = chain_default_contacts_[it->second];
-	}
-	publish_support_state = true; // Support state is updated, publish it.
+      // copy contact name or repace with default
+      if (input_support_state_.contact.size()) {
+        output_support_state_.contact[it->second] = input_support_state_.contact[j];
+      }
+      else {
+        output_support_state_.contact[it->second] = chain_default_contacts_[it->second];
+      }
+    }
+    publish_support_state = true; // Support state is updated, publish it.
   }
 
   // Publish messages
-  if (publish_support_state) output_port_support_state_.write(output_support_state_);
+  if (publish_support_state) {
+	log(DEBUG) << "Publishing support state " << endlog();
+	output_port_support_state_.write(output_support_state_);
+  }
   if (publish_joint_state) {
 	// Set message timestamp
+	log(DEBUG) << "Publishing joint state " << endlog();
 	output_joint_state_.header.stamp = ros::Time::now();
 	output_port_joint_state_.write(output_joint_state_);
   }

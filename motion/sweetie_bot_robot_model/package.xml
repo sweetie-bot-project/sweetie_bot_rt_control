@@ -15,9 +15,8 @@
 
   <!-- ROS and OROCOS packages -->
   <depend>rtt</depend>
-  <depend>orogen</depend>
+  <depend>ocl</depend>
   <depend>rtt_ros</depend>
-  <depend>orocos_kdl</depend>
   <depend>kdl_parser</depend>
   <depend>kdl_typekit</depend>
   <!-- ROS and OROCOS datatypes -->

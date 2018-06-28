@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 2.6.3)
 project(sweetie_bot_controller_cartesian)
 
 ### c++11 support ###
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 ### SweetieBot Logger configuration ###
 set(LOGGER_DEFAULT "" CACHE STRING "Default logger for all packages (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
@@ -48,3 +48,10 @@ add_subdirectory( src )
 # Export package information (replaces catkin_package() macro) 
 orocos_generate_package(INCLUDE_DIRS include DEPENDS rtt_ros)
 
+if (DEFINED _pkgconfig_error)
+if (${_pkgconfig_error})
+	message(FATAL_ERROR ${_pkgconfig_error})
+endif()
+else()
+	message(FATAL_ERROR ${_pkgconfig_error})
+endif()
