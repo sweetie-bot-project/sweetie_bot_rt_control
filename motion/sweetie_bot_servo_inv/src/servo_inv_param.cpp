@@ -1,14 +1,14 @@
+#include "servo_inv_param.hpp"
+
 #include <rtt/Component.hpp>
-#include <iostream>
 #include <algorithm>
 
-#include "servo_inv_param.hpp"
+#include <sweetie_bot_orocos_misc/message_checks.hpp>
 
 using namespace RTT;
 using sweetie_bot::logger::Logger;
 
 namespace sweetie_bot {
-
 namespace motion {
 
 
@@ -47,145 +47,136 @@ ServoInvParam::ServoInvParam(std::string const& name) :
 		.set(0.001);
 
 	// set default model to equal
-	default_servo_model.name = "default";
-	default_servo_model.kp = 1;
-	default_servo_model.kgear = 1;
-	default_servo_model.alpha[0] = 0;
-	default_servo_model.alpha[1] = 0;
-	default_servo_model.alpha[2] = 0;
-	default_servo_model.alpha[3] = 0;
+	default_servo_model.name = "";
+	default_servo_model.kp = 1.0;
+	default_servo_model.kgear = 1.0;
+	default_servo_model.alpha[0] = 0.0;
+	default_servo_model.alpha[1] = 0.0;
+	default_servo_model.alpha[2] = 0.0;
+	default_servo_model.alpha[3] = 0.0;
 }
 
 struct ModelFinder {
-	const std::string s;
+       const std::string s;
 
-	ModelFinder(const std::string &str) : s(str) {};
-	bool operator()(const sweetie_bot_servo_model_msg::ServoModel &mdl) const {
-		return mdl.name == s;
-	}
+       ModelFinder(const std::string &str) : s(str) {};
+       bool operator()(const sweetie_bot_servo_model_msg::ServoModel &mdl) const {
+               return mdl.name == s;
+       }
 };
 
-double ServoInvParam::sign_t(double vel) {
-
-	if (vel < -sign_dead_zone)
-		return -1;
-	else if (vel > sign_dead_zone)
-		return 1;
-	else
-		return 0;
-}
-
-bool ServoInvParam::sort_servo_models() {
-	std::vector<sweetie_bot_servo_model_msg::ServoModel> mdls;
-	std::vector<sweetie_bot_servo_model_msg::ServoModel>::iterator s_iter;
-	int i;
-
-	mdls.assign(joints.name.size(), default_servo_model);
-
-	for (i = 0; i < joints.name.size(); i++) {
-		s_iter = std::find_if(servo_models.begin(), servo_models.end(), ModelFinder(joints.name[i]));
-		if (s_iter != servo_models.end()) mdls.push_back(*s_iter);
+void ServoInvParam::setupServoModelIndex(const std::vector<std::string>& joint_names) {
+	// prepare new model index
+	servo_model_index.clear();
+	servo_model_index.reserve(joint_names.size());
+	// add joints to index
+	for (const std::string name : joints.name) {
+		auto iter = std::find_if(servo_models.begin(), servo_models.end(), [name](const ServoModel& model) -> bool { return model.name == name;} );
+		if (iter != servo_models.end()) {
+			// add model to index
+			servo_model_index.push_back(iter - servo_models.begin());
+			// check if model name is unique
+			if (std::find_if(iter, servo_models.end(), [name](const ServoModel& model) -> bool { return model.name == name;}) != servo_models.end()) {
+				log(WARN) << "Incorrect servo_models property: name '" << name << "' is not unique." << endlog();
+			}
+		}
 		else {
-			mdls.push_back(default_servo_model);
-			mdls.back().name = joints.name[i];
+			// use default model
+			servo_model_index.push_back(-1); 
 		}
 	}
-
-	servo_models = mdls;
-
-	return true;
+	// resize port buffers	
+	goals.name = joint_names;
+	goals.target_pos.assign(joint_names.size(), 0);
+	goals.playtime.assign(joint_names.size(), period);
 }
 
-void ServoInvParam::prepare_buffers_for_new_joints_size() {
-	unsigned int n;
-
-	n = joints.name.size();
-
-	goals.name = joints.name;
-	goals.target_pos.assign(n, 0);
-	goals.playtime.assign(n, 0.0112);
-}
-
-bool ServoInvParam::startHook() {
+bool ServoInvParam::startHook() 
+{
+	// clear old servo_model_index.
+	servo_model_index.clear();
+	// get data sample
 	in_joints_fixed.getDataSample(joints);
-
-	prepare_buffers_for_new_joints_size();
-
+	if (isValidJointStateAccelNamePosVelAccelEffort(joints)) {
+		setupServoModelIndex(joints.name);
+	}
+	// set data sample
 	out_goals.setDataSample(goals);
 
-	models_vector_was_sorted = false;
-
-	log(INFO) << "Started!" << endlog();
-
+	log(INFO) << "ServoInvParam is started!" << endlog();
 	return true;
 }
 
 void ServoInvParam::updateHook() {
-	unsigned int i;
-	unsigned int njoints;
-	std::vector<sweetie_bot_servo_model_msg::ServoModel>::iterator s_iter;
 
 	if (in_joints_fixed.read(joints, false) == NewData) {
-
-		njoints = joints.name.size();
-
-		if (!models_vector_was_sorted) {
-
-			models_vector_was_sorted = sort_servo_models();
-			log(INFO) << "Servo models was sorted. Now you should not change it's order!" << endlog();
-			prepare_buffers_for_new_joints_size();
+		// new joints positions received
+		// check if message is valid
+		if (!isValidJointStateAccelNamePosVelAccelEffort(joints)) {
+			log(WARN) << "Message on in_joints_accel_fixed port  has incorrect structure." << endlog();
 		}
+		else {
+			// check if index presents and have th same size as incoming message
+		    if (servo_model_index.size() != joints.name.size()) {
+				// setup new index
+				setupServoModelIndex(joints.name);
 
-		if (njoints != joints.position.size() || njoints != joints.velocity.size()
-							|| njoints != joints.acceleration.size()
-							|| njoints != joints.effort.size()) {
+				log(WARN) << "Size of the message on in_joints_fixed_fixed has changed. Regenerate index." << endlog();
+			}
 
-			log(WARN) << "Joints message has incorrect structure." << endlog();
-			return;
+			for(int i = 0; i < joints.name.size(); i++) {
+				int index = servo_model_index[i];
+				const ServoModel& servo_model = (index >= 0) ? servo_models[index] : default_servo_model;
+				//calculate target position using inverse model of the servo
+				goals.target_pos[i] = (
+					servo_model.alpha[0] * joints.acceleration[i] +
+					servo_model.alpha[1] * joints.velocity[i] +
+					servo_model.alpha[2] * sign(joints.velocity[i]) +
+					servo_model.alpha[3] * joints.effort[i]
+				  ) / (servo_model.kp * battery_voltage) +
+				  joints.position[i];
+
+				goals.target_pos[i] *= servo_models[i].kgear;
+			}
+			// publish goals
+			out_goals.write(goals);
 		}
-
-		if (goals.name.size() != njoints) {
-
-			log(WARN) << "Number of servos was changed. Skipping and resorting servo_models." << endlog();
-			models_vector_was_sorted = false;
-			return;
-		}
-
-		for(i = 0; i < njoints; i++) {
-
-			//calculate target position using inverse model of the servo
-			goals.target_pos[i] = (
-			    servo_models[i].alpha[0] * joints.acceleration[i] +
-			    servo_models[i].alpha[1] * joints.velocity[i] +
-			    servo_models[i].alpha[2] * sign_t(joints.velocity[i])
-			    - servo_models[i].alpha[3] * joints.effort[i]
-			  ) / (servo_models[i].kp*battery_voltage) +
-			  joints.position[i];
-
-			goals.target_pos[i] *= servo_models[i].kgear;
-		}
-
-		out_goals.write(goals);
 	}
+
 
 	if (in_servo_models.read(models, false) == NewData) {
-
 		//update servo models with new data
-		for (i = 0; i < models.size(); i++) {
-			s_iter = std::find_if(servo_models.begin(), servo_models.end(), ModelFinder(models[i].name));
-			if (s_iter != servo_models.end())
-				*s_iter = models[i];
+		for (const ServoModel& model : models) {
+			// find model
+			auto iter = std::find_if(servo_models.begin(), servo_models.end(), [&model](const ServoModel& m) -> bool { return m.name == model.name; });
+			if (iter != servo_models.end()) {
+				// model found
+				*iter = model;
+			}
+			else {
+				servo_models.push_back(model);
+				// update index
+				if (isValidJointStateAccelNamePosVelAccelEffort(joints), servo_model_index.size()) {
+					// find joint
+					auto joint_it = std::find(joints.name.begin(), joints.name.end(), model.name);
+					if (joint_it != joints.name.end()) {
+						// update index
+						servo_model_index[joint_it - joints.name.end()] = servo_models.size() - 1;
+					}
+				}
+			}
 		}
 	}
 
+
 	//update battery voltage rate
-	if (in_battery_state.read(battery_voltage_buf, false) == NewData)
-		battery_voltage = battery_voltage_buf.voltage;
+	if (in_battery_state.read(battery_state, false) == NewData) {
+		battery_voltage = battery_state.voltage;
+	}
 }
 
 void ServoInvParam::stopHook() {
-
-	log(INFO) << "Stopped!" << endlog();
+	log(INFO) << "ServoInvParam stopped!" << endlog();
 }
 
 } // nmaespace motion
