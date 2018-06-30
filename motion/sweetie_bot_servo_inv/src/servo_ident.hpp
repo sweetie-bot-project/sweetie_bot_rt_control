@@ -13,26 +13,172 @@
 #include <sweetie_bot_kinematics_msgs/typekit/JointStateAccel.h>
 
 #include <unordered_map>
-
-#include <boost/numeric/ublas/matrix.hpp>
-#include <boost/numeric/ublas/vector.hpp>
-
-#include <sweetie_bot_common/ring_buffer.hpp>
+#include <Eigen/Core>
 
 namespace sweetie_bot {
 namespace motion {
 
-struct servo_model_data {
-	unsigned int index;
-	bool ident_started;
-	boost::numeric::ublas::c_vector<double, 4> alpha;
-	boost::numeric::ublas::c_matrix<double, 4, 4> P;
-	ring_buffer<double> prec_err_buf;
 
-	servo_model_data();
+template<size_t max_delay> class SampleHistory;
+
+template<size_t max_delay> class TimeDiscrete 
+{
+	friend class SampleHistory<max_delay>;
+
+	protected:
+		size_t index;
+	
+	public:
+		TimeDiscrete() : index(0) {}
+		TimeDiscrete(const TimeDiscrete<max_delay>& _t) = default;
+
+		TimeDiscrete<max_delay>& operator=(TimeDiscrete<max_delay>& _t) = default;
+		void operator-=(int shift) {
+			index -= shift;
+			index %= max_delay;
+		}
+		void operator+=(int shift) {
+			index += shift;
+			index %= max_delay;
+		}
+		friend TimeDiscrete<max_delay> operator+(TimeDiscrete<max_delay> lhs, int rhs) {
+			lhs += rhs; 
+			return lhs;
+		}
+		friend TimeDiscrete<max_delay> operator+(int lhs, TimeDiscrete<max_delay> rhs) {
+			return rhs + lhs;
+		}
+		friend TimeDiscrete<max_delay> operator-(TimeDiscrete<max_delay> lhs, int rhs) {
+			lhs -= rhs; 
+			return lhs;
+		}
+
+		operator unsigned int() { return index; }
 };
 
+template<size_t max_delay> class TimeContinous
+{
+	friend class SampleHistory<max_delay>;
+
+	protected:
+		size_t index_left, index_right;
+		double alpha;
+
+	public:
+		TimeContinous() : index_left(0), index_right(1), alpha(1.0) {}
+		TimeContinous(const TimeContinous<max_delay>& _t) = default;
+		TimeContinous(TimeDiscrete<max_delay> td) {
+			index_left = td;
+			index_right = td + 1; 
+		}
+
+		TimeContinous<max_delay>& operator=(const TimeContinous<max_delay>& _t) = default;
+
+		void operator+=(double shift) {
+			double time = index_left + shift;
+			double time_floor = std::floor(time);
+			index_left = (size_t) (int) std::floor(time);
+			index_left %= max_delay; 
+			index_right = (index_left + 1u) % max_delay;
+			if (time == time_floor) alpha = 1.0;
+			else alpha = 1.0 - (time - time_floor);
+		}
+		void operator-=(double shift) {
+			*this += -shift;
+		}
+		void operator+=(int shift) {
+			index_left += shift; index_left %= max_delay;
+			index_right += shift; index_right %= max_delay;
+		}
+		void operator-=(int shift) {
+			*this += -shift;
+		}
+		friend TimeContinous<max_delay> operator+(TimeContinous<max_delay> lhs, double rhs) {
+			lhs += rhs; 
+			return lhs;
+		}
+		friend TimeContinous<max_delay> operator-(TimeContinous<max_delay> lhs, double rhs) {
+			lhs -= rhs; 
+			return lhs;
+		}
+};
+
+
+template<size_t max_delay> class SampleHistory {
+	protected:
+		std::array<double, max_delay> buffer;
+
+	public:
+		size_t size() { return buffer.size(); }
+
+		double& get(const TimeDiscrete<max_delay> t) { return buffer[t.index]; }
+		double get(const TimeDiscrete<max_delay> t) const { return buffer[t.index]; }
+
+		double get(const TimeContinous<max_delay>& t) const {
+			return t.alpha*buffer[t.index_left] + (1.0 - t.alpha)*buffer[t.index_right];
+		}
+};
+
+
 class ServoIdent : public RTT::TaskContext {
+	public:
+		typedef sweetie_bot_kinematics_msgs::JointStateAccel JointStateAccel;
+		typedef sensor_msgs::JointState JointState;
+		typedef sweetie_bot_servo_model_msg::ServoModel ServoModel;
+		typedef sweetie_bot_herkulex_msgs::ServoGoal ServoGoal;
+	
+	public:	
+		static const size_t max_cycle_delay = 4;
+
+	protected:
+
+		struct ServoData {
+			// data samles
+			SampleHistory<max_cycle_delay> pos_measured;
+			SampleHistory<max_cycle_delay> vel_measured;
+			SampleHistory<max_cycle_delay> accel_ref;
+			SampleHistory<max_cycle_delay> effort_ref;
+			SampleHistory<max_cycle_delay> goal;
+
+			// model parameters
+			ServoModel model;
+
+			// identification
+			bool ident_started;
+			Eigen::Matrix4d P; 
+			double pred_error_sq_avg;
+
+			ServoData() : ident_started(false), pred_error_sq_avg(0.0) {}
+		};
+
+	// COMPONENT INTERFACE
+	protected:
+		// PORTS
+		RTT::InputPort<RTT::os::Timer::TimerId> in_sync_step;
+		RTT::InputPort<JointStateAccel> in_joints_ref_fixed;
+		RTT::InputPort<ServoGoal> in_goals_fixed;
+		RTT::InputPort<JointState> in_joints_measured;
+		RTT::InputPort<sensor_msgs::BatteryState> in_battery_state;
+
+		RTT::OutputPort<std::vector<ServoModel>> out_servo_models;
+		RTT::OutputPort<JointState> out_torque_error_fixed;
+
+		// PROPERTIES
+		double period;
+		double control_delay;
+		double relaxation_factor;
+		double error_averaging_time;
+		double treshhold;
+		double sign_dead_zone;
+		double battery_voltage;
+		ServoModel default_servo_model;
+		std::vector<ServoModel> servo_models;
+		//bool ignore_accel;
+
+		// OPERATIONS
+		bool startIdentification(std::vector<std::string> servos);
+		std::vector<std::string> endIdentification();
+		bool abortIdentification();
 
 	protected:
 		// Logger
@@ -42,63 +188,40 @@ class ServoIdent : public RTT::TaskContext {
 		logger::LoggerRTT log;
 #endif
 
-		// buffers
-
-		RTT::os::Timer::TimerId timer_id;
-
-		//we need store some last joints, because control_delay may be non-zero
-		ring_buffer<sweetie_bot_kinematics_msgs::JointStateAccel> joints_buf;
-		ring_buffer<sweetie_bot_herkulex_msgs::ServoGoal> goals_buf;
-
-		ring_buffer<std::vector<double>> measured_pos_buf;
-		std::vector<double> pos_measured;
-		std::vector<double> position;
-		std::vector<double> velocity;
-
-		//map servos names and some helper data
-		std::unordered_map<std::string, servo_model_data> servo_models_data;
-
-		//for identification calculations
-		boost::numeric::ublas::c_vector<double, 4> phi;
-		boost::numeric::ublas::c_vector<double, 4> L;
-
-		const sweetie_bot_kinematics_msgs::JointStateAccel *joints;
-		const sweetie_bot_herkulex_msgs::ServoGoal *goals;
-		sensor_msgs::JointState joints_measured;
-		sweetie_bot_kinematics_msgs::JointStateAccel effort_joints;
-		sensor_msgs::BatteryState battery_voltage_buf;
-
-		bool models_vector_was_sorted;
-		bool sort_servo_models();
-		void prepare_buffers_for_new_joints_size(sweetie_bot_kinematics_msgs::JointStateAccel const& jnt);
-		double sign_t(double vel);
-		double n_sign_t(double vel);
-		double calc_median(double a, double b, double c);
-
-
-	// COMPONENT INTERFACE
 	protected:
-		// PORTS
-		RTT::InputPort<RTT::os::Timer::TimerId> in_sync_step;
-		RTT::InputPort<sweetie_bot_kinematics_msgs::JointStateAccel> in_joints_fixed;
-		RTT::InputPort<sweetie_bot_herkulex_msgs::ServoGoal> in_goals;
-		RTT::InputPort<sensor_msgs::JointState> in_joints_measured;
-		RTT::InputPort<sensor_msgs::BatteryState> in_battery_state;
+		//COMPONENT STATE
+		// store information about servos. The order is the same as in joints_ref message
+		std::vector<ServoData> servos;  
+		// map servos names to index in servos array and coresponding position in joints and goals messages.
+		std::unordered_map<std::string, int> servos_index;
+		// error averaging
+		double pred_error_avg_alpha;
+		// time and counters
+		unsigned int history_update_counter;	
+		TimeDiscrete<max_cycle_delay> history_cycle_now;
 
-		RTT::OutputPort<std::vector<sweetie_bot_servo_model_msg::ServoModel>> out_servo_models;
-		RTT::OutputPort<sweetie_bot_kinematics_msgs::JointStateAccel> out_torque_error_sorted;
+		// port buffers
+		JointState joints_measured;
+		JointStateAccel joints_ref;
+		ServoGoal goals;
+		JointState joints_effort;
+		sensor_msgs::BatteryState battery_state;
+	
+	protected:
 
-		// PROPERTIES
-		double period;
-		unsigned int control_delay;
-		double relaxation_factor;
-		double error_averaging_time;
-		double treshhold;
-		double sign_dead_zone;
-		double battery_voltage;
-		sweetie_bot_servo_model_msg::ServoModel default_servo_model;
-		std::vector<sweetie_bot_servo_model_msg::ServoModel> servo_models;
-		bool ignore_accel;
+		void setupServoData(const std::vector<std::string>& joint_names);
+
+		double sign(double vel) {
+			if (vel < -sign_dead_zone) return -1;
+			else if (vel > sign_dead_zone) return 1;
+			else return 0;
+		}
+
+		double n_sign(double vel) {
+			if (vel < -sign_dead_zone) return 0;
+			else if (vel > sign_dead_zone) return 0;
+			else return 1;
+		}
 
 	public:
 		ServoIdent(std::string const& name);
@@ -106,12 +229,11 @@ class ServoIdent : public RTT::TaskContext {
 		void updateHook();
 		void stopHook();
 
-		bool startIdentification(std::vector<std::string> servos);
-		std::vector<std::string> endIdentification();
-		bool abortIdentification();
 };
 
 }
 }
+	
+
 
 #endif
