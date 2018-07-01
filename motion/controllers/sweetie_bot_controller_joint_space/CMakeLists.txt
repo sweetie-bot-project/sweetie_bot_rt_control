@@ -36,9 +36,7 @@ if (NOT (alglib_INCLUDE_DIR AND alglib_LIBRARY))
 	message (FATAL_ERROR "\nCould not find alglib library.")
 endif()
 include_directories(include ${alglib_INCLUDE_DIR})
-#find_package(Boost REQUIRED COMPONENTS graph filesystem system thread regex)
 find_package(Boost REQUIRED COMPONENTS thread)
-
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
