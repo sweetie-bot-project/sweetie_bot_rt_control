@@ -10,7 +10,7 @@ namespace sweetie_bot {
 namespace motion {
 namespace controller {
 
-JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajectoryGoal& goal, RobotModel * robot_model)
+JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajectoryGoal& goal, RobotModel * robot_model, double threshold)
 {
 
 	if (!robot_model || !robot_model->ready()) throw std::invalid_argument("JointTrajectoryCache: RobotModel is not ready");
@@ -70,7 +70,7 @@ JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajec
 		}
 	}
 	// now extract and interpolate trajectory
-	loadTrajectory(goal.trajectory, support_flags, robot_model);
+	loadTrajectory(goal.trajectory, support_flags, robot_model, threshold);
 	// get tolerances from message
 	getJointTolerance(goal);
 }
@@ -79,7 +79,7 @@ JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajec
 /**
  * interpolate trajectory and cache support state buffer
  */
-void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags, RobotModel * robot_model) 
+void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags, RobotModel * robot_model, double threshold) 
 {
 	int n_joints = names.size();
 	int n_supports = support_names.size();
@@ -149,23 +149,28 @@ void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory
 
 	JointSpline akima_tmp_spline;
 	alglib::real_1d_array d;
-	double dirty;
+	double dirty, diff;
 	for(int joint = 0; joint < n_joints; joint++) {
 		//alglib::spline1dbuildcubic(t, joint_trajectory[joint], n_samples, 1, 0.0, 1, 0.0, this->joint_splines[joint]);
 
 		//
 		// Build custom akima spline with zero velocity at edge points
+		// In order to do this calculate derivatives from simple akima spline in each interpolation point
 		//
 		alglib::spline1dbuildakima(t, joint_trajectory[joint], akima_tmp_spline);
 
-		// In order to do this calculate derivatives from simple akima spline in each interpolation point
+		// While calculating derivatives detect almost equal internal stop points 
 		d.setlength(n_samples);
-		for (int i = 1; i < (n_samples - 1); i++) {
-			// Detect internal stop points
-			if (joint_trajectory[joint][i - 1] == joint_trajectory[joint][i] || joint_trajectory[joint][i] == joint_trajectory[joint][i + 1]) {
-				d[i] = 0.0; // For detected point derivative (velocity) will be zero
+		for (int i = 0; i < (n_samples - 1);) {
+			// Detect internal stop points with use of selected threshold
+			if (abs(joint_trajectory[joint][i + 1] - joint_trajectory[joint][i]) <= threshold) {
+				// For detected points derivative (velocity) will be zero
+				d[i] = 0.0;
+				d[i + 1] = 0.0;
+				i += 2;
 			} else {
 				alglib::spline1ddiff(akima_tmp_spline, t[i], dirty, d[i], dirty);
+				i += 1;
 			}
 		}
 

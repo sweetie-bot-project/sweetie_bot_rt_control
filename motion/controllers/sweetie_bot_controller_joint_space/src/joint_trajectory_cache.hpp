@@ -54,7 +54,7 @@ class JointTrajectoryCache
 		double goal_time_tolerance;
 		
 	protected:
-		void loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags, RobotModel * robot_model);
+		void loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags, RobotModel * robot_model, double threshold);
 		void getJointTolerance(const FollowJointTrajectoryGoal& msg);
 
 	public:
@@ -64,7 +64,7 @@ class JointTrajectoryCache
 		 * @param _trajectory ROS message with goal trajectory.
 		 * @param robot_mode RobotModel to interprete joints names.
 		 **/
-		JointTrajectoryCache(const FollowJointTrajectoryGoal& _trajectory, RobotModel * robot_model);
+		JointTrajectoryCache(const FollowJointTrajectoryGoal& _trajectory, RobotModel * robot_model, double threshold);
 
 		/**
 		 * @brief Prepare joint state buffer

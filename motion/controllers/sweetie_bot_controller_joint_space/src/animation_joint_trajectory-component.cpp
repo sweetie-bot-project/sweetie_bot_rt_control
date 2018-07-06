@@ -46,7 +46,7 @@ void AnimJointTrajectory::newGoalHook(const Goal& pending_goal)
 
 	// convert FollowJointTrajectoryGoal -> JointTrajectoryCache immediztelly
 	try {
-		goal_pending = std::make_shared<JointTrajectoryCache>(pending_goal, robot_model); // TODO possible throw on malformed  goal: any better solutions?
+		goal_pending = std::make_shared<JointTrajectoryCache>(pending_goal, robot_model, threshold); // TODO possible throw on malformed  goal: any better solutions?
 	}
 	catch (std::invalid_argument& e) {
 		log(ERROR) << "Error during goal analisys:" << e.what() << endlog();

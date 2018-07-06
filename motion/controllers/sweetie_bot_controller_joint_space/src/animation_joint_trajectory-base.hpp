@@ -41,6 +41,7 @@ class AnimJointTrajectoryBase : public RTT::TaskContext
 		RTT::OutputPort<sweetie_bot_kinematics_msgs::SupportState> out_supports_port;
 		// PROPERTIES
 		double period;
+		double threshold;
 	protected:
 		// SERVICES: required
 		sweetie_bot::motion::RobotModel * robot_model; //< joints list, kinematics chains access
@@ -74,7 +75,7 @@ class AnimJointTrajectoryBase : public RTT::TaskContext
         bool dataOnPortHook(RTT::base::PortInterface *portInterface);
 
 	public:
-		AnimJointTrajectoryBase(std::string const& name);
+		AnimJointTrajectoryBase(std::string const& name, double thr = 0);
 
 		/**
 		 * @brief Implementation specific actions.

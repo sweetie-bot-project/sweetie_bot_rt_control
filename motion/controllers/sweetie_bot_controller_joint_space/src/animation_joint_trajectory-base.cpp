@@ -12,7 +12,7 @@ namespace motion {
 namespace controller {
 
 //TODO move somewhere
-AnimJointTrajectoryBase::AnimJointTrajectoryBase(std::string const& name) : 
+AnimJointTrajectoryBase::AnimJointTrajectoryBase(std::string const& name, double thr) : 
 	TaskContext(name),
 	log(logger::categoryFromComponentName(name))
 {
@@ -31,6 +31,9 @@ AnimJointTrajectoryBase::AnimJointTrajectoryBase(std::string const& name) :
 	// PROPERTIES
 	this->addProperty("period", period)
 		.doc("Discretization period (s)");
+	this->addProperty("threshold", threshold)
+		.doc("Threshold for compare approximately equal joint coordinates (rad)")
+		.set(thr);
 	// SERVICE: reqiures
 	robot_model = new sweetie_bot::motion::RobotModel(this);
 	this->requires()->addServiceRequester(ServiceRequester::shared_ptr(robot_model));
