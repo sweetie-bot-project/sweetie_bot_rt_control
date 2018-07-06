@@ -21,16 +21,12 @@ std::ostream& operator<<(std::ostream& s, const std::vector<std::string>& string
 }
 
 TorqueMainSwitch::TorqueMainSwitch(std::string const& name)  : 
-	TaskContext(name, RTT::base::TaskCore::PreOperational),
-	log(logger::categoryFromComponentName(name))
+	ActionlibControllerBase(name)
 {
 	this->provides()->doc("In operatioanl state switch servos torque off and feedfodward actual position to reference.");
 
 	// ports
 	// PORTS: input
-	this->addEventPort("sync", sync_port)
-		.doc("Timer syncronization event. This event triggers controller execution cycle.");
-
 	this->addPort("in_joints_actual", in_joints_port).
 		doc("Full sorted actual robot pose (from sensors or from agregator).");
 
@@ -50,9 +46,6 @@ TorqueMainSwitch::TorqueMainSwitch(std::string const& name)  :
 		.set(false);
 
 	// operations: provided
-	this->addOperation("rosSetOperational", &TorqueMainSwitch::rosSetOperational, this)
-		.doc("ROS compatible start/stop operation (std_srvs::SetBool).");
-
 	// Service: reqires
 	robot_model = new sweetie_bot::motion::RobotModel(this);
 	this->requires()->addServiceRequester(ServiceRequester::shared_ptr(robot_model));
@@ -61,16 +54,9 @@ TorqueMainSwitch::TorqueMainSwitch(std::string const& name)  :
 	log(INFO) << "TorqueMainSwitch is constructed!" << endlog();
 }
 
-bool TorqueMainSwitch::configureHook()
+bool TorqueMainSwitch::configureHook_impl()
 {
 	// INITIALIZATION
-	// check if ResourceClient Service presents
-	resource_client = getSubServiceByType<ResourceClientInterface>(this->provides().get());
-	if (!resource_client) {
-		log(ERROR) << "ResourceClient plugin is not loaded." << endlog();
-		return false;
-	}
-	// resource_client->setResourceChangeHook(boost::bind(&TorqueMainSwitch::resourceChangeHook, this));
 	// check if RobotModel Service presents
 	if (!robot_model->ready() || !robot_model->isConfigured()) {
 		log(ERROR) << "RobotModel service is not ready." << endlog();
@@ -146,19 +132,16 @@ bool TorqueMainSwitch::configureHook()
 	return true;
 }
 
-/* 
- * Tries to make the controller operational. 
- *
- * Sends a resource request. Later a reply to which will be processed by the plugin's 
- * callback resourceChangedHook. If it returns true controller will become operational.
- * in the updateHook if all resources were allocated or not, if some are lacking.
- * This is checked using the controller's resourceChangedHook.
- */
-bool TorqueMainSwitch::startHook()
+bool TorqueMainSwitch::processResourceSet_impl(const std::vector<std::string>& goal_resource_set, std::vector<std::string>& desired_resource_set)
+{
+	// ignore goal_resource_set
+	desired_resource_set = controlled_chains;
+	return true;
+}
+
+bool TorqueMainSwitch::startHook_impl()
 {
 	in_joints_port.getDataSample(actual_fullpose);
-	// request resources
-	resource_client->resourceChangeRequest(controlled_chains);
 	// unconditionally switch servos off
 	log(INFO) << "Setting servo torque OFF." << endlog();
 	if ( !setAllServosTorqueFree(true) ) {
@@ -226,6 +209,12 @@ bool TorqueMainSwitch::setAllServosTorqueFree(bool torque_is_off)
 	return success;
 }
 
+bool TorqueMainSwitch::resourceChangedHook_impl(const std::vector<std::string>& desired_resource_set)
+{
+	// check if resources available
+	return resource_client->hasResources(controlled_chains);
+}
+
 /*bool TorqueMainSwitch::resourceChangeHook() 
 {
 	// depending on resourse posession 
@@ -245,40 +234,21 @@ bool TorqueMainSwitch::setAllServosTorqueFree(bool torque_is_off)
 	}
 }*/
 
-void TorqueMainSwitch::updateHook()
+void TorqueMainSwitch::updateHook_impl()
 {
-	// let resource_client do it stuff
-	resource_client->step();	
-
-	// syncronize with sync messages
-	{
-		RTT::os::Timer::TimerId unused;
-		if (sync_port.read(unused) != NewData) return;
-	}
-
-	// main operational 
-	int state = resource_client->getState();
-	if (state & ResourceClient::OPERATIONAL) {
-		// read port
-		in_joints_port.read(actual_fullpose, true);
-		// set velocity to zero if necessary
-		if (velocity_zeroing) actual_fullpose.velocity.assign(actual_fullpose.velocity.size(), 0.0);
-		// publish new reference position
-		out_joints_port.write(actual_fullpose);
-	}
-	else if (state == ResourceClient::NONOPERATIONAL) {
-		log(INFO) << "TorqueMainSwitch is exiting  operational state !" << endlog();
-		this->stop();
-	}
+	// read port
+	in_joints_port.read(actual_fullpose, true);
+	// set velocity to zero if necessary
+	if (velocity_zeroing) actual_fullpose.velocity.assign(actual_fullpose.velocity.size(), 0.0);
+	// publish new reference position
+	out_joints_port.write(actual_fullpose);
 }
 
 /* 
  * Preempts the controllers and releases its resources.
  */
-void TorqueMainSwitch::stopHook() 
+void TorqueMainSwitch::stopHook_impl() 
 {
-	// user calls stop() directly 
-	if (resource_client->isOperational()) resource_client->stopOperational();
 	// change servos state
 	log(INFO) << "Setting servo torque ON" << endlog();
 	if ( !setAllServosTorqueFree(false) ) {
@@ -287,28 +257,11 @@ void TorqueMainSwitch::stopHook()
 	log(INFO) << "TorqueMainSwitch is stopped!" << endlog();
 }
 
-void TorqueMainSwitch::cleanupHook() 
+void TorqueMainSwitch::cleanupHook_impl() 
 {
 	controlled_chains.clear();
 	torque_off_callers.clear();
 	log(INFO) << "TorqueMainSwitch cleaning up !" << endlog();
-}
-
-/**
- * ROS comaptible start/stop operation.
- */
-bool TorqueMainSwitch::rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp)
-{
-	if (req.data) {
-		resp.success = isRunning() || start();
-		resp.message = "start() is called.";
-	}
-	else {
-		stop();
-		resp.success = true;
-		resp.message = "stop() is called.";
-	}
-	return true;
 }
 
 } // namespace controller

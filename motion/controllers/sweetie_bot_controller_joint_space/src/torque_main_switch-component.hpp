@@ -11,12 +11,13 @@
 #include <sweetie_bot_resource_control/resource_client.hpp>
 #include <sweetie_bot_robot_model/robot_model.hpp>
 
+#include <sweetie_bot_resource_control/actionlib_controller_base.hpp>
+
 namespace sweetie_bot {
 namespace motion {
 namespace controller {
 
-
-class TorqueMainSwitch : public RTT::TaskContext
+class TorqueMainSwitch : public ActionlibControllerBase
 {
 	protected:
 		typedef sensor_msgs::JointState JointState;
@@ -35,13 +36,11 @@ class TorqueMainSwitch : public RTT::TaskContext
 		bool velocity_zeroing;
 	protected:
 		// OPERATIONS: provides
-		bool rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp);
 		// OPERATIONS: requires
 		// SERVICES: provides
 		// SERVICES: required
 		sweetie_bot::motion::RobotModel * robot_model; // joints list, kinematics chains access
 		// SERVICES: internal interface
-		sweetie_bot::motion::ResourceClientInterface * resource_client; // resource client
 
 	protected:
 		// COMPONENT STATE
@@ -62,11 +61,14 @@ class TorqueMainSwitch : public RTT::TaskContext
 		bool setSchedulersActive(bool is_active);
 		bool setAllServosTorqueFree(bool torque_is_off);
 
-		bool configureHook(); 
-		bool startHook();
-		void updateHook();
-		void stopHook();
-		void cleanupHook();
+		bool processResourceSet_impl(const std::vector<std::string>& goal_resource_set, std::vector<std::string>& desired_resource_set);
+		bool resourceChangedHook_impl(const std::vector<std::string>& desired_resource_set);
+
+		bool configureHook_impl(); 
+		bool startHook_impl();
+		void updateHook_impl();
+		void stopHook_impl();
+		void cleanupHook_impl();
 };
 
 } // namespace controller
