@@ -18,6 +18,7 @@ target_link_libraries(dynamics_inv_simple ${catkin_LIBRARIES} ${RBDL_URDFREADER_
 set_target_properties(dynamics_inv_simple PROPERTIES LINK_FLAGS "${RBDL_LDFLAGS}")
 
 add_executable(visualizer visualizer.cpp)
+add_dependencies(visualizer ${catkin_EXPORTED_TARGETS})
 target_link_libraries(visualizer ${catkin_LIBRARIES})
 # node installation
 install(TARGETS visualizer

@@ -13,7 +13,7 @@
 orocos_component(controller_template controller_template-component.cpp) # ...you may add multiple source files
 
 orocos_component(controller_actionlib_template controller_actionlib_template-component.cpp) # ...you may add multiple source files
-target_link_libraries(controller_actionlib_template ${Boost_LIBRARIES} ${USE_OROCOS_LIBRARIES})
+target_link_libraries(controller_actionlib_template ${catkin_LIBRARIES} )
 
 #
 # You may add multiple orocos_component statements.

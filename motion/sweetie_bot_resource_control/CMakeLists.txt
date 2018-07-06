@@ -27,7 +27,7 @@ endif()
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
-find_package(catkin REQUIRED COMPONENTS rtt_ros actionlib)
+find_package(catkin REQUIRED COMPONENTS rtt_ros)
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 ### Orocos Dependencies ###
@@ -35,7 +35,7 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 # listed in the package.xml file
 include_directories(${USE_OROCOS_INCLUDE_DIRS})
 
-find_package(Boost REQUIRED COMPONENTS thread)
+# find_package(Boost REQUIRED COMPONENTS thread)
 
 ### Orocos Targets ###
 
@@ -53,7 +53,10 @@ target_link_libraries(actionlib_controller_base ${catkin_LIBRARIES} ${USE_OROCOS
 orocos_install_headers(DIRECTORY include/${PROJECT_NAME}/)
 
 # Export package information (replaces catkin_package() macro)
-orocos_generate_package(INCLUDE_DIRS include)
+orocos_generate_package(
+	INCLUDE_DIRS include
+	DEPENDS_TARGETS rtt_ros sweetie_bot_logger sweetie_bot_orocos_misc rtt_sweetie_bot_resource_control_msgs rtt_std_srvs
+)
 
 if (DEFINED _pkgconfig_error)
 if (${_pkgconfig_error})

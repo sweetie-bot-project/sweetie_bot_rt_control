@@ -36,6 +36,7 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 ### Orocos Dependencies ###
 # Note that orocos_use_package() does not need to be called for any dependency
 # listed in the package.xml file
+orocos_use_package(orocos_kdl REQUIRED)
 include_directories(${USE_OROCOS_INCLUDE_DIRS})
 
 ### Orocos Targets ###
@@ -46,7 +47,7 @@ add_subdirectory( src )
 ### Orocos Package Exports and Install Targets ###
 
 # Export package information (replaces catkin_package() macro) 
-orocos_generate_package(INCLUDE_DIRS include DEPENDS rtt_ros)
+orocos_generate_package()
 
 if (DEFINED _pkgconfig_error)
 if (${_pkgconfig_error})

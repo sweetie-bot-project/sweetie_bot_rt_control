@@ -14,12 +14,12 @@
 
   <!-- ROS and OROCOS packages -->
   <depend>rtt</depend>
-  <depend>actionlib</depend>
-  <depend>rtt_actionlib</depend>
+  <!--<depend>actionlib</depend>-->
+  <!--<depend>rtt_actionlib</depend>-->
   <depend>orocos_kdl</depend>
   <depend>kdl_conversions</depend>
   <!-- ROS and OROCOS datatypes -->
-  <depend>rtt_std_srvs</depend>
+  <!--<depend>rtt_std_srvs</depend>-->
   <depend>rtt_sensor_msgs</depend>
   <depend>rtt_geometry_msgs</depend>
   <!-- SWEETIEBOT packages -->

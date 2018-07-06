@@ -15,14 +15,15 @@
 
   <!-- ROS and OROCOS packages -->
   <depend>rtt</depend>
-  <depend>actionlib</depend>
+  <!--<depend>actionlib</depend>-->
   <depend>rtt_actionlib</depend>
   <!-- ROS and OROCOS datatypes -->
+  <depend>rtt_std_srvs</depend>
   <!-- SWEETIEBOT packages -->
   <depend>sweetie_bot_logger</depend>
   <depend>sweetie_bot_orocos_misc</depend>
   <!-- SWEETIEBOT datatypes -->
-  <depend>sweetie_bot_resource_control_msgs</depend>
+  <!--<depend>sweetie_bot_resource_control_msgs</depend>-->
   <depend>rtt_sweetie_bot_resource_control_msgs</depend>
 
   <export>

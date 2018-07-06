@@ -30,7 +30,6 @@ endif()
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
-#find_package(orocos_kdl REQUIRED)
 find_package(catkin REQUIRED COMPONENTS rtt_ros)
 include_directories(${catkin_INCLUDE_DIRS})
 

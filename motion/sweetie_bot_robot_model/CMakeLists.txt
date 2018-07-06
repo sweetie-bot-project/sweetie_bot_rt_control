@@ -51,7 +51,9 @@ orocos_install_headers(DIRECTORY include/${PROJECT_NAME}/)
 # Export package information (replaces catkin_package() macro)
 orocos_generate_package(
 	INCLUDE_DIRS include
-	DEPENDS rtt_ros)
+	DEPENDS kdl_parser orocos-kdl
+	DEPENDS_TARGETS rtt_ros kdl_typekit sweetie_bot_logger
+)
 
 if (DEFINED _pkgconfig_error)
 if (${_pkgconfig_error})
