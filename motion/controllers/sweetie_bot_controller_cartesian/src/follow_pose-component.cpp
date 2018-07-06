@@ -120,31 +120,32 @@ bool FollowPose::startHook_impl()
 }
 
 
-bool FollowPose::checkResourceSet_impl(const std::vector<std::string>& controlled_chains) 
+bool FollowPose::processResourceSet_impl(const std::vector<std::string>& goal_resource_set, std::vector<std::string>& desired_resource_set)
 {
-	// check if controlled chains is sane
-	if (controlled_chains.size() != 1) {
+	// check if list of controlled chains contains only one element
+	if (goal_resource_set.size() != 1) {
 		log(ERROR) << "FollowPose can control only one kinematics chain." << endlog();
 		return false;
 	}
+	desired_resource_set = goal_resource_set;
 	return true;
 }
 
-bool FollowPose::resourceChangedHook_impl(const std::vector<std::string>& controlled_chains)
+bool FollowPose::resourceChangedHook_impl(const std::vector<std::string>& desired_resource_set)
 {
 	// check in resource available
 	// we do not have to test size: checkResourceSet_impl was called before
-	if (!resource_client->hasResource(controlled_chains[0])) return false;
+	if (!resource_client->hasResource(desired_resource_set[0])) return false;
 
-	chain_index = robot_model->getChainIndex(controlled_chains[0]);
+	chain_index = robot_model->getChainIndex(desired_resource_set[0]);
 	if (chain_index < 0) {
-		log(ERROR) << "Kinematic chain " << controlled_chains[0] << " is not registered in robot model." << endlog();
+		log(ERROR) << "Kinematic chain " << desired_resource_set[0] << " is not registered in robot model." << endlog();
 		return false;
 	}
 
 	// set chain name in output messages
-	limb_next.name[0] = controlled_chains[0];
-	supports.name[0] = controlled_chains[0];
+	limb_next.name[0] = desired_resource_set[0];
+	supports.name[0] = desired_resource_set[0];
 
 	// set reference pose to current limb pose
 	// check if limb data is available
@@ -165,7 +166,7 @@ bool FollowPose::resourceChangedHook_impl(const std::vector<std::string>& contro
 		return false;
 	}
 
-	log(INFO) << "FollowPose controlled chain: " << controlled_chains[0] << " chain_index = " << chain_index << endlog();
+	log(INFO) << "FollowPose controlled chain: " << desired_resource_set[0] << " chain_index = " << chain_index << endlog();
 	return true;
 }
 

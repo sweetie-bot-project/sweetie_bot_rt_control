@@ -121,7 +121,7 @@ bool FollowJointState::configureHook_impl()
 	}
 	n_joints_fullpose = robot_model->listJoints("").size();
 	// build joints index 
-	if (!formJointIndex(controlled_chains)) return false;
+	if (!formJointIndex(default_resource_set)) return false;
 	// allocate memory
 	actual_fullpose.name.resize(n_joints_fullpose);
 	actual_fullpose.position.resize(n_joints_fullpose);

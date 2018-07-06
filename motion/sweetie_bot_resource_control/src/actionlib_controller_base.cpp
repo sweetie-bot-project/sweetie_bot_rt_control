@@ -33,7 +33,7 @@ ActionlibControllerBase::ActionlibControllerBase(std::string const& name)  :
 	// PORTS: output
 
 	// properties
-	this->addProperty("controlled_chains", controlled_chains).
+	this->addProperty("controlled_chains", default_resource_set).
 		doc("List of controlled joint groups (kinematic chains, resources).");
 	this->addProperty("period", period)
 		.doc("Discretization period (s)");
@@ -120,7 +120,7 @@ void ActionlibControllerBase::newGoalHook(const Goal& pending_goal)
 			<< ", resource client state: " << resource_client->getState() << ", actionlib isActive(): " << action_server.isActive() << endlog();
 		
 		// check resource set
-		if (!checkResourceSet_impl(pending_goal.resources)) {
+		if (!processResourceSet_impl(pending_goal.resources, desired_resource_set)) {
 			goal_result.error_code = Result::INVALID_RESOURCE_SET;
 			goal_result.error_string = "Resource set is rejected.";
 			action_server.rejectPending(goal_result);
@@ -135,7 +135,7 @@ void ActionlibControllerBase::newGoalHook(const Goal& pending_goal)
 
 		// forward activation process
 		if (isRunning()) {
-			resource_client->resourceChangeRequest(action_server.getActiveGoal()->resources);
+			resource_client->resourceChangeRequest(desired_resource_set);
 		}
 		else {
 			// start() request necessary resources from active goal and start component.
@@ -155,14 +155,15 @@ bool ActionlibControllerBase::startHook()
 {
 	// request resources
 	if (action_server.isActive()) {
-		resource_client->resourceChangeRequest(action_server.getActiveGoal()->resources); // request resources
+		// if goal is active desired_resource_set already contains by correct value
 	}
 	else {
-		// check if resource set is sane
-		if (!checkResourceSet_impl(controlled_chains)) return false;
-		// request default resources
-		resource_client->resourceChangeRequest(controlled_chains); 
+		// we was activated without action, so use default resources set.
+		// check if default resource set is sane and fill desired_resource_set
+		if (!processResourceSet_impl(default_resource_set, desired_resource_set)) return false;
 	}
+	// request desired resources
+	resource_client->resourceChangeRequest(desired_resource_set); 
 	// clear sync port buffer
 	RTT::os::Timer::TimerId timer_id;
 	sync_port.readNewest(timer_id);
@@ -186,33 +187,24 @@ bool ActionlibControllerBase::startHook()
  */
 bool ActionlibControllerBase::resourceChangeHook() 
 {
-	// if there is active goal resource set must be exactly the same
-	if (action_server.isActive()) {
-		if (!resource_client->hasResources(action_server.getActiveGoal()->resources)) {
-			log(INFO) << "actionlib: not all necessary resources available to satisfy avtive goal." << endlog();
-			// not all necessary resources present 
-			goal_result.error_code = Result::SUCCESSFUL; // is this normal behavior?
-			goal_result.error_string = "Not all recources is available.";
-			action_server.abortActive(goal_result);
-			// exit operational state: causes stop() call if component isRunning()
-			return false;
-		}
+	// pass control to actual implementation, pass list of requested resources
+	bool is_operational = resourceChangedHook_impl(desired_resource_set);
 
-		// pass control to actual implementation and pass list of requested resources
-		bool is_operational = resourceChangedHook_impl(action_server.getActiveGoal()->resources);
+	if (action_server.isActive()) {
 		if (!is_operational) {
+			// inform client about controller deactivation
 			goal_result.error_code = Result::SUCCESSFUL; // is this normal behavior?
 			goal_result.error_string = "Aborted by resource set change.";
 			action_server.abortActive(goal_result);
 		}
-		return is_operational;
+		else {
+			// inform client about resource set change
+			goal_feedback.resources = resource_client->listResources();
+			action_server.publishFeedback(goal_feedback);
+		}
 	}
-	else {
-		// check if desired set od controlled_chains is sane.
-		if (!checkResourceSet_impl(controlled_chains)) return false;
-		// call implemetation of resourceChangedHook.
-		return resourceChangedHook_impl(controlled_chains);
-	}
+
+	return is_operational;
 }
 
 void ActionlibControllerBase::updateHook()
@@ -294,8 +286,9 @@ bool ActionlibControllerBase::configureHook_impl()
 	return true;
 }
 
-bool ActionlibControllerBase::checkResourceSet_impl(const std::vector<std::string>& resource_set)
+bool ActionlibControllerBase::processResourceSet_impl(const std::vector<std::string>& goal_resource_set, std::vector<std::string>& desired_resource_set)
 {
+	desired_resource_set = goal_resource_set;
 	return true;
 }
 

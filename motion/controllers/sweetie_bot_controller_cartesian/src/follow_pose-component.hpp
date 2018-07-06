@@ -63,8 +63,8 @@ class FollowPose : public ActionlibControllerBase
 		FollowPose(std::string const& name);
 
 	protected:
-		bool checkResourceSet_impl(const std::vector<std::string>& desired_resource_set);
-		bool resourceChangedHook_impl(const std::vector<std::string>& requested_resource_set);
+		bool processResourceSet_impl(const std::vector<std::string>& goal_resource_set, std::vector<std::string>& desired_resource_set);
+		bool resourceChangedHook_impl(const std::vector<std::string>& desired_resource_set);
 
 		bool configureHook_impl(); 
 		bool startHook_impl();

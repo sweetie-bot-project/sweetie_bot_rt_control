@@ -6,6 +6,7 @@
 #      or have different interpretation of it.
 # 
 # Feedback: controller is active.
+# * resources --- actual resources set controlled by component.
 # 
 # Result: controller is not active  (deactivation can be triggered by iternal logic or external request)
 # * error_code --- deactivation reason
@@ -23,4 +24,5 @@ int32 INVALID_RESOURCE_SET = -2 # Unable to start with prescribed resource set (
 int32 START_CONDITIONS_VIOLATED = -3 # In current robot state controller cann't start. 
 int32 EXECUTION_ERROR = -4 # Internal error of started controller.
 ---
+string[] resources
 

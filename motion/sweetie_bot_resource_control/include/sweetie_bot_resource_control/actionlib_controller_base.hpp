@@ -23,21 +23,23 @@ namespace controller {
 /**
  * @brief Superclass for controller components which use actionlib SetOperational interface for activation.
  *
- * Controller with SetOperational interface able to control arbitrary or specific sets of resources.
- * SetOperationalGoal provide activation or deactivation request and a set of resources.
+ * This class provides common functionality (actionlib and resource arbiter interations) for
+ * controllers which are able to control arbitrary or specific set of resources. 
+ * Such controllers can are activated or deactivated by SetOperationalGoal message which contains 
+ * `resource` field with desired resource set (this value can be ignored by controller).
  *
  * This class implements ActionServer interface and ResourceClientInterface, so a component subclass should
  * only implements following methods.
  * @code
 		bool configureHook_impl();
-		bool checkResourceSet_impl(const std::vector<std::string>& resource_set);
+		bool processResourceSet_impl(const std::vector<std::string>& resource_set, std::vector<std::string>& desired_resource_set);
 		bool startHook_impl();
-		bool resourceChangedHook_impl(const std::vector<std::string>& requested_resource_set);
+		bool resourceChangedHook_impl(const std::vector<std::string>& desired_resource_set, const std::vector<std::string>& acquired_resource_set);
 		void updateHook_impl();
 		void stopHook_impl();
 		void cleanupHook_impl();
  * @endcode
- * Note that empty implementation are already provided.
+ * Note that minimal implementation are already provided.
  *
  * Also class provides Logger @c log object and @a controlled_chains and @a period properties.
  **/
@@ -53,7 +55,7 @@ class ActionlibControllerBase : public RTT::TaskContext
 		RTT::InputPort<RTT::os::Timer::TimerId> sync_port; /**< Syncronization port. Recives message on start each control cycle. */
 		// PORTS: output
 		// PROPERTIES
-		std::vector<std::string> controlled_chains; /**< Property to hold default list of resources. This list is used if component activated via @c stop() or @c rosSetOperational() call. */
+		std::vector<std::string> default_resource_set; /**< Property to hold default list of resources. This list is used if component activated via @c stop() or @c rosSetOperational() call. */
 		double period; /**< Property to hold the control cycle duration. */
 	protected:
 		// OPERATIONS: provides
@@ -78,8 +80,12 @@ class ActionlibControllerBase : public RTT::TaskContext
 		void newGoalHook(const Goal& goal);
 		// active goal is being canceled
 		void cancelGoalHook();
+		
+		// COMPONET STATE
+		std::vector<std::string> desired_resource_set; 
 		// buffer
 		Result goal_result;
+		Feedback goal_feedback;
 
 	protected:
 #ifdef SWEETIEBOT_LOGGER
@@ -96,12 +102,20 @@ class ActionlibControllerBase : public RTT::TaskContext
 		 **/	
 		virtual bool configureHook_impl();
 		/**
-		 * @brief Implement this function to restrict acceptible resources sets.
-		 * Always called after configureHook_impl() and before actual resource request to check if desired resource set is sane.
-		 * @param resource_set A resource set to test.
-		 * @return true if provided set is acceptible for component.
+		 * @brief Implement this function to restrict acceptible resources sets or enforce specific resource set.
+		 *
+		 * Always called after configureHook_impl() and before actual resource request. This function is used  
+		 * to check if action goal is sane and to determine resources which should be requested.
+		 *
+		 * Minimal implementation sets @a desired_resource_set equal to @a goal_resource_set and return true.
+		 * In more complex cases @a goal_resource_set should be checked if it comforms controller-specific 
+		 * conditions and the actual resource set to request should be assigned to @a desired_resource_set.
+		 *
+		 * @param goal_resource_set A resource from SetOperationalGoal messages. start() operation uses default value from `kinematic_chains` property.
+		 * @param desired_resource_set Resource set which should be requested. Usually 
+		 * @return true if goal_resource_set set is acceptible for component.
 		 **/
-		virtual bool checkResourceSet_impl(const std::vector<std::string>& resource_set);
+		virtual bool processResourceSet_impl(const std::vector<std::string>& goal_resource_set, std::vector<std::string>& desired_resource_set);
 		/**
 		 * @brief @c startHook() implementation.
 		 * Requested and acquired resource sets are not known yet.
@@ -110,12 +124,12 @@ class ActionlibControllerBase : public RTT::TaskContext
 		virtual bool startHook_impl();
 		/**
 		 * @brief Implement reaction on resource set change.
-		 * Always called after startHook_impl() and checkResourceSet_impl(). Acquired resource set can be accessed via @c resource_client field.
+		 * Always called after startHook_impl() and processResourceSet_impl(). Acquired resource set can be accessed via @c resource_client field.
 		 * This function must reinitialize controller to run with different resource set or return failure.
-		 * @param requested_resource_set Resource set requested from arbiter. 
+		 * @param desired_resource_set Resource set requested from arbiter. It is the same set which was returned in second parameter of @a processResourceSet_impl().
 		 * @return true to activate controller.
 		 **/
-		virtual bool resourceChangedHook_impl(const std::vector<std::string>& requested_resource_set);
+		virtual bool resourceChangedHook_impl(const std::vector<std::string>& desired_resource_set);
 		/**
 		 * @brief @c updateHook() implementation. 
 		 * It is periodically called if component active.
