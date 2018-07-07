@@ -27,6 +27,7 @@ endif()
 
 ### General dependencies ###
 #find_package(Boost REQUIRED COMPONENTS graph filesystem system thread regex)
+find_package(Boost REQUIRED COMPONENTS thread) # Fix for xenial linking problems with Boost
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
@@ -47,7 +48,7 @@ add_subdirectory( src )
 ### Orocos Package Exports and Install Targets ###
 
 # Export package information (replaces catkin_package() macro) 
-orocos_generate_package()
+orocos_generate_package(INCLUDE_DIRS include)
 
 if (DEFINED _pkgconfig_error)
 if (${_pkgconfig_error})

@@ -37,6 +37,9 @@ if (NOT (alglib_INCLUDE_DIR AND alglib_LIBRARY))
 endif()
 include_directories(include ${alglib_INCLUDE_DIR})
 
+### General Dependencies ###
+find_package(Boost REQUIRED COMPONENTS thread) # Fix for xenial linking problems
+
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
 find_package(catkin REQUIRED COMPONENTS rtt_ros)
@@ -58,7 +61,7 @@ add_subdirectory( src )
 orocos_install_headers(include/sweetie_bot_controller_joint_space/filter_joint_state.hpp)
 
 # Export package information (replaces catkin_package() macro)
-orocos_generate_package(INCLUDE_DIRS include DEPENDS rtt_ros)
+orocos_generate_package(INCLUDE_DIRS include)
 
 if (DEFINED _pkgconfig_error)
 if (${_pkgconfig_error})

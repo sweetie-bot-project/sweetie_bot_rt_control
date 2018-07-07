@@ -25,6 +25,9 @@ else()
 	add_definitions(-DSWEETIEBOT_LOGGER=LoggerRTT)
 endif()
 
+### General dependencies ###
+find_package(Boost REQUIRED COMPONENTS thread) # Fix for linking error on xenial
+
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
 find_package(catkin REQUIRED COMPONENTS rtt_ros)
@@ -34,8 +37,6 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 # Note that orocos_use_package() does not need to be called for any dependency
 # listed in the package.xml file
 include_directories(${USE_OROCOS_INCLUDE_DIRS})
-
-#find_package(Boost REQUIRED COMPONENTS thread)
 
 ### Orocos Targets ###
 
