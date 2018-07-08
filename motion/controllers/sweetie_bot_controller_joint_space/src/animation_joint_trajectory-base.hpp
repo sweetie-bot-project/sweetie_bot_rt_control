@@ -42,6 +42,7 @@ class AnimJointTrajectoryBase : public RTT::TaskContext
 		// PROPERTIES
 		double period;
 		double threshold;
+		int algorithm;
 	protected:
 		// SERVICES: required
 		sweetie_bot::motion::RobotModel * robot_model; //< joints list, kinematics chains access
