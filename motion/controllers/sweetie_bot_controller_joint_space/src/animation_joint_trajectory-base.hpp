@@ -75,7 +75,7 @@ class AnimJointTrajectoryBase : public RTT::TaskContext
         bool dataOnPortHook(RTT::base::PortInterface *portInterface);
 
 	public:
-		AnimJointTrajectoryBase(std::string const& name, double thr = 0);
+		AnimJointTrajectoryBase(std::string const& name, double thr = 0.0005);
 
 		/**
 		 * @brief Implementation specific actions.

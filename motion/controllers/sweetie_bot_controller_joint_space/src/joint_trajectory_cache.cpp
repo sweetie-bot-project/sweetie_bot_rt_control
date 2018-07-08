@@ -161,16 +161,14 @@ void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory
 
 		// While calculating derivatives detect almost equal internal stop points 
 		d.setlength(n_samples);
-		for (int i = 0; i < (n_samples - 1);) {
+		for (int i = 0; i < (n_samples - 1); i++) {
 			// Detect internal stop points with use of selected threshold
 			if (abs(joint_trajectory[joint][i + 1] - joint_trajectory[joint][i]) <= threshold) {
 				// For detected points derivative (velocity) will be zero
 				d[i] = 0.0;
 				d[i + 1] = 0.0;
-				i += 2;
 			} else {
 				alglib::spline1ddiff(akima_tmp_spline, t[i], dirty, d[i], dirty);
-				i += 1;
 			}
 		}
 
