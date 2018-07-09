@@ -68,8 +68,8 @@ bool SimpleControllerBase::configureHook()
 	//}
 	// Start action server: do not publish feedback
 	if (!action_server.start(false)) {
-		log(ERROR) << "Unable to start action_server." << endlog();
-		return false;
+		log(WARN) << "Unable to start action_server. Possible there are unconnected ports." << endlog();
+		//return false;
 	}
 	// call configureHook() actual implementation in subclass
 	return configureHook_impl();
