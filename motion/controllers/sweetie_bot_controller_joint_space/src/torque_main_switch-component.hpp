@@ -11,13 +11,13 @@
 #include <sweetie_bot_resource_control/resource_client.hpp>
 #include <sweetie_bot_robot_model/robot_model.hpp>
 
-#include <sweetie_bot_resource_control/actionlib_controller_base.hpp>
+#include <sweetie_bot_resource_control/simple_controller_base.hpp>
 
 namespace sweetie_bot {
 namespace motion {
 namespace controller {
 
-class TorqueMainSwitch : public ActionlibControllerBase
+class TorqueMainSwitch : public SimpleControllerBase
 {
 	protected:
 		typedef sensor_msgs::JointState JointState;

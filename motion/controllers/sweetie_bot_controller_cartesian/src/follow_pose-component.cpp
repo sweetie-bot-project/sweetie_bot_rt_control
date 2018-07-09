@@ -36,7 +36,7 @@ namespace motion {
 namespace controller {
 
 FollowPose::FollowPose(std::string const& name)  : 
-	ActionlibControllerBase(name),
+	SimpleControllerBase(name),
 	poseToJointStatePublish("poseToJointStatePublish", this->engine()) // operation caller
 {
 	// ports input 

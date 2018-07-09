@@ -21,14 +21,14 @@
 #include <sweetie_bot_controller_joint_space/filter_joint_state.hpp>
 #include <sweetie_bot_orocos_misc/simple_action_server.hpp>
 
-#include <sweetie_bot_resource_control/actionlib_controller_base.hpp>
+#include <sweetie_bot_resource_control/simple_controller_base.hpp>
 
 namespace sweetie_bot {
 namespace motion {
 namespace controller {
 
 
-class FollowJointState : public ActionlibControllerBase
+class FollowJointState : public SimpleControllerBase
 {
 	protected:
 		// COMPONENT INTERFACE

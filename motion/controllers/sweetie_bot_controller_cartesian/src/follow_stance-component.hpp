@@ -19,14 +19,14 @@
 #include <sweetie_bot_robot_model/robot_model.hpp>
 #include <sweetie_bot_controller_cartesian/filter_rigid_body_state.hpp>
 
-#include <sweetie_bot_resource_control/actionlib_controller_base.hpp>
+#include <sweetie_bot_resource_control/simple_controller_base.hpp>
 
 namespace sweetie_bot {
 namespace motion {
 namespace controller {
 
 
-class FollowStance : public ActionlibControllerBase
+class FollowStance : public SimpleControllerBase
 {
 	protected:
 		// COMPONENT INTERFACE

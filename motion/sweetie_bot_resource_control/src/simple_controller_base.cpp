@@ -1,4 +1,4 @@
-#include "sweetie_bot_resource_control/actionlib_controller_base.hpp"
+#include "sweetie_bot_resource_control/simple_controller_base.hpp"
 
 #include <rtt/Component.hpp>
 
@@ -20,7 +20,7 @@ namespace motion {
 namespace controller {
 
 
-ActionlibControllerBase::ActionlibControllerBase(std::string const& name)  : 
+SimpleControllerBase::SimpleControllerBase(std::string const& name)  : 
 	TaskContext(name, RTT::base::TaskCore::PreOperational),
 	log(logger::categoryFromComponentName(name)),
 	action_server(this->provides())
@@ -39,7 +39,7 @@ ActionlibControllerBase::ActionlibControllerBase(std::string const& name)  :
 		.doc("Discretization period (s)");
 
 	// operations: provided
-	this->addOperation("rosSetOperational", &ActionlibControllerBase::rosSetOperational, this)
+	this->addOperation("rosSetOperational", &SimpleControllerBase::rosSetOperational, this)
 		.doc("ROS compatible start/stop operation (std_srvs::SetBool).");
 
 	// Service: requires
@@ -47,11 +47,11 @@ ActionlibControllerBase::ActionlibControllerBase(std::string const& name)  :
 	//this->requires()->addServiceRequester(ServiceRequester::shared_ptr(robot_model));
 
 	// action server hook registration
-	action_server.setGoalHook(boost::bind(&ActionlibControllerBase::newGoalHook, this, _1));
-	action_server.setCancelHook(boost::bind(&ActionlibControllerBase::cancelGoalHook, this));
+	action_server.setGoalHook(boost::bind(&SimpleControllerBase::newGoalHook, this, _1));
+	action_server.setCancelHook(boost::bind(&SimpleControllerBase::cancelGoalHook, this));
 }
 
-bool ActionlibControllerBase::configureHook()
+bool SimpleControllerBase::configureHook()
 {
 	// INITIALIZATION
 	// check if ResourceClient Service presents
@@ -60,7 +60,7 @@ bool ActionlibControllerBase::configureHook()
 		log(ERROR) << "ResourceClient plugin is not loaded." << endlog();
 		return false;
 	}
-	resource_client->setResourceChangeHook(boost::bind(&ActionlibControllerBase::resourceChangeHook, this));
+	resource_client->setResourceChangeHook(boost::bind(&SimpleControllerBase::resourceChangeHook, this));
 	// check if RobotModel Service presents
 	//if (!robot_model->ready() || !robot_model->isConfigured()) {
 		//log(ERROR) << "RobotModel service is not ready." << endlog();
@@ -75,7 +75,7 @@ bool ActionlibControllerBase::configureHook()
 	return configureHook_impl();
 }
 
-bool ActionlibControllerBase::dataOnPortHook( RTT::base::PortInterface* portInterface ) 
+bool SimpleControllerBase::dataOnPortHook( RTT::base::PortInterface* portInterface ) 
 {
 	// Process EventPorts messages callbacks if component is in configured state,
 	// so actionlib hooks works even if component is stopped.
@@ -88,7 +88,7 @@ bool ActionlibControllerBase::dataOnPortHook( RTT::base::PortInterface* portInte
 /**
  * activation or deactivation is requested via actionlib interface
  */
-void ActionlibControllerBase::newGoalHook(const Goal& pending_goal) 
+void SimpleControllerBase::newGoalHook(const Goal& pending_goal) 
 {
 	if (pending_goal.operational == false) {
 		//deactivation requested 
@@ -151,7 +151,7 @@ void ActionlibControllerBase::newGoalHook(const Goal& pending_goal)
  * in the updateHook if all resources were allocated or not, if some are lacking.
  * This is checked using the controller's resourceChangedHook.
  */
-bool ActionlibControllerBase::startHook()
+bool SimpleControllerBase::startHook()
 {
 	// request resources
 	if (action_server.isActive()) {
@@ -185,7 +185,7 @@ bool ActionlibControllerBase::startHook()
 /**
  * called when the resource set is changed (by this or other component request).
  */
-bool ActionlibControllerBase::resourceChangeHook() 
+bool SimpleControllerBase::resourceChangeHook() 
 {
 	// pass control to actual implementation, pass list of requested resources
 	bool is_operational = resourceChangedHook_impl(desired_resource_set);
@@ -207,7 +207,7 @@ bool ActionlibControllerBase::resourceChangeHook()
 	return is_operational;
 }
 
-void ActionlibControllerBase::updateHook()
+void SimpleControllerBase::updateHook()
 {
 	// let resource_client do it stuff
 	resource_client->step();	
@@ -232,7 +232,7 @@ void ActionlibControllerBase::updateHook()
 /* 
  * Preempts the controllers and releases its resources.
  */
-void ActionlibControllerBase::stopHook() 
+void SimpleControllerBase::stopHook() 
 {
 	// pass control to actual implementation of stopHook()
 	stopHook_impl();
@@ -246,7 +246,7 @@ void ActionlibControllerBase::stopHook()
 	}
 }
 
-void ActionlibControllerBase::cancelGoalHook() 
+void SimpleControllerBase::cancelGoalHook() 
 {
 	log(INFO) << "actionlib: cancel request for active goal. Actionlib isActive() " << action_server.isActive()<< endlog();
 	// cancel active goal (or do nothing)
@@ -257,7 +257,7 @@ void ActionlibControllerBase::cancelGoalHook()
 	stop();
 }
 
-void ActionlibControllerBase::cleanupHook() 
+void SimpleControllerBase::cleanupHook() 
 {
 	cleanupHook_impl();
 }
@@ -265,7 +265,7 @@ void ActionlibControllerBase::cleanupHook()
 /**
  * ROS comaptible start/stop operation.
  */
-bool ActionlibControllerBase::rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp)
+bool SimpleControllerBase::rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp)
 {
 	if (req.data) {
 		resp.success = isRunning() || start();
@@ -280,41 +280,41 @@ bool ActionlibControllerBase::rosSetOperational(std_srvs::SetBool::Request& req,
 }
 
 // minimal hook implementation
-bool ActionlibControllerBase::configureHook_impl()
+bool SimpleControllerBase::configureHook_impl()
 {
-	log(INFO) << "ActionlibControllerBase is configured." << endlog();
+	log(INFO) << "SimpleControllerBase is configured." << endlog();
 	return true;
 }
 
-bool ActionlibControllerBase::processResourceSet_impl(const std::vector<std::string>& goal_resource_set, std::vector<std::string>& desired_resource_set)
+bool SimpleControllerBase::processResourceSet_impl(const std::vector<std::string>& goal_resource_set, std::vector<std::string>& desired_resource_set)
 {
 	desired_resource_set = goal_resource_set;
 	return true;
 }
 
-bool ActionlibControllerBase::startHook_impl()
+bool SimpleControllerBase::startHook_impl()
 {
-	log(INFO) << "ActionlibControllerBase is started." << endlog();
+	log(INFO) << "SimpleControllerBase is started." << endlog();
 	return true;
 }
 
-bool ActionlibControllerBase::resourceChangedHook_impl(const std::vector<std::string>& requested_resource_set)
+bool SimpleControllerBase::resourceChangedHook_impl(const std::vector<std::string>& requested_resource_set)
 {
-	log(INFO) << "ActionlibControllerBase resource set changed to " << resource_client->listResources() << ", requisted set is " << requested_resource_set << endlog();
+	log(INFO) << "SimpleControllerBase resource set changed to " << resource_client->listResources() << ", requisted set is " << requested_resource_set << endlog();
 	return true;
 }
 
-void ActionlibControllerBase::updateHook_impl()
+void SimpleControllerBase::updateHook_impl()
 {}
 
-void ActionlibControllerBase::stopHook_impl()
+void SimpleControllerBase::stopHook_impl()
 {
-	log(INFO) << "ActionlibControllerBase is stopped." << endlog();
+	log(INFO) << "SimpleControllerBase is stopped." << endlog();
 }
 
-void ActionlibControllerBase::cleanupHook_impl()
+void SimpleControllerBase::cleanupHook_impl()
 {
-	log(INFO) << "ActionlibControllerBase is cleaned up." << endlog();
+	log(INFO) << "SimpleControllerBase is cleaned up." << endlog();
 }
 
 } // namespace controller

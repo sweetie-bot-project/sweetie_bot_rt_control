@@ -44,9 +44,9 @@ include_directories(${USE_OROCOS_INCLUDE_DIRS})
 add_subdirectory( src )
 
 # Libraries: only .so modules from root CMakeLists are added to *.pc file.
-orocos_library(actionlib_controller_base src/actionlib_controller_base.cpp)
-set_target_properties(actionlib_controller_base PROPERTIES COMPILE_FLAGS "-DRTT_STATIC")
-target_link_libraries(actionlib_controller_base ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+orocos_library(simple_controller_base src/simple_controller_base.cpp)
+set_target_properties(simple_controller_base PROPERTIES COMPILE_FLAGS "-DRTT_STATIC")
+target_link_libraries(simple_controller_base ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 ### Orocos Package Exports and Install Targets ###
 

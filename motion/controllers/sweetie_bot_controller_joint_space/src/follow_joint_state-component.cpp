@@ -22,7 +22,7 @@ namespace controller {
 
 
 FollowJointState::FollowJointState(std::string const& name)  : 
-	ActionlibControllerBase(name)
+	SimpleControllerBase(name)
 {
 	this->provides()->doc("Feedforward JointState reference from high-level to agregator.");
 

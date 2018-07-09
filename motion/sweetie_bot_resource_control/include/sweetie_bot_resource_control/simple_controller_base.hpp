@@ -1,5 +1,5 @@
-#ifndef  ACTIONLIB_CONTROLLER_BASE_HPP
-#define  ACTIONLIB_CONTROLLER_BASE_HPP 
+#ifndef  SIMPLE_CONTROLLER_BASE_HPP
+#define  SIMPLE_CONTROLLER_BASE_HPP 
 
 #include <vector>
 #include <string>
@@ -43,7 +43,7 @@ namespace controller {
  *
  * Also class provides Logger @c log object and @a controlled_chains and @a period properties.
  **/
-class ActionlibControllerBase : public RTT::TaskContext
+class SimpleControllerBase : public RTT::TaskContext
 {
 	protected:
 		// Goal, Feedback, Result typedefs
@@ -70,7 +70,7 @@ class ActionlibControllerBase : public RTT::TaskContext
 		bool resourceChangeHook();
 
 	protected:
-		// ACTIONLIB:
+		// SIMPLE:
 		// Simple action server
 		OrocosSimpleActionServer<sweetie_bot_resource_control_msgs::SetOperationalAction> action_server; /**< OrocosSimpleActionServer implementation. */
 	private:
@@ -139,7 +139,7 @@ class ActionlibControllerBase : public RTT::TaskContext
 		virtual void cleanupHook_impl(); /**< cleanupHook() implementation. */
 
 	public:
-		ActionlibControllerBase(std::string const& name);
+		SimpleControllerBase(std::string const& name);
 
 		//TODO access specificator? These methoads are final and private.
 		bool configureHook(); 
@@ -153,4 +153,4 @@ class ActionlibControllerBase : public RTT::TaskContext
 } // namespace motion
 } // namespace sweetie_bot
 
-#endif  /*ACTIONLIB_CONTROLLER_BASE_HPP*/
+#endif  /*SIMPLE_CONTROLLER_BASE_HPP*/

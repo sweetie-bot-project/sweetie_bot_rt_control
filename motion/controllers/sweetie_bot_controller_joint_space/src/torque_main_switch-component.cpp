@@ -21,7 +21,7 @@ std::ostream& operator<<(std::ostream& s, const std::vector<std::string>& string
 }
 
 TorqueMainSwitch::TorqueMainSwitch(std::string const& name)  : 
-	ActionlibControllerBase(name)
+	SimpleControllerBase(name)
 {
 	this->provides()->doc("In operatioanl state switch servos torque off and feedfodward actual position to reference.");
 
