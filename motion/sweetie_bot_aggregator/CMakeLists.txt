@@ -18,10 +18,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 # Logger selection
 set(LOGGER_DEFAULT "" CACHE STRING "Default logger for all packages (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
-set(LOGGER_AGREGATOR "" CACHE STRING "Logger for current package (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
+set(LOGGER_AGGREGATOR "" CACHE STRING "Logger for current package (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
 
-if (LOGGER_AGREGATOR)
-        add_definitions(-DSWEETIEBOT_LOGGER=${LOGGER_AGREGATOR})
+if (LOGGER_AGGREGATOR)
+        add_definitions(-DSWEETIEBOT_LOGGER=${LOGGER_AGGREGATOR})
 elseif(LOGGER_DEFAULT)
         add_definitions(-DSWEETIEBOT_LOGGER=${LOGGER_DEFAULT})
 else()
