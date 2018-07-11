@@ -33,6 +33,7 @@ class Odometry : public RTT::TaskContext
 		std::vector<std::string> legs;
 		std::string default_contact; 
 		bool force_contact_z_to_zero;
+		bool zero_twist_if_no_contacts;
 		std::string odometry_frame;
 		std::string base_link_tf_prefix;
 	protected:

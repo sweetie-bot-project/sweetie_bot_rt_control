@@ -46,6 +46,9 @@ Odometry::Odometry(std::string const& name) :
 	this->addProperty("force_contact_z_to_zero", force_contact_z_to_zero).
 		doc("Assume that first contact point always have zero Z coordinate.").
 		set(false);
+	this->addProperty("zero_twist_if_no_contacts", zero_twist_if_no_contacts).
+		doc("Set speed of the base to zero if there is no contacts.").
+		set(false);
 	this->addProperty("odometry_frame", odometry_frame)
 		.doc("Stationary frame name (header.frame_id field value in publised tf messages).")
 		.set("odom_combined");
@@ -310,6 +313,11 @@ bool Odometry::integrateBodyPose()
 			if (too_few_contact_warn_counter % 100 == 0) log(WARN) << "Too few contact points. " << too_few_contact_warn_counter << " iterations are skipped." << endlog();
 			too_few_contact_warn_counter += 1;
 		}
+		else {
+			// there are no contacts
+			if (zero_twist_if_no_contacts) body_pose.twist[0] = Twist::Zero();
+		}
+
 		// do not change pose estimation
 		if (contact_set_changed) updateAnchor(false);
 		return false;
