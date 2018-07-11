@@ -396,9 +396,7 @@ void DynamicsInvSimple::publishStateToPorts()
 	// publish
 	out_joints_accel_port.write(joints_accel);
 
-	// wrenches calculations is performed in world coordinates
-	// baut at the end of message base_link pose is added in world coordinates
-	// TODO do not add base link pose to the end of message
+	// wrenches and base are calculated and published in world frame
 	int point_index = 0;
 	wrenches.header.stamp = joints_accel.header.stamp;
 	// wrenches already has the same fields' order as legs array

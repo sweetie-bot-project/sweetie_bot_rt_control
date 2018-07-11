@@ -70,6 +70,7 @@ class DynamicsVisualizer
 		double point_size_param;
 		double torque_scale_param;
 		double force_scale_param;
+		double velocity_angular_scale_param;
 		bool display_twist;
 
 		// robot_model parameters cache
@@ -94,7 +95,7 @@ class DynamicsVisualizer
 
 			// get node parameters
 			if (!ros::param::get("~robot_model_namespace", robot_model_ns_param)) {
-				robot_model_ns_param = "/sweetie_bot";
+				robot_model_ns_param = "";
 			}
 			if (!ros::param::get("~point_size", point_size_param)) {
 				point_size_param = 0.005;
@@ -107,6 +108,9 @@ class DynamicsVisualizer
 			}
 			if (!ros::param::get("~display_twist", display_twist)) {
 				display_twist = true;
+			}
+			if (!ros::param::get("~force_scale", velocity_angular_scale_param)) {
+				velocity_angular_scale_param = 1.0/(2.0*M_PI);
 			}
 
 			// timer
@@ -122,7 +126,7 @@ class DynamicsVisualizer
 			if (node_handler.getParamCached(robot_model_ns_param + "/robot_model/chains/" + name + "/last_link", frame)) {
 				return frame;
 			}
-			else throw ros::Exception("Unable to determine last_link frame name of " + name + " kinematic chain. Check if robot_model is loaded into Parameter Service.");
+			else throw ros::Exception("Unable to determine last_link frame name of " + name + " kinematic chain. Check if robot_model is loaded onto Parameter Service in namespace '" + robot_model_ns_param + "'.");
 		}
 
 		KDL::Vector getContactPoint(const std::string& name) {
@@ -281,7 +285,7 @@ class DynamicsVisualizer
 					twist = twist.RefPoint(point);
 					// velocity visualization
 					KDL::Vector point_force = point + twist.vel; // linear vel visualization
-					KDL::Vector point_torque = point + twist.rot; // angular vel visualization
+					KDL::Vector point_torque = point + twist.rot*velocity_angular_scale_param; // angular vel visualization
 					// add to line list
 					marker.points.emplace_back(); tf::pointKDLToMsg(point, marker.points.back()); marker.colors.push_back(GREEN);
 					marker.points.emplace_back(); tf::pointKDLToMsg(point_force, marker.points.back()); marker.colors.push_back(GREEN);
