@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 2.6.3)
 # This creates a standard cmake project. You may extend this file with
 # any cmake macro you see fit.
 #
-project(sweetie_bot_agregator)
+project(sweetie_bot_aggregator)
 
 find_package(Eigen3 REQUIRED)
 include_directories("${EIGEN3_INCLUDE_DIR}")

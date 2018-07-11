@@ -3,7 +3,7 @@ SWEETIE BOT CONTROLLER SWITCHING INFRASTRUCTURE USAGE EXAMPLE
 
 Sweetie Bot motion controllers examples.
 This package is part of [Sweetie Bot project](http://sweetiebot.net). 
-See complete specification [here (Rus)](https://gitlab.com/sweetie-bot/sweetie_doc/wikis/components-agregator-gait).
+See complete specification [here (Rus)](https://gitlab.com/sweetie-bot/sweetie_doc/wikis/components-aggregator-gait).
 
 Package contains following components:
 

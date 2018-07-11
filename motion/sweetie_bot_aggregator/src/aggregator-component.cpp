@@ -1,4 +1,4 @@
-#include "agregator-component.hpp"
+#include "aggregator-component.hpp"
 
 #include <rtt/Component.hpp>
 #include <iostream>
@@ -12,7 +12,7 @@ using namespace RTT;
 namespace sweetie_bot {
 namespace motion {
 
-Agregator::Agregator(string const& name) : TaskContext(name),
+Aggregator::Aggregator(string const& name) : TaskContext(name),
 	log(logger::categoryFromComponentName(name))
 {
   // Ports 
@@ -34,15 +34,15 @@ Agregator::Agregator(string const& name) : TaskContext(name),
   this->addProperty("publish_on_event", publish_on_event_)
     .doc("Publish robot pose when partial pose is received.").set(true);
   // opertaions
-  this->addOperation("setSupportState", &Agregator::setSupportState, this, OwnThread)
+  this->addOperation("setSupportState", &Aggregator::setSupportState, this, OwnThread)
 	.doc("Change buffered SupportState. Set listed kinematic chains as support. Return false if unknown chains present.")
 	.arg("chains", "List of kinematic chains to mark as support. Others chains is marked free.");
   // Load robot model service
   robot_model_ = getProvider<RobotModel>("robot_model"); // It tries to load the service if it is not loaded.
-  this->log(INFO) << "Agregator is constructed." <<endlog();
+  this->log(INFO) << "Aggregator is constructed." <<endlog();
 }
 
-bool Agregator::configureHook()
+bool Aggregator::configureHook()
 {
   // check if robot model is valid
   if (!robot_model_ || !robot_model_->configure()) return false;
@@ -85,12 +85,12 @@ bool Agregator::configureHook()
   output_port_joint_state_.setDataSample(output_joint_state_);
   output_port_support_state_.setDataSample(output_support_state_);
 
-  this->log(INFO) << "Agregator is configured." << endlog();
+  this->log(INFO) << "Aggregator is configured." << endlog();
   return true;
 }
 
 
-bool Agregator::setSupportState(std::vector<string> limbs)
+bool Aggregator::setSupportState(std::vector<string> limbs)
 {
 	if (!this->isConfigured()) return false;
 	// mark all chains as free	
@@ -110,7 +110,7 @@ bool Agregator::setSupportState(std::vector<string> limbs)
 	return success;
 }
 
-bool Agregator::startHook()
+bool Aggregator::startHook()
 {
   RTT::os::Timer::TimerId timer_id;
   sync_port_.readNewest(timer_id);
@@ -120,11 +120,11 @@ bool Agregator::startHook()
   // write support state
   output_port_support_state_.write(output_support_state_);
 
-  this->log(INFO) << "Agregator is started." <<endlog();
+  this->log(INFO) << "Aggregator is started." <<endlog();
   return true;
 }
 
-void Agregator::updateHook(){
+void Aggregator::updateHook(){
 
   bool publish_joint_state=false; // Indicate that there messages to send.
   // Check if pose was updated
@@ -213,12 +213,12 @@ void Agregator::updateHook(){
   }
 }
 
-void Agregator::stopHook() {
-  this->log(INFO) << "Agregator is stopped." <<endlog();
+void Aggregator::stopHook() {
+  this->log(INFO) << "Aggregator is stopped." <<endlog();
 }
 
-void Agregator::cleanupHook() {
-  this->log(INFO) << "Agregator cleaning up." <<endlog();
+void Aggregator::cleanupHook() {
+  this->log(INFO) << "Aggregator cleaning up." <<endlog();
 }
 
 } // namespace motion
@@ -229,11 +229,11 @@ void Agregator::cleanupHook() {
  * in one library *and* you may *not* link this library
  * with another component library. Use
  * ORO_CREATE_COMPONENT_TYPE()
- * ORO_LIST_COMPONENT_TYPE(sweetie_bot::Agregator)
+ * ORO_LIST_COMPONENT_TYPE(sweetie_bot::Aggregator)
  * In case you want to link with another library that
  * already contains components.
  *
  * If you have put your component class
  * in a namespace, don't forget to add it here too:
  */
-ORO_CREATE_COMPONENT(sweetie_bot::motion::Agregator)
+ORO_CREATE_COMPONENT(sweetie_bot::motion::Aggregator)

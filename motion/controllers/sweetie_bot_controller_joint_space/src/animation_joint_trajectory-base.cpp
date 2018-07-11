@@ -22,10 +22,10 @@ AnimJointTrajectoryBase::AnimJointTrajectoryBase(std::string const& name) :
 	this->addEventPort("sync", sync_port)
 		.doc("Timer syncronization event. This event triggers controller execution cycle.");
 	this->addPort("in_joints_sorted", in_joints_port).
-		doc("Full sorted actual robot pose (from sensors or from agregator).");
+		doc("Full sorted actual robot pose (from sensors or from aggregator).");
 	// PORTS: output
 	this->addPort("out_joints_ref_fixed", out_joints_port).
-		doc("Reference joint positions for agregator.");
+		doc("Reference joint positions for aggregator.");
 	this->addPort("out_supports", out_supports_port).
 		doc("Expected contact points for trajectory.");
 	// PROPERTIES

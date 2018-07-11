@@ -10,7 +10,7 @@ ros.import("rtt_rosparam");
 
 require("print");
 import("sweetie_bot_robot_model");
-import("sweetie_bot_agregator");
+import("sweetie_bot_aggregator");
 import("sweetie_bot_kinematics");
 
 # Logger
@@ -20,17 +20,17 @@ log4cpp.default_root_category = "sweetie_bot.motion";
 log4cpp.configure(ros.find("sweetie_bot_kinematics") + "/scripts/config.log4cpp"); # load configuration from file
 log4cpp.addRosAppender("sweetie_bot", 20); # redirect sweetie_bot to /rosout
 
-loadComponent("sweetie_bot_agregator", "sweetie_bot::motion::Agregator");
-loadService("sweetie_bot_agregator","rosparam");
-loadService("sweetie_bot_agregator","marshalling"); # Поддержка исполнения скриптов и загрузки xml/cpf файлов
+loadComponent("sweetie_bot_aggregator", "sweetie_bot::motion::Aggregator");
+loadService("sweetie_bot_aggregator","rosparam");
+loadService("sweetie_bot_aggregator","marshalling"); # Поддержка исполнения скриптов и загрузки xml/cpf файлов
 
 # Create ROS mapping
-stream("sweetie_bot_agregator.in_joints", ros.topic("/agregator/input_joint_state"));
-stream("sweetie_bot_agregator.out_joints_sorted", ros.topic("/agregator/output_joint_state"));
+stream("sweetie_bot_aggregator.in_joints", ros.topic("/aggregator/input_joint_state"));
+stream("sweetie_bot_aggregator.out_joints_sorted", ros.topic("/aggregator/output_joint_state"));
 
 # Загружаем параметры из xml файла.
-sweetie_bot_agregator.marshalling.loadServiceProperties(ros.find("sweetie_bot_proto2_deploy") + "/default/kinematic_chains.cpf","robot_model");
-sweetie_bot_agregator.rosparam.getParam("/", "robot_model");
+sweetie_bot_aggregator.marshalling.loadServiceProperties(ros.find("sweetie_bot_proto2_deploy") + "/default/kinematic_chains.cpf","robot_model");
+sweetie_bot_aggregator.rosparam.getParam("/", "robot_model");
 
 
 loadComponent("sweetie_bot_kinematics", "sweetie_bot::motion::KinematicsInvTracIK");
@@ -55,11 +55,11 @@ stream("sweetie_bot_kinematics_fwd.in_joints_sorted", ros.topic("/kinematics/inp
 stream("sweetie_bot_kinematics.in_limbs", ros.topic("/kinematics/input_limb_state"));
 stream("sweetie_bot_kinematics.out_joints", ros.topic("/kinematics/output_joint_state"));
 stream("sweetie_bot_kinematics_fwd.out_limbs_fixed", ros.topic("/kinematics/output_limb_state"));
-#connect( "sweetie_bot_kinematics.out_joints", "sweetie_bot_agregator.in_joints", ConnPolicy() );
-connect( "sweetie_bot_agregator.in_joints", "sweetie_bot_kinematics.out_joints", ConnPolicy() );
+#connect( "sweetie_bot_kinematics.out_joints", "sweetie_bot_aggregator.in_joints", ConnPolicy() );
+connect( "sweetie_bot_aggregator.in_joints", "sweetie_bot_kinematics.out_joints", ConnPolicy() );
 
-sweetie_bot_agregator.configure();
-sweetie_bot_agregator.start();
+sweetie_bot_aggregator.configure();
+sweetie_bot_aggregator.start();
 
 sweetie_bot_kinematics.configure();
 sweetie_bot_kinematics.start();

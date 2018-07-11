@@ -24,12 +24,12 @@ namespace controller {
 FollowJointState::FollowJointState(std::string const& name)  : 
 	SimpleControllerBase(name)
 {
-	this->provides()->doc("Feedforward JointState reference from high-level to agregator.");
+	this->provides()->doc("Feedforward JointState reference from high-level to aggregator.");
 
 	// ports
 	// PORTS: input
 	this->addPort("in_joints_sorted", in_joints_port).
-		doc("Full sorted actual robot pose (from sensors or from agregator).");
+		doc("Full sorted actual robot pose (from sensors or from aggregator).");
 
 	this->addPort("in_joints_ref", in_joints_ref_port).
 		doc("Desired joint positions.");
@@ -39,7 +39,7 @@ FollowJointState::FollowJointState(std::string const& name)  :
 		doc("After start actual position is published for activation_delay secondsd on this port.");
 
 	this->addPort("out_joints_ref_fixed", out_joints_port).
-		doc("Reference joint positions for agregator.");
+		doc("Reference joint positions for aggregator.");
 
 	this->addPort("out_supports", out_supports_port).
 		doc("Active contact list. All controlled kinematic chains are assumed free.");

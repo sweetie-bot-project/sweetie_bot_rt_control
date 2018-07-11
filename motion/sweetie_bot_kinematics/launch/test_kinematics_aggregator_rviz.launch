@@ -6,10 +6,10 @@
   <include file="$(find sweetie_bot_proto2_description)/launch/description.launch" />
   <param name="use_gui" value="$(arg gui)" />
 
-  <node name="core" pkg="rtt_ros" type="deployer" args="-s $(find sweetie_bot_kinematics)/scripts/test_kinematics_agregator.ops " output="screen" />
+  <node name="core" pkg="rtt_ros" type="deployer" args="-s $(find sweetie_bot_kinematics)/scripts/test_kinematics_aggregator.ops " output="screen" />
 
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
-    <rosparam param="source_list">["/agregator/output_joint_state"]</rosparam>
+    <rosparam param="source_list">["/aggregator/output_joint_state"]</rosparam>
   </node>
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find sweetie_bot_proto2_description)/urdf.rviz" required="true" />

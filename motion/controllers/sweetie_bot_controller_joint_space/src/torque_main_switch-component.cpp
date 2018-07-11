@@ -28,11 +28,11 @@ TorqueMainSwitch::TorqueMainSwitch(std::string const& name)  :
 	// ports
 	// PORTS: input
 	this->addPort("in_joints_actual", in_joints_port).
-		doc("Full sorted actual robot pose (from sensors or from agregator).");
+		doc("Full sorted actual robot pose (from sensors or from aggregator).");
 
 	// PORTS: output
 	this->addPort("out_joints_ref", out_joints_port).
-		doc("Reference joint positions for agregator.");
+		doc("Reference joint positions for aggregator.");
 
 	// PROPERTIES
 	this->addProperty("herkulex_scheds", herkulex_scheds)

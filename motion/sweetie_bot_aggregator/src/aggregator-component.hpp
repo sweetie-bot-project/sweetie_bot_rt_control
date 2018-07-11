@@ -14,7 +14,7 @@
 namespace sweetie_bot {
 namespace motion {
 
-class Agregator : public RTT::TaskContext
+class Aggregator : public RTT::TaskContext
 {
   protected:
 	//COMPONENT INTERFACE
@@ -54,7 +54,7 @@ class Agregator : public RTT::TaskContext
 	// OPERATIONS
 	bool setSupportState(std::vector<string> limbs);
 
-    Agregator(std::string const& name);
+    Aggregator(std::string const& name);
     bool configureHook();
     bool startHook();
     void updateHook();
