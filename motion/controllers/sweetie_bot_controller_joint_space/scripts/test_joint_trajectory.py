@@ -33,7 +33,7 @@ def make_msg(joints, points_deg, tolerance_deg, time_tolerance):
 if __name__ == '__main__':
     rospy.init_node('test_joint_trajectory')
 
-    client = actionlib.SimpleActionClient('/sweetie_bot/motion/controller/joint_trajectory', 
+    client = actionlib.SimpleActionClient('motion/controller/joint_trajectory', 
             control_msgs.msg.FollowJointTrajectoryAction)
     client.wait_for_server()
 

@@ -38,9 +38,9 @@ DynamicsInvSimple::DynamicsInvSimple(string const& name) :
 	this->addPort( "out_joints_accel_sorted", out_joints_accel_port )
 		.doc( "Robot pose in joint space with drives effort and accelerations." );
 	this->addPort( "out_wrenches_fixed", out_wrenches_port )
-		.doc( "Reaction forces for each contact in base_link frame." );
+		.doc( "Reaction forces for each contact in the world frame." );
 	this->addPort( "out_base", out_base_port )
-		.doc( "Base link pose and sum of reaction forces in world frame." );
+		.doc( "Base link pose and sum of reaction forces in the  world frame." );
 	this->addPort( "out_balance", out_balance_port )
 		.doc( "Information about robot balance." );
 

@@ -109,7 +109,7 @@ class DynamicsVisualizer
 			if (!ros::param::get("~display_twist", display_twist)) {
 				display_twist = true;
 			}
-			if (!ros::param::get("~force_scale", velocity_angular_scale_param)) {
+			if (!ros::param::get("~velocity_angular_scale", velocity_angular_scale_param)) {
 				velocity_angular_scale_param = 1.0/(2.0*M_PI);
 			}
 
