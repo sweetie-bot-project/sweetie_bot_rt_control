@@ -17,6 +17,9 @@ Package contains following components:
 
     See `scripts/test_resource_control_actionlib.lua` as deployment example.
 
+* Package is missing `SimpleControlerBase` controller template. See @ref `sweetie_bot_resource_control`.
+    Use as exmple `FollowPose` or `FollowJointState` controller.
+
 * `scripts/resource_control.lua` --- lua module to simplify switching infrastructure deployment.
 
 ### Usage
