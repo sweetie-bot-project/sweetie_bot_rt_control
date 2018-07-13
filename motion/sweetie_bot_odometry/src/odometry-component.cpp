@@ -29,9 +29,9 @@ Odometry::Odometry(std::string const& name) :
 	}
 	// PORTS
 	this->addPort("in_supports_fixed", support_port).
-		doc("List of end effectors which are in contact. `point` fields are ignored. ");
+		doc("List of end effectors which are in contact. The order and names of robot kinematic chains must not change when component is running.");
 	this->addEventPort("in_limbs_fixed", limbs_port).
-		doc("Positions of robot end effectors relative to the base.");
+		doc("Positions of robot end effectors relative to the base. The names and order of kinematic chains must be the same as at in_supports_fixed port.");
 	this->addEventPort("in_base", body_reset_port).
 		doc("Position of robot `base_link`. Reset odometry results.");
 	this->addPort("out_base", body_port).
