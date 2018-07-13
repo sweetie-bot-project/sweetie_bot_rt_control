@@ -1,4 +1,4 @@
-#include "animation_joint_trajectory-base.hpp"
+#include "execute_joint_trajectory-base.hpp"
 
 #include <rtt/Component.hpp>
 
@@ -12,7 +12,7 @@ namespace motion {
 namespace controller {
 
 //TODO move somewhere
-AnimJointTrajectoryBase::AnimJointTrajectoryBase(std::string const& name) : 
+ExecuteJointTrajectoryBase::ExecuteJointTrajectoryBase(std::string const& name) : 
 	TaskContext(name),
 	log(logger::categoryFromComponentName(name))
 {
@@ -36,7 +36,7 @@ AnimJointTrajectoryBase::AnimJointTrajectoryBase(std::string const& name) :
 	this->requires()->addServiceRequester(ServiceRequester::shared_ptr(robot_model));
 }
 
-bool AnimJointTrajectoryBase::dataOnPortHook( RTT::base::PortInterface* portInterface ) 
+bool ExecuteJointTrajectoryBase::dataOnPortHook( RTT::base::PortInterface* portInterface ) 
 {
 	// Process EventPorts messages callbacks if component is in configured state,
 	// so actionlib hooks works even if component is stopped.
@@ -46,7 +46,7 @@ bool AnimJointTrajectoryBase::dataOnPortHook( RTT::base::PortInterface* portInte
     return this->isConfigured();
 }
 
-bool AnimJointTrajectoryBase::configureHook()
+bool ExecuteJointTrajectoryBase::configureHook()
 {
 	// Get ResourceClient plugin interface.
 	resource_client = getSubServiceByType<ResourceClientInterface>(this->provides().get());
@@ -70,7 +70,7 @@ bool AnimJointTrajectoryBase::configureHook()
 	return true;
 }
 
-bool AnimJointTrajectoryBase::startHook()
+bool ExecuteJointTrajectoryBase::startHook()
 {
 	in_joints_port.read(actual_fullpose, true);
 	// reset filter
@@ -94,7 +94,7 @@ bool AnimJointTrajectoryBase::startHook()
 	return true;
 }
 
-void AnimJointTrajectoryBase::updateHook()
+void ExecuteJointTrajectoryBase::updateHook()
 {
 	// check messages on resource_assigment port
 	resource_client->step();
@@ -132,7 +132,7 @@ void AnimJointTrajectoryBase::updateHook()
 
 
 
-void AnimJointTrajectoryBase::cleanupHook() 
+void ExecuteJointTrajectoryBase::cleanupHook() 
 {
 	goal_active.reset();
 	resource_client = 0; // in PreOperational state resource_client is ont available

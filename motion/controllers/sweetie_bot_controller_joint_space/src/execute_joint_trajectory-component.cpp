@@ -1,4 +1,4 @@
-#include "animation_joint_trajectory-component.hpp"
+#include "execute_joint_trajectory-component.hpp"
 
 #include <rtt/Component.hpp>
 
@@ -11,24 +11,24 @@ namespace motion {
 namespace controller {
 
 
-AnimJointTrajectory::AnimJointTrajectory(std::string const& name) : 
-	AnimJointTrajectoryBase(name),
+ExecuteJointTrajectory::ExecuteJointTrajectory(std::string const& name) : 
+	ExecuteJointTrajectoryBase(name),
 	action_server(this->provides())
 {
 	// action server hook registration
-	action_server.setGoalHook(boost::bind(&AnimJointTrajectory::newGoalHook, this, _1));
-	action_server.setCancelHook(boost::bind(&AnimJointTrajectory::cancelGoalHook, this));
+	action_server.setGoalHook(boost::bind(&ExecuteJointTrajectory::newGoalHook, this, _1));
+	action_server.setCancelHook(boost::bind(&ExecuteJointTrajectory::cancelGoalHook, this));
 
-    log(INFO) << "AnimJointTrajectory is constructed!" << endlog();
+    log(INFO) << "ExecuteJointTrajectory is constructed!" << endlog();
 }
 
-bool AnimJointTrajectory::configureHook()
+bool ExecuteJointTrajectory::configureHook()
 {
-	if (!AnimJointTrajectoryBase::configureHook()) return false;
-	// AnimJointTrajectoryBase checked resource_client and robot_model. So we can now use them.
+	if (!ExecuteJointTrajectoryBase::configureHook()) return false;
+	// ExecuteJointTrajectoryBase checked resource_client and robot_model. So we can now use them.
 	
-	resource_client->setResourceChangeHook(boost::bind(&AnimJointTrajectory::resourceChangedHook, this));
-	resource_client->setStopOperationalHook(boost::bind(&AnimJointTrajectory::stopOperationalHook, this));
+	resource_client->setResourceChangeHook(boost::bind(&ExecuteJointTrajectory::resourceChangedHook, this));
+	resource_client->setStopOperationalHook(boost::bind(&ExecuteJointTrajectory::stopOperationalHook, this));
 
 	// Start action server: publish feedback
 	if (!action_server.start(true)) {
@@ -36,11 +36,11 @@ bool AnimJointTrajectory::configureHook()
 		return false;
 	}
 
-	log(INFO) << "AnimJointTrajectory is configured !" << endlog();
+	log(INFO) << "ExecuteJointTrajectory is configured !" << endlog();
 	return true;
 }
 
-void AnimJointTrajectory::newGoalHook(const Goal& pending_goal) 
+void ExecuteJointTrajectory::newGoalHook(const Goal& pending_goal) 
 {
 	log(INFO) << "newGoalHook: new pending goal." << endlog();
 
@@ -80,7 +80,7 @@ void AnimJointTrajectory::newGoalHook(const Goal& pending_goal)
 	start();
 }
 
-bool AnimJointTrajectory::resourceChangedHook()
+bool ExecuteJointTrajectory::resourceChangedHook()
 {
 	bool has_resources;
 	bool success;
@@ -140,7 +140,7 @@ bool AnimJointTrajectory::resourceChangedHook()
 	return false;
 }
 
-void AnimJointTrajectory::cancelGoalHook() 
+void ExecuteJointTrajectory::cancelGoalHook() 
 {
 	log(INFO) << "cancelGoalHoook: abort active goal." << endlog();
 	// cancel active goal (or do nothing)
@@ -151,14 +151,14 @@ void AnimJointTrajectory::cancelGoalHook()
 	resource_client->stopOperational();
 }
 
-bool AnimJointTrajectory::startHook()
+bool ExecuteJointTrajectory::startHook()
 {
-	AnimJointTrajectoryBase::startHook();	// clear sync port queue 
-	log(INFO) << "AnimJointTrajectory is started !" << endlog();
+	ExecuteJointTrajectoryBase::startHook();	// clear sync port queue 
+	log(INFO) << "ExecuteJointTrajectory is started !" << endlog();
 	return true;
 }
 
-void AnimJointTrajectory::operationalHook(bool on_target)
+void ExecuteJointTrajectory::operationalHook(bool on_target)
 {
 	if(log(DEBUG)) {
 		log() << "Execute goal t = " << time_from_start << " goal_time = " << goal_active->getGoalTime() << " ref [ ";
@@ -220,7 +220,7 @@ void AnimJointTrajectory::operationalHook(bool on_target)
 }
 			
 
-void AnimJointTrajectory::stopOperationalHook() {
+void ExecuteJointTrajectory::stopOperationalHook() {
 	// abort any active or pending goal: if a
 	goal_active.reset();
 	goal_pending.reset();
@@ -228,7 +228,7 @@ void AnimJointTrajectory::stopOperationalHook() {
 	this->stop();
 }
 
-void AnimJointTrajectory::stopHook() 
+void ExecuteJointTrajectory::stopHook() 
 {
 	if (resource_client->isOperational()) { // prevent recursion
 		goal_result.error_code = Result::SUCCESSFUL;
@@ -236,20 +236,20 @@ void AnimJointTrajectory::stopHook()
 		action_server.abortActive(goal_result);
 		action_server.rejectPending(goal_result);
 		resource_client->stopOperational();
-		log(INFO) << "AnimJointTrajectory is stopped!" << endlog();
+		log(INFO) << "ExecuteJointTrajectory is stopped!" << endlog();
 	}
 }
 
-void AnimJointTrajectory::cleanupHook() 
+void ExecuteJointTrajectory::cleanupHook() 
 {
 
 	resource_client = 0; 
 	//action_server.shutdown(); 
-	log(INFO) << "AnimJointTrajectory cleaning up !" << endlog();
+	log(INFO) << "ExecuteJointTrajectory cleaning up !" << endlog();
 }
 
 } // namespace controller
 } // namespace motion
 } // namespace sweetie_bot
 
-ORO_CREATE_COMPONENT(sweetie_bot::motion::controller::AnimJointTrajectory)
+ORO_CREATE_COMPONENT(sweetie_bot::motion::controller::ExecuteJointTrajectory)

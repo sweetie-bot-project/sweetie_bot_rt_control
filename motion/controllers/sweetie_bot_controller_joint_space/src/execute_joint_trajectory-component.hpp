@@ -1,7 +1,7 @@
-#ifndef  ANIMATION_JOINT_TRAJECTORY_COMPONENT_HPP
-#define  ANIMATION_JOINT_TRAJECTORY_COMPONENT_HPP
+#ifndef  EXECUTE_JOINT_TRAJECTORY_COMPONENT_HPP
+#define  EXECUTE_JOINT_TRAJECTORY_COMPONENT_HPP
 
-#include "animation_joint_trajectory-base.hpp"
+#include "execute_joint_trajectory-base.hpp"
 
 #include <sweetie_bot_orocos_misc/simple_action_server.hpp>
 #include <control_msgs/typekit/FollowJointTrajectoryAction.h>
@@ -10,7 +10,7 @@ namespace sweetie_bot {
 namespace motion {
 namespace controller {
 
-class AnimJointTrajectory : public AnimJointTrajectoryBase
+class ExecuteJointTrajectory : public ExecuteJointTrajectoryBase
 {
 	protected:
 		// Goal, Feedback, Result typedefs
@@ -34,7 +34,7 @@ class AnimJointTrajectory : public AnimJointTrajectoryBase
 	protected:
 		// COMPONENT STATE
 	public:
-		AnimJointTrajectory(std::string const& name);
+		ExecuteJointTrajectory(std::string const& name);
 
 		bool resourceChangedHook();
 		void stopOperationalHook();
@@ -52,4 +52,4 @@ class AnimJointTrajectory : public AnimJointTrajectoryBase
 } // namespace motion
 } // namespace sweetie_bot
 
-#endif  /*ANIMATION_JOINT_TRAJECTORY-COMPONENT_HPP*/
+#endif  /*EXECUTE_JOINT_TRAJECTORY-COMPONENT_HPP*/

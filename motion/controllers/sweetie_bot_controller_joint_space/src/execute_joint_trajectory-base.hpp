@@ -1,5 +1,5 @@
-#ifndef  ANIMATION_JOINT_TRAJECTORY_BASE_HPP
-#define  ANIMATION_JOINT_TRAJECTORY_BASE_HPP
+#ifndef  EXECUTE_JOINT_TRAJECTORY_BASE_HPP
+#define  EXECUTE_JOINT_TRAJECTORY_BASE_HPP
 
 #include <rtt/TaskContext.hpp>
 #include <rtt/os/Timer.hpp>
@@ -23,7 +23,7 @@ namespace controller {
 /**
  * Incasulate allmost base logic of FollowJointTrajectoryGoal controller except action server interaction.
  **/
-class AnimJointTrajectoryBase : public RTT::TaskContext
+class ExecuteJointTrajectoryBase : public RTT::TaskContext
 {
 	public:
 		typedef sensor_msgs::JointState JointState;
@@ -74,7 +74,7 @@ class AnimJointTrajectoryBase : public RTT::TaskContext
         bool dataOnPortHook(RTT::base::PortInterface *portInterface);
 
 	public:
-		AnimJointTrajectoryBase(std::string const& name);
+		ExecuteJointTrajectoryBase(std::string const& name);
 
 		/**
 		 * @brief Implementation specific actions.
@@ -108,4 +108,4 @@ class AnimJointTrajectoryBase : public RTT::TaskContext
 } // namespace motion
 } // namespace sweetie_bot
 
-#endif  /*ANIMATION_JOINT_TRAJECTORY_BASE_HPP*/
+#endif  /*EXECUTE_JOINT_TRAJECTORY_BASE_HPP*/

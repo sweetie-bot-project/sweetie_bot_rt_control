@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #
-# Test node sweetie_bot::motion::AnimJointTrajectoryBase controller.
+# Test node sweetie_bot::motion::ExecuteJointTrajectoryBase controller.
 # Repeatedly send simple trajectory to execute.
 # 
 # Deploy joint_space_control infrastructure before running test.
