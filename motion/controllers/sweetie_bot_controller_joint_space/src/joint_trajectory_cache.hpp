@@ -1,12 +1,11 @@
 #ifndef  JOINT_TRAJECTORY_CACHE_HPP
 #define  JOINT_TRAJECTORY_CACHE_HPP
 
-#include <interpolation.h>
-
 #include <sensor_msgs/typekit/JointState.h>
 #include <control_msgs/typekit/FollowJointTrajectoryGoal.h>
 #include <sweetie_bot_kinematics_msgs/typekit/SupportState.h>
 
+#include "interpolation_algorithms.hpp"
 
 namespace sweetie_bot {
 namespace motion {
@@ -52,9 +51,11 @@ class JointTrajectoryCache
 		std::vector<double> path_tolerance; 
 		std::vector<double> goal_tolerance;
 		double goal_time_tolerance;
-		
+
+		std::shared_ptr<InterpolationAlgorithm> algorithm;
+
 	protected:
-		void loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags, RobotModel * robot_model, double threshold, int algorithm);
+		void loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags, RobotModel * robot_model);
 		void getJointTolerance(const FollowJointTrajectoryGoal& msg);
 
 	public:
@@ -64,7 +65,7 @@ class JointTrajectoryCache
 		 * @param _trajectory ROS message with goal trajectory.
 		 * @param robot_mode RobotModel to interprete joints names.
 		 **/
-		JointTrajectoryCache(const FollowJointTrajectoryGoal& _trajectory, RobotModel * robot_model, double threshold, int algorithm);
+		JointTrajectoryCache(const FollowJointTrajectoryGoal& _trajectory, RobotModel * robot_model, std::shared_ptr<InterpolationAlgorithm> algorithm);
 
 		/**
 		 * @brief Prepare joint state buffer

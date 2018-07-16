@@ -34,9 +34,9 @@ AnimJointTrajectoryBase::AnimJointTrajectoryBase(std::string const& name, double
 	this->addProperty("threshold", threshold)
 		.doc("Threshold for compare approximately equal joint coordinates (rad)")
 		.set(thr);
-	this->addProperty("algorithm", algorithm)
+	this->addProperty("algorithm", algorithm_type)
 		.doc("Type of algorithm wich will be use for interpolation.\n\t0 - modify Akima spline (default) \n\t1 - modify cubic spline")
-		.set(0);
+		.set(controller::ModifyAkima);
 	// SERVICE: reqiures
 	robot_model = new sweetie_bot::motion::RobotModel(this);
 	this->requires()->addServiceRequester(ServiceRequester::shared_ptr(robot_model));
