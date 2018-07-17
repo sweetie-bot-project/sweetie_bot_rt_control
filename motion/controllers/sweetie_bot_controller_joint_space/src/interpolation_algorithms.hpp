@@ -16,7 +16,7 @@ enum InterpolationAlgorithmType {
 };
 
 /**
- * @brief Incapsulate virtual function providing interface to select algorithm to client
+ * @brief Providing interface to select algorithm
  **/
 class InterpolationAlgorithm {
 	public:

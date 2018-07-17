@@ -64,6 +64,7 @@ class JointTrajectoryCache
 		 * Approximate trajectory with 2-nd order spline, cache up joint names,  tolerance and joint indexes.
 		 * @param _trajectory ROS message with goal trajectory.
 		 * @param robot_mode RobotModel to interprete joints names.
+		 * @param algorithm InterpolationAlgorithm, selected for spline interpolation.
 		 **/
 		JointTrajectoryCache(const FollowJointTrajectoryGoal& _trajectory, RobotModel * robot_model, std::shared_ptr<InterpolationAlgorithm> algorithm);
 
