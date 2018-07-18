@@ -46,7 +46,20 @@ void ExecuteJointTrajectory::newGoalHook(const Goal& pending_goal)
 
 	// convert FollowJointTrajectoryGoal -> JointTrajectoryCache immediztelly
 	try {
-		goal_pending = std::make_shared<JointTrajectoryCache>(pending_goal, robot_model); // TODO possible throw on malformed  goal: any better solutions?
+		switch(algorithm_type) {
+		case ModifyAkima:
+			goal_pending = std::make_shared<JointTrajectoryCache>(pending_goal, robot_model, std::make_shared<ModifyAkimaAlgorithm>(threshold)); // TODO possible throw on malformed  goal: any better solutions?
+			break;
+		case ModifyCubic:
+			goal_pending = std::make_shared<JointTrajectoryCache>(pending_goal, robot_model, std::make_shared<ModifyCubicAlgorithm>(threshold)); 
+			break;
+		default:
+			log(ERROR) << "newGoalHook: Invalid interpolation algorithm type was selected" << endlog();
+			goal_result.error_code = Result::INVALID_GOAL;
+			goal_result.error_string = "Invalid interpolation algorithm type was selected";
+			action_server.rejectPending(goal_result);
+			return;
+		}
 	}
 	catch (std::invalid_argument& e) {
 		log(ERROR) << "Error during goal analisys:" << e.what() << endlog();

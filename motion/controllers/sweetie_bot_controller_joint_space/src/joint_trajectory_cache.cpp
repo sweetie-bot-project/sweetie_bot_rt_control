@@ -10,7 +10,7 @@ namespace sweetie_bot {
 namespace motion {
 namespace controller {
 
-JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajectoryGoal& goal, RobotModel * robot_model)
+JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajectoryGoal& goal, RobotModel * robot_model, std::shared_ptr<InterpolationAlgorithm> algorithm)
 {
 
 	if (!robot_model || !robot_model->ready()) throw std::invalid_argument("JointTrajectoryCache: RobotModel is not ready");
@@ -67,6 +67,8 @@ JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajec
 			if (controlled_chains_flags[i]) this->support_names.push_back(chains_list[i]);
 		}
 	}
+	// save pointer to algorithm object
+	this->algorithm = algorithm;
 	// now extract and interpolate trajectory
 	loadTrajectory(goal.trajectory, support_flags, robot_model);
 	// get tolerances from message
@@ -145,11 +147,7 @@ void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory
 	}
 	//perform interpolation
 	this->joint_splines.resize(n_joints);
-	for(int joint = 0; joint < n_joints; joint++) {
-		// alglib::spline1dbuildcubic(t, joint_trajectory[joint], n_samples, 1, 0.0, 1, 0.0, this->joint_splines[joint]);
-		alglib::spline1dbuildakima(t, joint_trajectory[joint], this->joint_splines[joint]);
-		// velocity an acceleration is ignored
-	}
+	this->algorithm->performInterpolation(t, joint_trajectory, n_samples, joint_splines, n_joints);
 	this->goal_time = trajectory.points[n_samples-1].time_from_start.toSec();
 }
 

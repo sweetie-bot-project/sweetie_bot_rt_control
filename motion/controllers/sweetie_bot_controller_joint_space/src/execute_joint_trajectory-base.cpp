@@ -12,7 +12,7 @@ namespace motion {
 namespace controller {
 
 //TODO move somewhere
-ExecuteJointTrajectoryBase::ExecuteJointTrajectoryBase(std::string const& name) : 
+ExecuteJointTrajectoryBase::ExecuteJointTrajectoryBase(std::string const& name, double thr) : 
 	TaskContext(name),
 	log(logger::categoryFromComponentName(name))
 {
@@ -31,6 +31,12 @@ ExecuteJointTrajectoryBase::ExecuteJointTrajectoryBase(std::string const& name) 
 	// PROPERTIES
 	this->addProperty("period", period)
 		.doc("Discretization period (s)");
+	this->addProperty("threshold", threshold)
+		.doc("Threshold for compare approximately equal joint coordinates (rad)")
+		.set(thr);
+	this->addProperty("algorithm", algorithm_type)
+		.doc("Type of algorithm wich will be use for interpolation.\n\t0 - modify Akima spline (default) \n\t1 - modify cubic spline")
+		.set(controller::ModifyAkima);
 	// SERVICE: reqiures
 	robot_model = new sweetie_bot::motion::RobotModel(this);
 	this->requires()->addServiceRequester(ServiceRequester::shared_ptr(robot_model));
