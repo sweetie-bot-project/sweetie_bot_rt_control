@@ -28,7 +28,7 @@ class InterpolationAlgorithm {
 	public:
 		InterpolationAlgorithm(double threshold) { this->threshold = threshold; }
 
-		virtual void performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints) {}
+		virtual void performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints) const = 0;
 };
 
 /**
@@ -39,7 +39,7 @@ class ModifyAkimaAlgorithm : public InterpolationAlgorithm {
 		ModifyAkimaAlgorithm(double threshold)
 			: InterpolationAlgorithm(threshold) {}
 
-		void performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints);
+		void performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints) const;
 };
 
 /**
@@ -50,7 +50,7 @@ class ModifyCubicAlgorithm : public InterpolationAlgorithm {
 		ModifyCubicAlgorithm(double threshold)
 			: InterpolationAlgorithm(threshold) {}
 
-		void performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints);
+		void performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints) const;
 };
 
 } // namespace controller

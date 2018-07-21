@@ -10,7 +10,7 @@ namespace sweetie_bot {
 namespace motion {
 namespace controller {
 
-JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajectoryGoal& goal, RobotModel * robot_model, std::shared_ptr<InterpolationAlgorithm> algorithm)
+JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajectoryGoal& goal, RobotModel * robot_model, const InterpolationAlgorithm& algorithm)
 {
 
 	if (!robot_model || !robot_model->ready()) throw std::invalid_argument("JointTrajectoryCache: RobotModel is not ready");
@@ -67,10 +67,8 @@ JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajec
 			if (controlled_chains_flags[i]) this->support_names.push_back(chains_list[i]);
 		}
 	}
-	// save pointer to algorithm object
-	this->algorithm = algorithm;
 	// now extract and interpolate trajectory
-	loadTrajectory(goal.trajectory, support_flags, robot_model);
+	loadTrajectory(goal.trajectory, support_flags, robot_model, algorithm);
 	// get tolerances from message
 	getJointTolerance(goal);
 }
@@ -79,7 +77,7 @@ JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajec
 /**
  * interpolate trajectory and cache support state buffer
  */
-void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags, RobotModel * robot_model) 
+void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags, RobotModel * robot_model, const InterpolationAlgorithm& algorithm) 
 {
 	int n_joints = names.size();
 	int n_supports = support_names.size();
@@ -147,7 +145,7 @@ void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory
 	}
 	//perform interpolation
 	this->joint_splines.resize(n_joints);
-	this->algorithm->performInterpolation(t, joint_trajectory, n_samples, joint_splines, n_joints);
+	algorithm.performInterpolation(t, joint_trajectory, n_samples, joint_splines, n_joints);
 	this->goal_time = trajectory.points[n_samples-1].time_from_start.toSec();
 }
 

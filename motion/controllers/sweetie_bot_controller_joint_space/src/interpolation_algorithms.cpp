@@ -9,7 +9,7 @@ namespace controller {
 /**
  * Implements algorithm for spline interpolation based on Akima spline
  **/
-void ModifyAkimaAlgorithm::performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints) {
+void ModifyAkimaAlgorithm::performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints) const {
 	JointSpline akima_tmp_spline;
 	alglib::real_1d_array d;
 	double dirty, diff;
@@ -45,7 +45,7 @@ void ModifyAkimaAlgorithm::performInterpolation(const alglib::real_1d_array& t, 
 /**
  * Implements algorithm for spline interpolation based on cubic
  **/
-void ModifyCubicAlgorithm::performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints) {
+void ModifyCubicAlgorithm::performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints) const {
 	int len, i, j, kk;
 	int _1st_point_idx;
 	int _2nd_point_idx;

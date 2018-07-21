@@ -52,10 +52,8 @@ class JointTrajectoryCache
 		std::vector<double> goal_tolerance;
 		double goal_time_tolerance;
 
-		std::shared_ptr<InterpolationAlgorithm> algorithm;
-
 	protected:
-		void loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags, RobotModel * robot_model);
+		void loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags, RobotModel * robot_model, const InterpolationAlgorithm& algorithm);
 		void getJointTolerance(const FollowJointTrajectoryGoal& msg);
 
 	public:
@@ -66,7 +64,7 @@ class JointTrajectoryCache
 		 * @param robot_mode RobotModel to interprete joints names.
 		 * @param algorithm InterpolationAlgorithm, selected for spline interpolation.
 		 **/
-		JointTrajectoryCache(const FollowJointTrajectoryGoal& _trajectory, RobotModel * robot_model, std::shared_ptr<InterpolationAlgorithm> algorithm);
+		JointTrajectoryCache(const FollowJointTrajectoryGoal& _trajectory, RobotModel * robot_model, const InterpolationAlgorithm& algorithm);
 
 		/**
 		 * @brief Prepare joint state buffer
