@@ -145,7 +145,8 @@ void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory
 	}
 	//perform interpolation
 	this->joint_splines.resize(n_joints);
-	algorithm.performInterpolation(t, joint_trajectory, n_samples, joint_splines, n_joints);
+	// TODO better interface without additional copy
+	algorithm.performInterpolation(t, joint_trajectory, joint_splines);
 	this->goal_time = trajectory.points[n_samples-1].time_from_start.toSec();
 }
 

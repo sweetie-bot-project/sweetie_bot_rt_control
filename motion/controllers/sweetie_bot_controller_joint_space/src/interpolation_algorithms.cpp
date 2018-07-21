@@ -10,7 +10,9 @@ namespace controller {
 /**
  * Akima spline interpolation.
  **/
-void AkimaSplineInterpolation::performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints) const {
+void AkimaSplineInterpolation::performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, std::vector<alglib::spline1dinterpolant>& joint_splines) const {
+	int n_joints = joint_trajectory.size();
+	joint_splines.resize(n_joints);
 	for(int joint = 0; joint < n_joints; joint++) {
 		alglib::spline1dbuildakima(t, joint_trajectory[joint], joint_splines[joint]);
 	}
@@ -19,7 +21,10 @@ void AkimaSplineInterpolation::performInterpolation(const alglib::real_1d_array&
 /**
  * Cubic spline interpolation.
  **/
-void CubicSplineInterpolation::performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints) const {
+void CubicSplineInterpolation::performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, std::vector<alglib::spline1dinterpolant>& joint_splines) const {
+	int n_joints = joint_trajectory.size();
+	int n_samples = t.length();
+	joint_splines.resize(n_joints);
 	for(int joint = 0; joint < n_joints; joint++) {
 		alglib::spline1dbuildcubic(t, joint_trajectory[joint], n_samples, 1, 0.0, 1, 0.0, joint_splines[joint]);
 	}
@@ -28,10 +33,15 @@ void CubicSplineInterpolation::performInterpolation(const alglib::real_1d_array&
 /**
  * Implements algorithm for spline interpolation based on Akima spline
  **/
-void ModifiedAkimaInterpolation::performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints) const {
-	JointSpline akima_tmp_spline;
+void ModifiedAkimaInterpolation::performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, std::vector<alglib::spline1dinterpolant>& joint_splines) const {
+	int n_joints = joint_trajectory.size();
+	int n_samples = t.length();
+
+
+	alglib::spline1dinterpolant akima_tmp_spline;
 	alglib::real_1d_array d;
-	double dirty, diff;
+	d.setlength(n_samples);
+	joint_splines.resize(n_joints);
 	for(int joint = 0; joint < n_joints; joint++) {
 		//
 		// Build custom akima spline with zero velocity at edge points
@@ -40,7 +50,6 @@ void ModifiedAkimaInterpolation::performInterpolation(const alglib::real_1d_arra
 		alglib::spline1dbuildakima(t, joint_trajectory[joint], akima_tmp_spline);
 
 		// While calculating derivatives detect almost equal internal stop points 
-		d.setlength(n_samples);
 		for (int i = 0; i < (n_samples - 1); i++) {
 			// Detect internal stop points with use of selected threshold
 			if (abs(joint_trajectory[joint][i + 1] - joint_trajectory[joint][i]) <= this->threshold) {
@@ -48,7 +57,8 @@ void ModifiedAkimaInterpolation::performInterpolation(const alglib::real_1d_arra
 				d[i] = 0.0;
 				d[i + 1] = 0.0;
 			} else {
-				alglib::spline1ddiff(akima_tmp_spline, t[i], dirty, d[i], dirty);
+				double unused;
+				alglib::spline1ddiff(akima_tmp_spline, t[i], unused, d[i], unused);
 			}
 		}
 
@@ -64,7 +74,10 @@ void ModifiedAkimaInterpolation::performInterpolation(const alglib::real_1d_arra
 /**
  * Implements algorithm for spline interpolation based on cubic
  **/
-void ModifiedCubicInterpolation::performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints) const {
+void ModifiedCubicInterpolation::performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, std::vector<alglib::spline1dinterpolant>& joint_splines) const {
+	int n_joints = joint_trajectory.size();
+	int n_samples = t.length();
+
 	int len, i, j, kk;
 	int _1st_point_idx;
 	int _2nd_point_idx;
