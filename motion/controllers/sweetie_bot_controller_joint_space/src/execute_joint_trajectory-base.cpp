@@ -12,7 +12,7 @@ namespace motion {
 namespace controller {
 
 //TODO move somewhere
-ExecuteJointTrajectoryBase::ExecuteJointTrajectoryBase(std::string const& name, double thr) : 
+ExecuteJointTrajectoryBase::ExecuteJointTrajectoryBase(std::string const& name) : 
 	TaskContext(name),
 	log(logger::categoryFromComponentName(name))
 {
@@ -31,12 +31,14 @@ ExecuteJointTrajectoryBase::ExecuteJointTrajectoryBase(std::string const& name, 
 	// PROPERTIES
 	this->addProperty("period", period)
 		.doc("Discretization period (s)");
-	this->addProperty("threshold", threshold)
-		.doc("Threshold for compare approximately equal joint coordinates (rad)")
-		.set(thr);
+	std::ostringstream desc;
+	desc << "Type of algorithm wich will be use for interpolation: " << (int) ModifiedAkima << " -- modified Akima spline, " << (int) ModifiedCubic << " -- modified cubic spline.";
 	this->addProperty("algorithm", algorithm_type)
-		.doc("Type of algorithm wich will be use for interpolation.\n\t0 - modify Akima spline (default) \n\t1 - modify cubic spline")
-		.set(controller::ModifyAkima);
+		.doc(desc.str())
+		.set(controller::ModifiedAkima);
+	this->addProperty("stop_threshold", stop_threshold)
+		.doc("If joints positions difference is less then threshold (rad) they assumed to be equal.")
+		.set(0.0005);
 	// SERVICE: reqiures
 	robot_model = new sweetie_bot::motion::RobotModel(this);
 	this->requires()->addServiceRequester(ServiceRequester::shared_ptr(robot_model));

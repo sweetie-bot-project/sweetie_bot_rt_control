@@ -41,8 +41,8 @@ class ExecuteJointTrajectoryBase : public RTT::TaskContext
 		RTT::OutputPort<sweetie_bot_kinematics_msgs::SupportState> out_supports_port;
 		// PROPERTIES
 		double period;
-		double threshold;
-		InterpolationAlgorithmType algorithm_type;
+		int algorithm_type; // interpolation algorithm
+		double stop_threshold; // threshold to determine stops in modified interpolation algorithms
 	protected:
 		// SERVICES: required
 		sweetie_bot::motion::RobotModel * robot_model; //< joints list, kinematics chains access
@@ -76,7 +76,7 @@ class ExecuteJointTrajectoryBase : public RTT::TaskContext
         bool dataOnPortHook(RTT::base::PortInterface *portInterface);
 
 	public:
-		ExecuteJointTrajectoryBase(std::string const& name, double thr = 0.0005);
+		ExecuteJointTrajectoryBase(std::string const& name);
 
 		/**
 		 * @brief Implementation specific actions.

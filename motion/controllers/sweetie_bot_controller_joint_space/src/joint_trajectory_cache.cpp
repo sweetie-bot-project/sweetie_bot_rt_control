@@ -10,7 +10,7 @@ namespace sweetie_bot {
 namespace motion {
 namespace controller {
 
-JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajectoryGoal& goal, RobotModel * robot_model, const InterpolationAlgorithm& algorithm)
+JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajectoryGoal& goal, RobotModel * robot_model, const InterpolationAlgorithmInterface& algorithm)
 {
 
 	if (!robot_model || !robot_model->ready()) throw std::invalid_argument("JointTrajectoryCache: RobotModel is not ready");
@@ -77,7 +77,7 @@ JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajec
 /**
  * interpolate trajectory and cache support state buffer
  */
-void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags, RobotModel * robot_model, const InterpolationAlgorithm& algorithm) 
+void JointTrajectoryCache::loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags, RobotModel * robot_model, const InterpolationAlgorithmInterface& algorithm) 
 {
 	int n_joints = names.size();
 	int n_supports = support_names.size();

@@ -11,33 +11,30 @@ namespace controller {
  * @brief Enum for separate algorithm types
  */
 enum InterpolationAlgorithmType {
-	ModifyAkima,
-	ModifyCubic
+	ModifiedAkima = 0,
+	ModifiedCubic = 1,
 };
 
 /**
  * @brief Providing interface to select algorithm
  **/
-class InterpolationAlgorithm {
+class InterpolationAlgorithmInterface {
 	public:
 		typedef alglib::spline1dinterpolant JointSpline;
 
-	protected:
-		double threshold;
-
 	public:
-		InterpolationAlgorithm(double threshold) { this->threshold = threshold; }
-
 		virtual void performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints) const = 0;
 };
 
 /**
  * @brief Incapsulate implementation of interpolation algorithm based on Akima spline
  **/
-class ModifyAkimaAlgorithm : public InterpolationAlgorithm {
+class ModifiedAkimaInterpolation : public InterpolationAlgorithmInterface {
+	protected:
+		double threshold;
+
 	public:
-		ModifyAkimaAlgorithm(double threshold)
-			: InterpolationAlgorithm(threshold) {}
+		ModifiedAkimaInterpolation(double _threshold) : threshold(_threshold) {}
 
 		void performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints) const;
 };
@@ -45,10 +42,12 @@ class ModifyAkimaAlgorithm : public InterpolationAlgorithm {
 /**
  * @brief Incapsulate implementation of interpolation algorithm based on cubic spline
  **/
-class ModifyCubicAlgorithm : public InterpolationAlgorithm {
+class ModifiedCubicInterpolation : public InterpolationAlgorithmInterface {
+	protected:
+		double threshold;
+
 	public:
-		ModifyCubicAlgorithm(double threshold)
-			: InterpolationAlgorithm(threshold) {}
+		ModifiedCubicInterpolation(double _threshold) : threshold(_threshold) {}
 
 		void performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints) const;
 };
