@@ -17,8 +17,7 @@ class ExecuteJointTrajectory : public ExecuteJointTrajectoryBase
 		ACTION_DEFINITION(control_msgs::FollowJointTrajectoryAction);	
 	protected:
 		// PROPERTIES
-		double setling_time;
-
+	
 	protected:
 		// ACTIONLIB:
 		// Simple action server

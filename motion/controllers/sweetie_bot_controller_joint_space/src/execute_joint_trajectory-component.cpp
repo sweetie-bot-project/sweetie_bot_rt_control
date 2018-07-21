@@ -203,8 +203,8 @@ void ExecuteJointTrajectory::operationalHook(bool on_target)
 			// execution is finihed
 			if (! resource_client->isPending()) resource_client->stopOperational();
 		}
-		else if ( time_from_start >= goal_active->getGoalTime() + setling_time ) {
-			// error is not into tolerance bounds and setling_time is elasped
+		else if ( goal_active->checkGoalTimeTolerance(time_from_start) > 0.0 ) {
+			// error is not into tolerance bounds and goal_time_tolerance is elasped
 			goal_result.error_code = Result::GOAL_TOLERANCE_VIOLATED;
 			goal_result.error_string = "Goal position error exceeds limit: " + actual_pose.name[invalid_joint_index];
 			action_server.abortActive(goal_result);
