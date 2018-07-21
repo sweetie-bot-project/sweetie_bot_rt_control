@@ -21,6 +21,22 @@ class InterpolationAlgorithmInterface {
 /**
  * @brief Incapsulate implementation of interpolation algorithm based on Akima spline
  **/
+class AkimaSplineInterpolation : public InterpolationAlgorithmInterface {
+	public:
+		void performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints) const;
+};
+
+/**
+ * @brief Incapsulate implementation of interpolation algorithm based on Akima spline
+ **/
+class CubicSplineInterpolation : public InterpolationAlgorithmInterface {
+	public:
+		void performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints) const;
+};
+
+/**
+ * @brief Incapsulate implementation of interpolation algorithm based on Akima spline
+ **/
 class ModifiedAkimaInterpolation : public InterpolationAlgorithmInterface {
 	protected:
 		double threshold;

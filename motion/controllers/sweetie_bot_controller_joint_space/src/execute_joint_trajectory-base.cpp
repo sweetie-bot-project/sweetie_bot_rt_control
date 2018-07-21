@@ -32,7 +32,8 @@ ExecuteJointTrajectoryBase::ExecuteJointTrajectoryBase(std::string const& name) 
 	this->addProperty("period", period)
 		.doc("Discretization period (s)");
 	std::ostringstream desc;
-	desc << "Type of algorithm wich will be use for interpolation: " << (int) ModifiedAkima << " -- modified Akima spline, " << (int) ModifiedCubic << " -- modified cubic spline.";
+	desc << "Type of algorithm wich will be use for interpolation: " << (int) ModifiedAkima << " -- modified Akima spline, " << (int) ModifiedCubic << " -- modified cubic spline, " 
+		<< (int) AkimaSpline << " -- Akima spline, " << (int) CubicSpline << " -- cubic spline.";
 	this->addProperty("algorithm", algorithm_type)
 		.doc(desc.str())
 		.set(InterpolationAlgorithmType::ModifiedAkima);

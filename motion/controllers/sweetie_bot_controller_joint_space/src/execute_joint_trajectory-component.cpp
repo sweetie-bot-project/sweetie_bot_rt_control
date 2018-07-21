@@ -54,6 +54,12 @@ void ExecuteJointTrajectory::newGoalHook(const Goal& pending_goal)
 		case ModifiedCubic:
 			goal_pending = std::make_shared<JointTrajectoryCache>(pending_goal, robot_model, ModifiedCubicInterpolation(stop_threshold)); 
 			break;
+		case CubicSpline:
+			goal_pending = std::make_shared<JointTrajectoryCache>(pending_goal, robot_model, CubicSplineInterpolation()); 
+			break;
+		case AkimaSpline:
+			goal_pending = std::make_shared<JointTrajectoryCache>(pending_goal, robot_model, AkimaSplineInterpolation()); 
+			break;
 		default:
 			log(ERROR) << "newGoalHook: Invalid interpolation algorithm type was selected" << endlog();
 			goal_result.error_code = Result::INVALID_GOAL;

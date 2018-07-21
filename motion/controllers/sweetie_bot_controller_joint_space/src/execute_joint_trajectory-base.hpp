@@ -33,8 +33,10 @@ class ExecuteJointTrajectoryBase : public RTT::TaskContext
 		 * @brief Enum for interpolation algorithm selection,
 		 */
 		enum InterpolationAlgorithmType {
-			ModifiedAkima = 0,
-			ModifiedCubic = 1,
+			ModifiedAkima,
+			ModifiedCubic,
+			CubicSpline,
+			AkimaSpline
 		};
 
 	protected:

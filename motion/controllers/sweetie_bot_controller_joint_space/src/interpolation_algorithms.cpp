@@ -6,6 +6,25 @@ namespace sweetie_bot {
 namespace motion {
 namespace controller {
 
+
+/**
+ * Akima spline interpolation.
+ **/
+void AkimaSplineInterpolation::performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints) const {
+	for(int joint = 0; joint < n_joints; joint++) {
+		alglib::spline1dbuildakima(t, joint_trajectory[joint], joint_splines[joint]);
+	}
+}
+
+/**
+ * Cubic spline interpolation.
+ **/
+void CubicSplineInterpolation::performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, double n_samples, std::vector<JointSpline>& joint_splines, double n_joints) const {
+	for(int joint = 0; joint < n_joints; joint++) {
+		alglib::spline1dbuildcubic(t, joint_trajectory[joint], n_samples, 1, 0.0, 1, 0.0, joint_splines[joint]);
+	}
+}
+
 /**
  * Implements algorithm for spline interpolation based on Akima spline
  **/
