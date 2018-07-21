@@ -37,37 +37,37 @@ void ModifiedAkimaInterpolation::performInterpolation(const alglib::real_1d_arra
 	int n_joints = joint_trajectory.size();
 	int n_samples = t.length();
 
-
-	alglib::spline1dinterpolant akima_tmp_spline;
-	alglib::real_1d_array d;
-	d.setlength(n_samples);
+	alglib::spline1dinterpolant tmp_spline;
+	alglib::real_1d_array derivative;
+	derivative.setlength(n_samples);
 	joint_splines.resize(n_joints);
 	for(int joint = 0; joint < n_joints; joint++) {
 		//
 		// Build custom akima spline with zero velocity at edge points
 		// In order to do this calculate derivatives from simple akima spline in each interpolation point
 		//
-		alglib::spline1dbuildakima(t, joint_trajectory[joint], akima_tmp_spline);
+		alglib::spline1dbuildakima(t, joint_trajectory[joint], tmp_spline);
 
 		// While calculating derivatives detect almost equal internal stop points 
-		for (int i = 0; i < (n_samples - 1); i++) {
+		for (int i = 1; i < (n_samples - 1); i++) {
 			// Detect internal stop points with use of selected threshold
-			if (abs(joint_trajectory[joint][i + 1] - joint_trajectory[joint][i]) <= this->threshold) {
+			if (std::abs(joint_trajectory[joint][i + 1] - joint_trajectory[joint][i]) <= this->threshold) {
 				// For detected points derivative (velocity) will be zero
-				d[i] = 0.0;
-				d[i + 1] = 0.0;
+				derivative[i] = 0.0;
+				derivative[i + 1] = 0.0;
+				i++; // skip (i+1) sample because its speed is zero
 			} else {
 				double unused;
-				alglib::spline1ddiff(akima_tmp_spline, t[i], unused, d[i], unused);
+				alglib::spline1ddiff(tmp_spline, t[i], unused, derivative[i], unused);
 			}
 		}
 
 		// Set up first and last point to 0 velocity in order to avoid an outliers at the edges of trajectory
-		d[0] = 0.0;
-		d[n_samples - 1] = 0.0;
+		derivative[0] = 0.0;
+		derivative[n_samples - 1] = 0.0;
 
 		// Putting it all together with use of hermite spline building function
-		alglib::spline1dbuildhermite(t, joint_trajectory[joint], d, joint_splines[joint]);
+		alglib::spline1dbuildhermite(t, joint_trajectory[joint], derivative, joint_splines[joint]);
 	}
 }
 
@@ -89,6 +89,7 @@ void ModifiedCubicInterpolation::performInterpolation(const alglib::real_1d_arra
 	alglib_impl::ae_state _aeState;
 
 	// Initialize variables
+	joint_splines.resize(n_joints);
 	_x.setlength(n_samples);
 	_y.setlength(n_samples);
 	alglib_impl::ae_state_init(&_aeState);
