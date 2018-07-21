@@ -35,7 +35,7 @@ ExecuteJointTrajectoryBase::ExecuteJointTrajectoryBase(std::string const& name) 
 	desc << "Type of algorithm wich will be use for interpolation: " << (int) ModifiedAkima << " -- modified Akima spline, " << (int) ModifiedCubic << " -- modified cubic spline.";
 	this->addProperty("algorithm", algorithm_type)
 		.doc(desc.str())
-		.set(controller::ModifiedAkima);
+		.set(InterpolationAlgorithmType::ModifiedAkima);
 	this->addProperty("stop_threshold", stop_threshold)
 		.doc("If joints positions difference is less then threshold (rad) they assumed to be equal.")
 		.set(0.0005);

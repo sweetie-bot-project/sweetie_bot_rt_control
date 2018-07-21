@@ -29,6 +29,13 @@ class ExecuteJointTrajectoryBase : public RTT::TaskContext
 		typedef sensor_msgs::JointState JointState;
 		typedef control_msgs::FollowJointTrajectoryGoal FollowJointTrajectoryGoal;
 		typedef sweetie_bot_kinematics_msgs::SupportState SupportState;
+		/*
+		 * @brief Enum for interpolation algorithm selection,
+		 */
+		enum InterpolationAlgorithmType {
+			ModifiedAkima = 0,
+			ModifiedCubic = 1,
+		};
 
 	protected:
 		// COMPONENT INTERFACE

@@ -7,14 +7,6 @@ namespace sweetie_bot {
 namespace motion {
 namespace controller {
 
-/*
- * @brief Enum for separate algorithm types
- */
-enum InterpolationAlgorithmType {
-	ModifiedAkima = 0,
-	ModifiedCubic = 1,
-};
-
 /**
  * @brief Providing interface to select algorithm
  **/
