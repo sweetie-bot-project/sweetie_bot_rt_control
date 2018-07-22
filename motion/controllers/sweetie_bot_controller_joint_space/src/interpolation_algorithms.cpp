@@ -10,9 +10,7 @@ namespace controller {
 /**
  * Akima spline interpolation.
  **/
-void AkimaSplineInterpolation::performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, std::vector<alglib::spline1dinterpolant>& joint_splines) const {
-	int n_joints = joint_trajectory.size();
-	joint_splines.resize(n_joints);
+void AkimaSplineInterpolation::performInterpolation(const alglib::real_1d_array& t, const alglib::real_1d_array * joint_trajectory, alglib::spline1dinterpolant * joint_splines, int n_joints) const {
 	for(int joint = 0; joint < n_joints; joint++) {
 		alglib::spline1dbuildakima(t, joint_trajectory[joint], joint_splines[joint]);
 	}
@@ -21,10 +19,8 @@ void AkimaSplineInterpolation::performInterpolation(const alglib::real_1d_array&
 /**
  * Cubic spline interpolation.
  **/
-void CubicSplineInterpolation::performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, std::vector<alglib::spline1dinterpolant>& joint_splines) const {
-	int n_joints = joint_trajectory.size();
+void CubicSplineInterpolation::performInterpolation(const alglib::real_1d_array& t, const alglib::real_1d_array * joint_trajectory, alglib::spline1dinterpolant * joint_splines, int n_joints) const {
 	int n_samples = t.length();
-	joint_splines.resize(n_joints);
 	for(int joint = 0; joint < n_joints; joint++) {
 		alglib::spline1dbuildcubic(t, joint_trajectory[joint], n_samples, 1, 0.0, 1, 0.0, joint_splines[joint]);
 	}
@@ -33,14 +29,12 @@ void CubicSplineInterpolation::performInterpolation(const alglib::real_1d_array&
 /**
  * Implements algorithm for spline interpolation based on Akima spline
  **/
-void ModifiedAkimaInterpolation::performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, std::vector<alglib::spline1dinterpolant>& joint_splines) const {
-	int n_joints = joint_trajectory.size();
+void ModifiedAkimaInterpolation::performInterpolation(const alglib::real_1d_array& t, const alglib::real_1d_array * joint_trajectory, alglib::spline1dinterpolant * joint_splines, int n_joints) const {
 	int n_samples = t.length();
 
 	alglib::spline1dinterpolant tmp_spline;
 	alglib::real_1d_array derivative;
 	derivative.setlength(n_samples);
-	joint_splines.resize(n_joints);
 	for(int joint = 0; joint < n_joints; joint++) {
 		//
 		// Build custom akima spline with zero velocity at edge points
@@ -74,8 +68,7 @@ void ModifiedAkimaInterpolation::performInterpolation(const alglib::real_1d_arra
 /**
  * Implements algorithm for spline interpolation based on cubic
  **/
-void ModifiedCubicInterpolation::performInterpolation(const alglib::real_1d_array& t, const std::vector<alglib::real_1d_array>& joint_trajectory, std::vector<alglib::spline1dinterpolant>& joint_splines) const {
-	int n_joints = joint_trajectory.size();
+void ModifiedCubicInterpolation::performInterpolation(const alglib::real_1d_array& t, const alglib::real_1d_array * joint_trajectory, alglib::spline1dinterpolant * joint_splines, int n_joints) const {
 	int n_samples = t.length();
 
 	int len, i, j, kk;
@@ -89,7 +82,6 @@ void ModifiedCubicInterpolation::performInterpolation(const alglib::real_1d_arra
 	alglib_impl::ae_state _aeState;
 
 	// Initialize variables
-	joint_splines.resize(n_joints);
 	_x.setlength(n_samples);
 	_y.setlength(n_samples);
 	alglib_impl::ae_state_init(&_aeState);

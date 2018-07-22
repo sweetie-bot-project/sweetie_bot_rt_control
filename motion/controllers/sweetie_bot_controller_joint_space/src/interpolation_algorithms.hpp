@@ -17,13 +17,16 @@ class InterpolationAlgorithmInterface {
 
 	public:
 		/**
-		 * @brief Construct alglib::spline1dinterpolant for given trajectories.
+		 * @brief Perform spline enterpolation for a set of points' arrays of same size.
+		 *
 		 * Functions does not checks lenghts of points arrays! Size of @a t and arrays in @points must be equal.
-		 * @param t time alglib::real_1d_array, may be unsorted.
-		 * @param points vector of alglib::real_1d_array trajectory points.
-		 * @param splines vector of result splines it is resized according to @a points size.
+		 * Null poinaters are not checked.
+		 * @param t time @c alglib::real_1d_array.
+		 * @param trajectoties the pointer to the array of alglib::real_1d_array arrays of points. There maust be at least @a n @c alglib::real_1d_array arrays.
+		 * @param splines the pointer to result splines array. Its length must be not less tnen @a n.
+		 * @param n_trajectories number of points' arrays.
 		 */
-		virtual void performInterpolation(const real_1d_array& t, const std::vector<real_1d_array>& points, std::vector<spline1dinterpolant>& splines) const = 0;
+		virtual void performInterpolation(const real_1d_array& t, const real_1d_array * trajectoties, spline1dinterpolant * splines, int n_trajectories) const = 0;
 };
 
 /**
@@ -31,7 +34,7 @@ class InterpolationAlgorithmInterface {
  **/
 class AkimaSplineInterpolation : public InterpolationAlgorithmInterface {
 	public:
-		void performInterpolation(const real_1d_array& t, const std::vector<real_1d_array>& joint_trajectory, std::vector<spline1dinterpolant>& joint_splines) const;
+		void performInterpolation(const real_1d_array& t, const real_1d_array * trajectoties, spline1dinterpolant * splines, int n_trajectories) const;
 };
 
 /**
@@ -39,7 +42,7 @@ class AkimaSplineInterpolation : public InterpolationAlgorithmInterface {
  **/
 class CubicSplineInterpolation : public InterpolationAlgorithmInterface {
 	public:
-		void performInterpolation(const real_1d_array& t, const std::vector<real_1d_array>& joint_trajectory, std::vector<spline1dinterpolant>& joint_splines) const;
+		void performInterpolation(const real_1d_array& t, const real_1d_array * trajectoties, spline1dinterpolant * splines, int n_trajectories) const;
 };
 
 /**
@@ -52,7 +55,7 @@ class ModifiedAkimaInterpolation : public InterpolationAlgorithmInterface {
 	public:
 		ModifiedAkimaInterpolation(double _threshold) : threshold(_threshold) {}
 
-		void performInterpolation(const real_1d_array& t, const std::vector<real_1d_array>& joint_trajectory, std::vector<spline1dinterpolant>& joint_splines) const;
+		void performInterpolation(const real_1d_array& t, const real_1d_array * trajectoties, spline1dinterpolant * splines, int n_trajectories) const;
 };
 
 /**
@@ -65,7 +68,7 @@ class ModifiedCubicInterpolation : public InterpolationAlgorithmInterface {
 	public:
 		ModifiedCubicInterpolation(double _threshold) : threshold(_threshold) {}
 
-		void performInterpolation(const real_1d_array& t, const std::vector<real_1d_array>& joint_trajectory, std::vector<spline1dinterpolant>& joint_splines) const;
+		void performInterpolation(const real_1d_array& t, const real_1d_array * trajectoties, spline1dinterpolant * splines, int n_trajectories) const;
 };
 
 } // namespace controller
