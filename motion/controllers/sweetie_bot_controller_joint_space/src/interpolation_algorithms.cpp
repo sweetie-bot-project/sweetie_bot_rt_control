@@ -1,6 +1,7 @@
 #include "interpolation_algorithms.hpp"
 
 #include <rtt/RTT.hpp>
+#include <iostream>
 
 namespace sweetie_bot {
 namespace motion {
@@ -43,13 +44,12 @@ void ModifiedAkimaInterpolation::performInterpolation(const alglib::real_1d_arra
 		alglib::spline1dbuildakima(t, joint_trajectory[joint], tmp_spline);
 
 		// While calculating derivatives detect almost equal internal stop points 
-		for (int i = 1; i < (n_samples - 1); i++) {
+		for (int i = 1; i < n_samples; i++) {
 			// Detect internal stop points with use of selected threshold
-			if (std::abs(joint_trajectory[joint][i + 1] - joint_trajectory[joint][i]) <= this->threshold) {
+			if (std::abs(joint_trajectory[joint][i - 1] - joint_trajectory[joint][i]) <= this->threshold) {
 				// For detected points derivative (velocity) will be zero
+				derivative[i - 1] = 0.0;
 				derivative[i] = 0.0;
-				derivative[i + 1] = 0.0;
-				i++; // skip (i+1) sample because its speed is zero
 			} else {
 				double unused;
 				alglib::spline1ddiff(tmp_spline, t[i], unused, derivative[i], unused);
