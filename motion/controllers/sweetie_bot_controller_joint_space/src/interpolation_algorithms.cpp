@@ -1,7 +1,6 @@
 #include "interpolation_algorithms.hpp"
 
 #include <rtt/RTT.hpp>
-#include <iostream>
 
 namespace sweetie_bot {
 namespace motion {

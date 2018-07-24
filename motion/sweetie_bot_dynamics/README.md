@@ -34,6 +34,7 @@ Also it converts `JointStateAccel` messages to `JointState`.
 
 * `joint_state_accel` (`JointStateAccel`) --- joints state with acceleration from dynamics component.
 * `wrenches` (`RigidBodyState`) --- kinematics chains end links state and reaction forces (world frame).
+* `base` (`RigidBodyState`) --- robot body pose, twist and sum of external force (word frame).
 * `supports` (`SupportState`) --- active contacts.
 * `balance` (`BalanceState`) --- information about robot balance.
 
