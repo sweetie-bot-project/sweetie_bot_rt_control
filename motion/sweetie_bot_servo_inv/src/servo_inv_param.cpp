@@ -157,7 +157,7 @@ void ServoInvParam::updateHook() {
 				servo_models.push_back(model);
 				// update index
 				if (isValidJointStateAccelNamePosVelAccelEffort(joints), servo_model_index.size()) {
-					// find joint
+					// find joint: find corresponding model in JoinState
 					auto joint_it = std::find(joints.name.begin(), joints.name.end(), model.name);
 					if (joint_it != joints.name.end()) {
 						// update index

@@ -252,7 +252,8 @@ bool FollowStance::configureHook_impl()
 bool FollowStance::startHook_impl()
 {
 	ik_success = true;
-	activation_delay_counter = activation_delay;
+	if (!pose_feedback) activation_delay_counter = activation_delay;
+	else activation_delay_counter = 0;
 
 	// data samples
 	in_base_port.getDataSample(base);
