@@ -84,7 +84,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 			this->addProperty("chains", chains_prop_)
 				.doc("Joint groups (kinematics chains) descriptions (PropertyBag). Format: \n"
 					 "\t\t\t{\n"
-					 "\t\t\t    PropertyBag chain_name1 { string first_link, string last_link, string default_contact },\n"
+					 "\t\t\t    PropertyBag chain_name1 { string first_link, string last_link, string las_link_virtual, string default_contact },\n"
 					 "\t\t\t    PropertyBag chain_name2 { ... }\n"
 					 "\t\t\t    ...\n"
 					 "\t\t\t}");

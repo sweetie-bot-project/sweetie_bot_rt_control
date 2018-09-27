@@ -34,7 +34,7 @@ namespace controller {
 		bool configureHook_impl();
 		bool processResourceSet_impl(const std::vector<std::string>& resource_set, std::vector<std::string>& desired_resource_set);
 		bool startHook_impl();
-		bool resourceChangedHook_impl(const std::vector<std::string>& desired_resource_set, const std::vector<std::string>& acquired_resource_set);
+		bool resourceChangedHook_impl(const std::vector<std::string>& desired_resource_set);
 		void updateHook_impl();
 		void stopHook_impl();
 		void cleanupHook_impl();
@@ -112,7 +112,7 @@ class SimpleControllerBase : public RTT::TaskContext
 		 * conditions and the actual resource set to request should be assigned to @a desired_resource_set.
 		 *
 		 * @param goal_resource_set A resource from SetOperationalGoal messages. start() operation uses default value from `kinematic_chains` property.
-		 * @param desired_resource_set Resource set which should be requested. Usually 
+		 * @param desired_resource_set Resource set which should be requested. Usually it is equal to goal_resource_set, but component may change it.
 		 * @return true if goal_resource_set set is acceptible for component.
 		 **/
 		virtual bool processResourceSet_impl(const std::vector<std::string>& goal_resource_set, std::vector<std::string>& desired_resource_set);
