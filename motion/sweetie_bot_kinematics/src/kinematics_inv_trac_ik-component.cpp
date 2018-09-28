@@ -97,8 +97,9 @@ bool KinematicsInvTracIK::configureHook()
 		// solvers
 		// instantaneous IK initialization
 		data.ik_vel_solver = make_shared<KDL::ChainIkSolverVel_pinv>(chain, eps_vel_, max_iterations_);
-		// IK initialization
+		// IK initialization 
 		data.ik_solver = getIKSolver(name, chain);
+		if (!data.ik_solver) return false;
 		// save data
 		chain_data_.push_back(data);
 	};

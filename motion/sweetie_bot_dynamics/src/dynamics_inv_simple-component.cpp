@@ -79,7 +79,7 @@ bool DynamicsInvSimple::configureHook()
 		<< " q_size: " << rbdl_model.q_size << "qdot_size: " << rbdl_model.qdot_size << endlog();
 
 	unsigned int rdbl_q_index = 0;
-	// floating base is modelled with to joints. Check it!
+	// floating base is modeled with to joints. Check it!
 	if (rbdl_model.mJoints.size() <= 1 || rbdl_model.mBodies.size() <= 2) {
         log(ERROR) << "Model contains not enough movable bodies to have floating platform." << endlog();
 		return false;
