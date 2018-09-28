@@ -35,19 +35,46 @@ ServoInvLead::ServoInvLead(std::string const& name) :
 	this->addProperty("lead", lead)
 		.doc("Goal position lead in seconds. Goal position is equal desired position plus desired velocity multiplied by lead.")
 		.set(0.0112);
+	this->addProperty("gear_joints", gear_joints)
+		.doc("Names of joints with equiped with reductor gear.");
+	this->addProperty("gear_ratios", gear_ratios)
+		.doc("Gear ratios for joints listed in gear_joints property. Arrays must have the same sizes. gear_ratio = torque_out/troque_in.");
+}
+
+bool ServoInvLead::processJointStateSample(const sensor_msgs::JointState& joints) 
+{
+	// allocate memory
+	position_perv.clear();
+	position_perv.reserve(joints.name.size());
+	// prepare transmit buffer
+	goals.name = joints.name;
+	goals.target_pos.resize(joints.name.size());
+	goals.playtime.assign(joints.name.size(), period + lead);
+	// set default gear ratios
+	gear_ratio_array.assign(joints.name.size(), 1.0);
+	// check if gear properties are correct
+	if (gear_joints.size() != gear_ratios.size()) {
+		log(ERROR) << "gear_joints and gear_ratios properties must have the same size." << endlog();
+		return false;
+	}
+	// assign gear ratios
+	for(int i = 0; i < gear_joints.size(); i++) {
+		auto it = std::find(joints.name.begin(), joints.name.end(), gear_joints[i]);
+		if (it != joints.name.end()) {
+			gear_ratio_array[it - joints.name.begin()] = gear_ratios[i];
+		}
+	}
+	return true;
 }
 
 bool ServoInvLead::startHook()
 {
 	joints_port.getDataSample(joints);
 
-	position_perv.clear();
-	position_perv.reserve(joints.name.size());
+	// create gear ratio array
+	if (!processJointStateSample(joints)) return false;
 
-	goals.name.resize(joints.name.size());
-	goals.target_pos.resize(joints.name.size());
-	goals.playtime.assign(joints.name.size(), period + lead);
-
+	// provide data sample
 	goals_port.setDataSample(goals);
 
 	RTT::os::Timer::TimerId timer_id;
@@ -73,14 +100,19 @@ void ServoInvLead::updateHook()
 			log(WARN) << "goal message has incorrect structure." << endlog();
 			return;
 		}
-		
-		goals.name = joints.name;
+	
+		// check if array size has changed
+		// we does not check name content: due to fixed requipment it should be always the same.
+		if (njoints != goals.name.size()) {
+			processJointStateSample(joints);
+			log(WARN) << "Size of the in_joints port message has changed." << endlog();
+		}
 
 		if (position_perv.size() == njoints) {
 			// take defined lead
 			goals.target_pos.resize(njoints);
 			for(unsigned int i = 0; i < njoints; i++) {
-				goals.target_pos[i] = joints.position[i] + (joints.position[i] - position_perv[i]) * lead / period;
+				goals.target_pos[i] = gear_ratio_array[i] * (joints.position[i] + (joints.position[i] - position_perv[i]) * lead / period);
 			}
 			goals.playtime.assign(njoints, period + lead);
 		}
