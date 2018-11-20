@@ -1,5 +1,8 @@
 #include "kinematics_inv_trac_ik-component.hpp"
 
+#include <cmath>
+#include <algorithm>
+
 #include <rtt/Component.hpp>
 
 #include <kdl/chainiksolvervel_pinv.hpp>
@@ -214,6 +217,9 @@ bool KinematicsInvTracIK::poseToJointState_impl(const sweetie_bot_kinematics_msg
 			this->log(DEBUG) << "IK failed with error code: " << ret <<endlog();
 			return false;
 		}
+		// fix trak_ik bug: map angles to [-pi, pi] interval. TODO: bug report.
+		std::for_each( chain_it->jnt_array_pose.data.data(), chain_it->jnt_array_pose.data.data() + chain_it->size, [](double & angle) { return std::fmod(angle, M_PI); } );
+
 		// use computed pose as new seed
 		if (use_ik_pose_as_new_seed_) chain_it->jnt_array_seed_pose = chain_it->jnt_array_pose;
 
