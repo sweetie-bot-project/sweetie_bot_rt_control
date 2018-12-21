@@ -16,7 +16,7 @@
   <!-- ROS and OROCOS packages -->
   <depend>rtt</depend>
   <depend>rtt_ros</depend>
-  <depend>orocos-kdl</depend>
+  <depend>orocos_kdl</depend>
   <depend>kdl_parser</depend>
   <depend>kdl_typekit</depend>
   <!-- ROS and OROCOS datatypes -->
