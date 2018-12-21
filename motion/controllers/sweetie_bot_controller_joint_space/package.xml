@@ -11,6 +11,8 @@
 
   <author>Oleg Goncharov (disRecord)</author>
 
+  <build_depend>libalglib-dev</build_depend>
+
   <!-- ROS and OROCOS packages -->
   <depend>rtt</depend>
   <depend>actionlib</depend>
