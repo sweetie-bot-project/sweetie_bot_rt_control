@@ -18,6 +18,7 @@
   <depend>orocos_kdl</depend>
   <depend>kdl_conversions</depend>
   <!-- ROS and OROCOS datatypes -->
+  <depend>rtt_control_msgs</depend>
   <depend>rtt_tf2_msgs</depend>
   <!-- SWEETIEBOT packages -->
   <depend>sweetie_bot_logger</depend>
