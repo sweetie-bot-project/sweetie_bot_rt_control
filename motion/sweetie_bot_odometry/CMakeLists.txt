@@ -38,7 +38,7 @@ include_directories(${catkin_INCLUDE_DIRS})
 # Note that orocos_use_package() does not need to be called for any dependency
 # listed in the package.xml file
 orocos_use_package(orocos_kdl REQUIRED)
-include_directories(${USE_OROCOS_INCLUDE_DIRS})
+include_directories(SYSTEM ${USE_OROCOS_INCLUDE_DIRS})
 
 ### Orocos Targets ###
 

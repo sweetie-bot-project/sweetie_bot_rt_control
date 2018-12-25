@@ -48,7 +48,7 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${alglib_INCLUDE_DIR})
 ### Orocos Dependencies ###
 # Note that orocos_use_package() does not need to be called for any dependency
 # listed in the package.xml file
-include_directories(${USE_OROCOS_INCLUDE_DIRS})
+include_directories(SYSTEM ${USE_OROCOS_INCLUDE_DIRS})
 
 ### Orocos Targets ###
 
