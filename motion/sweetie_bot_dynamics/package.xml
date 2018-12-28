@@ -20,6 +20,7 @@
   <depend>orocos_kdl</depend>
   <depend>eigen_conversions</depend>
   <depend>kdl_conversions</depend>
+  <depend>tf_conversions</depend>
   <!-- ROS and OROCOS datatypes -->
   <depend>sensor_msgs</depend>
   <depend>rtt_sensor_msgs</depend>
