@@ -26,8 +26,9 @@ else()
 endif()
 
 ### General dependencies ###
-#find_package(Boost REQUIRED COMPONENTS graph filesystem system thread regex)
 find_package(Boost REQUIRED COMPONENTS thread) # Fix for xenial linking problems with Boost
+find_package(Eigen3 REQUIRED)
+include_directories("${EIGEN3_INCLUDE_DIR}")
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
