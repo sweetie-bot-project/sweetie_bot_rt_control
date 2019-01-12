@@ -146,7 +146,7 @@ class JointTrajectoryCache
 		/**
 		 * @brief Get supports' state to buffer of proper size.
 		 * Method does not check message
-		 * @param joints Support state buffer receiving new state
+		 * @param support Support state buffer receiving new state
 		 * @param t time in seconds from begining of movement.
 		 **/
 		void getSupportState(double t, SupportState& support) const;
