@@ -90,10 +90,17 @@ bool Odometry::configureHook()
 	body_pose.frame.resize(1);
 	body_pose.twist.resize(1);
 	body_pose.name[0] = "base_link";
-	body_tf.transforms.resize(1);
+	body_tf.transforms.resize(2);
 	body_tf.transforms[0].header.frame_id = odometry_frame;
-	if (base_link_tf_prefix != "") body_tf.transforms[0].child_frame_id = base_link_tf_prefix + "/base_link";
-	else body_tf.transforms[0].child_frame_id = "base_link";
+	body_tf.transforms[1].header.frame_id = odometry_frame;
+	if (base_link_tf_prefix != "") {
+		body_tf.transforms[0].child_frame_id = base_link_tf_prefix + "/base_link";
+		body_tf.transforms[1].child_frame_id = base_link_tf_prefix + "/base_link_path";
+	}
+	else {
+		body_tf.transforms[0].child_frame_id = "base_link";
+		body_tf.transforms[1].child_frame_id = "base_link_path";
+	}
 	// body_twist.header.frame_id = odometry_frame;
 	// initialization is finished
 	log(INFO) << "Odometry configured !" << endlog();
@@ -454,11 +461,20 @@ void Odometry::updateHook()
 	// RigidBodyState message
 	body_pose.header.stamp = stamp;
 	body_port.write(body_pose);
-	// tf message
+
+	// tf message: base_link frame
 	body_tf.transforms[0].header.stamp = stamp;
 	tf::transformKDLToMsg(body_pose.frame[0], body_tf.transforms[0].transform);
 	// fix for incorrect kdl::Rotation::GetQuaternion conversation
 	normalizeQuaternionMsg(body_tf.transforms[0].transform.rotation);
+	// tf message: base_link path frame
+	body_tf.transforms[1].header.stamp = stamp;
+	body_tf.transforms[1].transform = body_tf.transforms[0].transform;
+	body_tf.transforms[1].transform.translation.z = 0.0; 
+	body_tf.transforms[1].transform.rotation.x = 0.0;
+	body_tf.transforms[1].transform.rotation.y = 0.0;
+	normalizeQuaternionMsg(body_tf.transforms[1].transform.rotation);	
+	// publish tf
 	tf_port.write(body_tf);
 	// twist message
 	/*body_twist.header.stamp = stamp;
