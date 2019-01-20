@@ -12,6 +12,7 @@ static double angularDistance(const KDL::Rotation& rot, const geometry_msgs::Qua
 {
 	Eigen::Quaterniond w1;
 	rot.GetQuaternion(w1.x(), w1.y(), w1.z(), w1.w());
+	w1.normalize();  // fix for incorrect kdl::Rotation::GetQuaternion conversation
 	Eigen::Quaterniond w2(quat.x, quat.y, quat.z, quat.w);
 	w2.normalize();
 	return abs(w1.angularDistance(w2));
@@ -21,7 +22,9 @@ static double angularDistance(const KDL::Rotation& rot1, const KDL::Rotation& ro
 {
 	Eigen::Quaterniond w1, w2;
 	rot1.GetQuaternion(w1.x(), w1.y(), w1.z(), w1.w());
+	w1.normalize(); // fix for incorrect kdl::Rotation::GetQuaternion conversation
 	rot2.GetQuaternion(w2.x(), w2.y(), w2.z(), w2.w());
+	w2.normalize(); // fix for incorrect kdl::Rotation::GetQuaternion conversation
 	return w1.angularDistance(w2);
 }
 
