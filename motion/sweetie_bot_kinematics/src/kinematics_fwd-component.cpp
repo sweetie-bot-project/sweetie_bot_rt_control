@@ -49,11 +49,13 @@ bool KinematicsFwd::configureHook()
 	chain_data.clear();
 	limbs.name.clear();
 	for(auto &name: chain_names) {
-		KinematicChainData data;
-		// add information about chain
+		// add new data structure
+		chain_data.emplace_back();
+		KinematicChainData& data = chain_data.back();
+		// set information about chain
 		// get kinematic chain
-		Chain chain = robot_model->getKDLChain(name, virtual_links);  // if virtual_links is true receive chain with virtual links
-		if (chain.segments.size() == 0) {
+		data.chain = make_shared<KDL::Chain>( robot_model->getKDLChain(name, virtual_links) );  // if virtual_links is true receive chain with virtual links
+		if (data.chain->getNrOfSegments() == 0) {
 			this->log(ERROR) << "Kinematic chain " << name << " does not exist." << endlog();
 			return false;
 		}
@@ -63,13 +65,9 @@ bool KinematicsFwd::configureHook()
 		//TODO remove redundancy
 		vector<string> chain_joints = robot_model->listJoints(name); // contains fictive joints
 		data.index_begin = robot_model->getJointIndex(chain_joints.front());
-		data.size = chain.getNrOfJoints(); // some joints can be fictive!
-		data.jnt_array_vel.resize(data.size);
+		data.jnt_array_vel.resize(data.chain->getNrOfJoints()); // some joints can be fictive!
 		// solvers
-		// data.fk_solver = make_shared<ChainFkSolverPos_recursive>(chain);
-		data.fk_vel_solver = make_shared<ChainFkSolverVel_recursive>(chain);
-		// save data
-		chain_data.push_back(data);
+		data.fk_vel_solver = make_shared<ChainFkSolverVel_recursive>(*data.chain);
 		// add chain to output list buffer
 		limbs.name.push_back(name);
 	};
@@ -104,9 +102,9 @@ void KinematicsFwd::updateHook()
 		for (k = 0; k < chain_data.size(); k++ ) {
 			KinematicChainData& data = chain_data[k];
 			// get chain pose in joint space
-			data.jnt_array_vel.q.data = Eigen::VectorXd::Map( &joints.position[data.index_begin], data.size );
+			data.jnt_array_vel.q.data = Eigen::VectorXd::Map( &joints.position[data.index_begin], data.chain->getNrOfJoints() );
 			if ( joints.velocity.size() != 0 ) {
-				data.jnt_array_vel.qdot.data = Eigen::VectorXd::Map( &joints.velocity[data.index_begin], data.size );
+				data.jnt_array_vel.qdot.data = Eigen::VectorXd::Map( &joints.velocity[data.index_begin], data.chain->getNrOfJoints() );
 			} 
 			else {
 				KDL::SetToZero(data.jnt_array_vel.qdot);
@@ -115,7 +113,7 @@ void KinematicsFwd::updateHook()
 			KDL::FrameVel frame_vel;
 			int ret = data.fk_vel_solver->JntToCart(data.jnt_array_vel, frame_vel);
 			if (ret < 0){
-				this->log(ERROR) << "ForwardKinematics returned = " << ret << " for chain " << data.name  << endlog();
+				this->log(ERROR) << "ForwardKinematics returned = " << ret << " for chain " << data.name << endlog();
 				continue;
 			}
 			// fill message

@@ -87,21 +87,21 @@ bool KinematicsInvTracIK::configureHook()
 			return false;
 		}
 		// get kdl_chain
-		Chain chain = robot_model_->getKDLChain(name, true); // we need real and virtual joints
+		data.chain = make_shared<KDL::Chain>( robot_model_->getKDLChain(name, true) ); // we need real and virtual joints
 
 		data.name = name;
 		//joint induces
 		data.joint_names = robot_model_->listJoints(name); // contains fictive joints
 		data.index_begin = robot_model_->getJointIndex(data.joint_names.front());
-		data.size = chain.getNrOfJoints(); // some joints can be fictive!
+		data.size = data.chain->getNrOfJoints(); // some joints can be fictive!
 		data.jnt_array_pose.resize(data.size);
 		data.jnt_array_vel.resize(data.size);
 		data.jnt_array_seed_pose.resize(data.size);
 		// solvers
 		// instantaneous IK initialization
-		data.ik_vel_solver = make_shared<KDL::ChainIkSolverVel_pinv>(chain, eps_vel_, max_iterations_);
+		data.ik_vel_solver = make_shared<KDL::ChainIkSolverVel_pinv>(*data.chain, eps_vel_, max_iterations_);
 		// IK initialization 
-		data.ik_solver = getIKSolver(name, chain);
+		data.ik_solver = getIKSolver(name, *data.chain);
 		if (!data.ik_solver) return false;
 		// save data
 		chain_data_.push_back(data);
