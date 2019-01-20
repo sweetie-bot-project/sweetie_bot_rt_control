@@ -30,8 +30,8 @@ class KinematicsFwd : public RTT::TaskContext
 		struct KinematicChainData {
 			string name; /**< Kinematic chain name */
 			int index_begin; /**< Index of first joint in chain */
-			shared_ptr<KDL::Chain> chain; /**< Kinematic chain. KDL 1.4 FKSolvers store reference to KDL::Chain so Chain object must not change memory location. */
-			shared_ptr<KDL::ChainFkSolverVel_recursive> fk_vel_solver; /**< FK solver */
+			unique_ptr<KDL::Chain> chain; /**< Kinematic chain. KDL 1.4 FKSolvers store reference to KDL::Chain so Chain object must not change memory location. */
+			unique_ptr<KDL::ChainFkSolverVel_recursive> fk_vel_solver; /**< FK solver */
 			KDL::JntArrayVel jnt_array_vel; /**< buffer */
 		};
 
