@@ -54,7 +54,7 @@ bool KinematicsFwd::configureHook()
 		KinematicChainData& data = chain_data.back();
 		// set information about chain
 		// get kinematic chain
-		data.chain = unique_ptr<KDL::Chain>(new KDL::Chain(robot_model->getKDLChain(name, virtual_links)));  // if virtual_links is true receive chain with virtual links
+		data.chain.reset( new KDL::Chain(robot_model->getKDLChain(name, virtual_links)) );  // if virtual_links is true receive chain with virtual links
 		if (data.chain->getNrOfSegments() == 0) {
 			this->log(ERROR) << "Kinematic chain " << name << " does not exist." << endlog();
 			return false;
@@ -67,7 +67,7 @@ bool KinematicsFwd::configureHook()
 		data.index_begin = robot_model->getJointIndex(chain_joints.front());
 		data.jnt_array_vel.resize(data.chain->getNrOfJoints()); // some joints can be fictive!
 		// solvers
-		data.fk_vel_solver = unique_ptr<ChainFkSolverVel_recursive>(new ChainFkSolverVel_recursive(*data.chain));
+		data.fk_vel_solver.reset( new ChainFkSolverVel_recursive(*data.chain) );
 		// add chain to output list buffer
 		limbs.name.push_back(name);
 	};
