@@ -348,11 +348,15 @@ class DynamicsVisualizer
 			marker_lines.scale.x = point_size_param/2; marker_lines.scale.y = 0.0; marker_lines.scale.z = 0.0;
 			marker_lines.color = GREEN;
 			
-			// use balance message to display CoP and CoM
+			// use balance message to display CoP, ZMP and CoM
 			// contact are assumed to be positioned in z = 0 plane
 			// CoP (z = 0)
 			marker_zmp.points.emplace_back(); 
 			tf::pointKDLToMsg(balance.CoP, marker_zmp.points.back());
+			marker_zmp.colors.push_back(GREEN);
+			// ZMP (z = 0)
+			marker_zmp.points.emplace_back();
+			tf::pointKDLToMsg(balance.ZMP, marker_zmp.points.back());
 			marker_zmp.colors.push_back(MAGENTA);
 			// CoM projection (z = 0)
 			marker_zmp.points.emplace_back(); 

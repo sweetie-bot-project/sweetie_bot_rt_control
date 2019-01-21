@@ -458,7 +458,7 @@ void DynamicsInvSimple::publishStateToPorts()
 		//Utils::CalcCenterOfMass(rbdl_model, Q, QDot, balance.mass, CoM, nullptr, nullptr, false);
 		Map<Vector3d>(balance.CoM.data) = CoM;
 	}
-	// calculate ZMP (center of pressure)
+	// calculate CoP (actual center of pressure of contact forces)
 	if (base.wrench[0].force.z() > 0) {
 		// calculate ZMP
 		balance.CoP[0] = - base.wrench[0].torque.y() / base.wrench[0].force.z();
@@ -466,6 +466,19 @@ void DynamicsInvSimple::publishStateToPorts()
 		balance.CoP[2] =   0.0;
 	}
 	else balance.CoP = balance.CoM;
+	// calculate ZMP (desired center of pressure)
+	KDL::Wrench wrench;
+	Map<Vector3d>(wrench.force.data) = tau_full.head<3>();
+	Map<Vector3d>(wrench.torque.data) = tau_full.segment<3>(3);
+	wrench.torque += base.frame[0].p * wrench.force;
+	// calculate ZMP location
+	if (wrench.force.z() > 0) {
+		// calculate ZMP
+		balance.ZMP[0] = - wrench.torque.y() / wrench.force.z();
+		balance.ZMP[1] =   wrench.torque.x() / wrench.force.z();
+		balance.ZMP[2] =   0.0;
+	}
+	else balance.ZMP = balance.CoM;
 	// publish
 	out_balance_port.write(balance);
 }
