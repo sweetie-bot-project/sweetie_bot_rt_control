@@ -43,6 +43,7 @@ connectServices("sweetie_bot_kinematics", "sweetie_bot_kinematics");
 sweetie_bot_kinematics.marshalling.loadServiceProperties(ros.find("sweetie_bot_proto2_deploy") + "/default/kinematic_chains.cpf","robot_model");
 sweetie_bot_kinematics.rosparam.getParam("/", "robot_model");
 sweetie_bot_kinematics.robot_model.configure();
+sweetie_bot_kinematics.kinematic_chains = strings("leg1","leg2")
 
 # forward kinematics
 loadComponent("sweetie_bot_kinematics_fwd", "sweetie_bot::motion::KinematicsFwd");
