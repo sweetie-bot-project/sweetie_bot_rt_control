@@ -108,7 +108,14 @@ bool KinematicsInvTracIK::configureHook()
 	};
 	// get number of joints
 	n_joints_fullpose_ = robot_model_->listJoints("").size();
-		
+
+	int n_chains = chain_names_.size();
+	log(DEBUG) << "Loading " << n_chains << " chains: ";
+	for(int i = 0; i < n_chains; i++) {
+		log() << chain_names_[i] << " ";
+	}
+	log()<<endlog();
+
 	// init port data
 	joints_.name.reserve(n_joints);
 	joints_.position.reserve(n_joints);

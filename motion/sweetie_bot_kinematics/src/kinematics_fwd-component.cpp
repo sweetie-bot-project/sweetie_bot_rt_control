@@ -126,6 +126,11 @@ void KinematicsFwd::updateHook()
 		limbs.header.stamp = ros::Time::now();
 		out_limbs_port.write(limbs);
 	}
+	else
+	{
+		if ( ! isValidJointStatePos(joints, n_joints) )
+			log(DEBUG) << "join_state not valid " << n_joints << "!"  <<endlog();
+	}
 	log(DEBUG) << "Update hook executed: " << k << " joints processed." <<endlog();
 }
 
