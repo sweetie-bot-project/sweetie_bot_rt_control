@@ -95,11 +95,16 @@ bool KinematicsFwd::startHook(){
 
 void KinematicsFwd::updateHook()
 {
-	int k;
-	if ( in_joints_port.read(joints, false) == NewData && isValidJointStatePos(joints, n_joints) ) {
+	if ( in_joints_port.read(joints, false) == NewData) {
+		// check message
+		if ( ! isValidJointStatePos(joints, n_joints) ) {
+			log(DEBUG) << "JointState message is not valid! n_joints = " << n_joints << endlog();
+			return;
+		}
+
 		// we received valid JointState message
 		// calculate tip pose for each chain
-		for (k = 0; k < chain_data.size(); k++ ) {
+		for (int k = 0; k < chain_data.size(); k++ ) {
 			KinematicChainData& data = chain_data[k];
 			// get chain pose in joint space
 			data.jnt_array_vel.q.data = Eigen::VectorXd::Map( &joints.position[data.index_begin], data.chain->getNrOfJoints() );
@@ -126,12 +131,6 @@ void KinematicsFwd::updateHook()
 		limbs.header.stamp = ros::Time::now();
 		out_limbs_port.write(limbs);
 	}
-	else
-	{
-		if ( ! isValidJointStatePos(joints, n_joints) )
-			log(DEBUG) << "join_state not valid " << n_joints << "!"  <<endlog();
-	}
-	log(DEBUG) << "Update hook executed: " << k << " joints processed." <<endlog();
 }
 
 void KinematicsFwd::stopHook() 
