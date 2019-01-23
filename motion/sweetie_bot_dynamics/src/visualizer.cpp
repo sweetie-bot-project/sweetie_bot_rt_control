@@ -397,7 +397,7 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "sweetie_dynamics_visualizer");
 	ROS_INFO("SweetieBot Dynamics Visualizer main.");
 
-	std::shared_ptr<DynamicsVisualizer> visualizer(new DynamicsVisualizer());
+	std::unique_ptr<DynamicsVisualizer> visualizer(new DynamicsVisualizer());
 
 	ros::spin();
 

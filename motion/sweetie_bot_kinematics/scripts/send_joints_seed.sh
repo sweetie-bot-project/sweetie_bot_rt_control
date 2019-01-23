@@ -10,6 +10,7 @@ VARIABLE="
         'joint41', 'joint42', 'joint43', 'joint44', 'joint45', 'joint46',
         'joint51', 'joint52', 'joint53', 'joint54',
         'joint55', 'joint56',
+        'eyes_pitch', 'eyes_yaw',
         'joint_eyes_focus_x', 'joint_eyes_focus_y', 'joint_eyes_focus_z'
        ],
  position: [0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
@@ -17,6 +18,7 @@ VARIABLE="
             0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
             0.00, 0.00, 0.00, 0.00, 0.00, 0.00,
             0.00, 0.00, 0.00, 0.00,
+            0.00, 0.00,
             0.00, 0.00,
             0.00, 0.00, 0.00
            ],

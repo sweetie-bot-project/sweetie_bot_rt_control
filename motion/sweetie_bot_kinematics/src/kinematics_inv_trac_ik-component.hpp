@@ -26,8 +26,9 @@ class KinematicsInvTracIK : public RTT::TaskContext
 			std::vector<string> joint_names; /**< Names of joint. */
 			int index_begin; /**< Index of first joint in chain */
 			int size; /**< Kinematic chain length. */
-			shared_ptr<TRAC_IK::TRAC_IK> ik_solver; /**< IK  velocity solver */
-			shared_ptr<KDL::ChainIkSolverVel_pinv> ik_vel_solver; /**< IK  velocity solver */
+			unique_ptr<KDL::Chain> chain; /**< Kinematic chain. KDL 1.4 FKSolvers store reference to KDL::Chain so Chain object must not change memory location. */ //TODO: remove size field?
+			unique_ptr<TRAC_IK::TRAC_IK> ik_solver; /**< IK  velocity solver */
+			unique_ptr<KDL::ChainIkSolverVel_pinv> ik_vel_solver; /**< IK  velocity solver */
 			KDL::JntArray jnt_array_pose; /**< buffer */
 			KDL::JntArray jnt_array_vel; /**< buffer */
 			KDL::JntArray jnt_array_seed_pose; /**< initial approximation for solution */
@@ -67,7 +68,7 @@ class KinematicsInvTracIK : public RTT::TaskContext
 #endif
 	protected:
 		bool poseToJointState_impl(const sweetie_bot_kinematics_msgs::RigidBodyState& in, sensor_msgs::JointState& out); 
-		std::shared_ptr<TRAC_IK::TRAC_IK> getIKSolver(const string& chain_name, const KDL::Chain& kdl_chain);
+		std::unique_ptr<TRAC_IK::TRAC_IK> getIKSolver(const string& chain_name, const KDL::Chain& kdl_chain);
 
 		// operations
 		bool poseToJointState(const sweetie_bot_kinematics_msgs::RigidBodyState& in, sensor_msgs::JointState& out); 
