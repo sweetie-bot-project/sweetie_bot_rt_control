@@ -54,7 +54,7 @@ bool KinematicsFwd::configureHook()
 		KinematicChainData& data = chain_data.back();
 		// set information about chain
 		// get kinematic chain
-		data.chain = unique_ptr<KDL::Chain>(new KDL::Chain(robot_model->getKDLChain(name, virtual_links)));  // if virtual_links is true receive chain with virtual links
+		data.chain.reset( new KDL::Chain(robot_model->getKDLChain(name, virtual_links)) );  // if virtual_links is true receive chain with virtual links
 		if (data.chain->getNrOfSegments() == 0) {
 			this->log(ERROR) << "Kinematic chain " << name << " does not exist." << endlog();
 			return false;
@@ -67,7 +67,7 @@ bool KinematicsFwd::configureHook()
 		data.index_begin = robot_model->getJointIndex(chain_joints.front());
 		data.jnt_array_vel.resize(data.chain->getNrOfJoints()); // some joints can be fictive!
 		// solvers
-		data.fk_vel_solver = unique_ptr<ChainFkSolverVel_recursive>(new ChainFkSolverVel_recursive(*data.chain));
+		data.fk_vel_solver.reset( new ChainFkSolverVel_recursive(*data.chain) );
 		// add chain to output list buffer
 		limbs.name.push_back(name);
 	};
@@ -95,11 +95,16 @@ bool KinematicsFwd::startHook(){
 
 void KinematicsFwd::updateHook()
 {
-	int k;
-	if ( in_joints_port.read(joints, false) == NewData && isValidJointStatePos(joints, n_joints) ) {
+	if ( in_joints_port.read(joints, false) == NewData) {
+		// check message
+		if ( ! isValidJointStatePos(joints, n_joints) ) {
+			log(DEBUG) << "JointState message is not valid! n_joints = " << n_joints << endlog();
+			return;
+		}
+
 		// we received valid JointState message
 		// calculate tip pose for each chain
-		for (k = 0; k < chain_data.size(); k++ ) {
+		for (int k = 0; k < chain_data.size(); k++ ) {
 			KinematicChainData& data = chain_data[k];
 			// get chain pose in joint space
 			data.jnt_array_vel.q.data = Eigen::VectorXd::Map( &joints.position[data.index_begin], data.chain->getNrOfJoints() );
@@ -126,12 +131,6 @@ void KinematicsFwd::updateHook()
 		limbs.header.stamp = ros::Time::now();
 		out_limbs_port.write(limbs);
 	}
-	else
-	{
-		if ( ! isValidJointStatePos(joints, n_joints) )
-			log(DEBUG) << "join_state not valid " << n_joints << "!"  <<endlog();
-	}
-	log(DEBUG) << "Update hook executed: " << k << " joints processed." <<endlog();
 }
 
 void KinematicsFwd::stopHook() 

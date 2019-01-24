@@ -88,7 +88,7 @@ bool KinematicsInvTracIK::configureHook()
 			return false;
 		}
 		// get kdl_chain
-		data.chain = unique_ptr<KDL::Chain>(new KDL::Chain( robot_model_->getKDLChain(name, true) )); // we need real and virtual joints
+		data.chain.reset( new KDL::Chain( robot_model_->getKDLChain(name, true) ) ); // we need real and virtual joints
 
 		data.name = name;
 		//joint induces
@@ -100,7 +100,7 @@ bool KinematicsInvTracIK::configureHook()
 		data.jnt_array_seed_pose.resize(data.size);
 		// solvers
 		// instantaneous IK initialization
-		data.ik_vel_solver = unique_ptr<KDL::ChainIkSolverVel_pinv>( new KDL::ChainIkSolverVel_pinv(*data.chain, eps_vel_, max_iterations_) );
+		data.ik_vel_solver.reset( new KDL::ChainIkSolverVel_pinv(*data.chain, eps_vel_, max_iterations_) );
 		// IK initialization 
 		data.ik_solver = getIKSolver(name, *data.chain);
 		if (!data.ik_solver) return false;
@@ -108,12 +108,11 @@ bool KinematicsInvTracIK::configureHook()
 	// get number of joints
 	n_joints_fullpose_ = robot_model_->listJoints("").size();
 
-	int n_chains = chain_names_.size();
-	log(DEBUG) << "Loading " << n_chains << " chains: ";
-	for(int i = 0; i < n_chains; i++) {
-		log() << chain_names_[i] << " ";
+	if (log(DEBUG)) {
+		log() << "Loaded " << chain_names_.size() << " chains: ";
+		for( const auto& name : chain_names_ ) log() << name << ", ";
+		log() << endlog();
 	}
-	log()<<endlog();
 
 	// init port data
 	joints_.name.reserve(n_joints);
