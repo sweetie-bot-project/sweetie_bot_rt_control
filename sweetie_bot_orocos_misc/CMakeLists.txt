@@ -43,6 +43,8 @@ orocos_generate_package(
 	DEPENDS kdl_msgs sensor_msgs geometry_msgs sweetie_bot_kinematics_msgs orocos_kdl
 	DEPENDS_TARGETS rtt_ros rtt_actionlib
 )
+# force buid system to export include path for pure ROS packages
+catkin_package(INCLUDE_DIRS include)
 
 if (DEFINED _pkgconfig_error)
 if (${_pkgconfig_error})
