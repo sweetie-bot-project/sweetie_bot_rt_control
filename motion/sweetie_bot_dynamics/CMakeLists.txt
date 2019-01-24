@@ -27,7 +27,7 @@ endif()
 
 ### General Dependencies ###
 find_package(PkgConfig)
-pkg_check_modules(RBDL REQUIRED rbdl >= 2.6)
+pkg_check_modules(RBDL REQUIRED rbdl>=2.6)
 find_library(RBDL_URDFREADER_LIBRARY NAMES rbdl_urdfreader PATHS ${RBDL_LIBRARY_DIRS})
 if (RBDL_URDFREADER_LIBRARY-NOTFOUND)
 	message(FATAL_ERROR "Unable to find rbdl_urdfreader library.")
