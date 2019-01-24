@@ -22,6 +22,10 @@ Full description of Sweetie Bot motion control system  concept is located here: 
     * `sweetie_bot_odometry` --- calculates base movements given contacts' list.
     * `sweetie_bot_dynamics` --- perform dynamics calculation for current pose: necessary servos efforts, balance conditions, contacts reaction forces.
     * `sweetie_bot_servo_inv` --- translate reference robot pose to servos commands.
+* `motion_msgs` --- messages definitions
+    * `sweetie_bot_resource_control_msgs` --- internal message for resource management.
+    * `sweetie_bot_kinematics_msgs` ---  robot state in convenient for OROCOS subsystem form.
+    * `sweetie_bot_control_msgs` ---  control messages, they are used to  control robot from ROS.
 * `herkulex` --- hardware driver for Doungbu Herkulex DRS-0101/0201. 
 * `sweetie_bot_orocos_misc` --- helper functions.
 
