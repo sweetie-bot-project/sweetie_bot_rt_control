@@ -12,8 +12,6 @@
 #include <sensor_msgs/typekit/JointState.h>
 #include <sweetie_bot_kinematics_msgs/typekit/SupportState.h>
 #include <sweetie_bot_orocos_misc/simple_action_server.hpp>
-#include <sweetie_bot_resource_control_msgs/typekit/SetOperationalResult.h>
-#include <sweetie_bot_resource_control_msgs/typekit/SetOperationalAction.h>
 
 #include <sweetie_bot_logger/logger.hpp>
 #include <sweetie_bot_resource_control/resource_client.hpp>

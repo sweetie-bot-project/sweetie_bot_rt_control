@@ -25,11 +25,13 @@
   <!-- SWEETIEBOT datatypes -->
   <!--<depend>sweetie_bot_resource_control_msgs</depend>-->
   <depend>rtt_sweetie_bot_resource_control_msgs</depend>
+  <depend>rtt_sweetie_bot_control_msgs</depend>
 
   <export>
 	  <rtt_ros>
 		  <!-- Plugin deps are loaded automatically by the rtt_ros import service -->
 		  <plugin_depend>rtt_sweetie_bot_resource_control_msgs</plugin_depend>
+		  <plugin_depend>rtt_sweetie_bot_control_msgs</plugin_depend>
 	  </rtt_ros>
   </export>
 </package>

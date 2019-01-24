@@ -7,10 +7,10 @@
 #include <rtt/Component.hpp>
 #include <rtt/os/Timer.hpp>
 
-#include <sweetie_bot_kinematics_msgs/typekit/FollowStepSequenceAction.h>
 #include <sweetie_bot_kinematics_msgs/typekit/RigidBodyState.h>
 #include <sweetie_bot_kinematics_msgs/typekit/SupportState.h>
 #include <sweetie_bot_kinematics_msgs/typekit/BalanceState.h>
+#include <sweetie_bot_control_msgs/typekit/FollowStepSequenceAction.h>
 
 #include <sweetie_bot_logger/logger.hpp>
 #include <sweetie_bot_resource_control/resource_client.hpp>
@@ -27,9 +27,8 @@ class ExecuteStepSequence : public RTT::TaskContext
 {
 	protected:
 		// Goal, Feedback, Result typedefs
-		ACTION_DEFINITION(sweetie_bot_kinematics_msgs::FollowStepSequenceAction);	
+		ACTION_DEFINITION(sweetie_bot_control_msgs::FollowStepSequenceAction);	
 	
-	protected:
 	protected:
 		// COMPONENT INTERFACE
 		//
@@ -58,7 +57,7 @@ class ExecuteStepSequence : public RTT::TaskContext
 		void stopOperationalHook();
 		// ACTIONLIB:
 		// Simple action server
-		OrocosSimpleActionServer<sweetie_bot_kinematics_msgs::FollowStepSequenceAction> action_server;
+		OrocosSimpleActionServer<sweetie_bot_control_msgs::FollowStepSequenceAction> action_server;
 		// new pending goal is received
 		void newGoalHook(const Goal& goal);
 		// active goal is being canceled

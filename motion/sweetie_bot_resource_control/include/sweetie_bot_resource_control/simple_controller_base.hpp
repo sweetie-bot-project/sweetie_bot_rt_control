@@ -8,8 +8,8 @@
 #include <rtt/os/Timer.hpp>
 
 #include <std_srvs/SetBool.h>
-#include <sweetie_bot_resource_control_msgs/typekit/SetOperationalResult.h>
-#include <sweetie_bot_resource_control_msgs/typekit/SetOperationalAction.h>
+#include <sweetie_bot_control_msgs/typekit/SetOperationalResult.h>
+#include <sweetie_bot_control_msgs/typekit/SetOperationalAction.h>
 
 #include <sweetie_bot_logger/logger.hpp>
 #include <sweetie_bot_resource_control/resource_client.hpp>
@@ -47,7 +47,7 @@ class SimpleControllerBase : public RTT::TaskContext
 {
 	protected:
 		// Goal, Feedback, Result typedefs
-		ACTION_DEFINITION(sweetie_bot_resource_control_msgs::SetOperationalAction);	
+		ACTION_DEFINITION(sweetie_bot_control_msgs::SetOperationalAction);
 	protected:
 		// COMPONENT INTERFACE
 		//
@@ -72,7 +72,7 @@ class SimpleControllerBase : public RTT::TaskContext
 	protected:
 		// SIMPLE:
 		// Simple action server
-		OrocosSimpleActionServer<sweetie_bot_resource_control_msgs::SetOperationalAction> action_server; /**< OrocosSimpleActionServer implementation. */
+		OrocosSimpleActionServer<sweetie_bot_control_msgs::SetOperationalAction> action_server; /**< OrocosSimpleActionServer implementation. */
 	private:
 		// enable port callbacks in configured state
 		bool dataOnPortHook(RTT::base::PortInterface* portInterface);

@@ -28,8 +28,8 @@
   <depend>sweetie_bot_orocos_misc</depend> <!-- actionlib client, JointState checks, find subservice -->
   <depend>sweetie_bot_robot_model</depend>
   <!-- SWEETIEBOT datatypes -->
-  <depend>rtt_sweetie_bot_resource_control_msgs</depend>
   <depend>rtt_sweetie_bot_kinematics_msgs</depend>
+  <depend>rtt_sweetie_bot_control_msgs</depend>
 
   <export>
 	  <rtt_ros>
@@ -39,7 +39,7 @@
 		  <plugin_depend>rtt_sensor_msgs</plugin_depend>
 		  <plugin_depend>rtt_geometry_msgs</plugin_depend>
 		  <plugin_depend>rtt_control_msgs</plugin_depend>
-		  <plugin_depend>rtt_sweetie_bot_resource_control_msgs</plugin_depend>
+		  <plugin_depend>rtt_sweetie_bot_control_msgs</plugin_depend>
 		  <plugin_depend>rtt_sweetie_bot_kinematics_msgs</plugin_depend>
 	  </rtt_ros>
   </export>

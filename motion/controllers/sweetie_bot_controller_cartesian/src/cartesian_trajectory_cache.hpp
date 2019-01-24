@@ -2,9 +2,9 @@
 #define  JOINT_TRAJECTORY_CACHE_HPP
 
 #include <sensor_msgs/typekit/JointState.h>
-#include <sweetie_bot_kinematics_msgs/typekit/FollowStepSequenceAction.h>
 #include <sweetie_bot_kinematics_msgs/typekit/SupportState.h>
 #include <sweetie_bot_kinematics_msgs/typekit/RigidBodyState.h>
+#include <sweetie_bot_control_msgs/typekit/FollowStepSequenceAction.h>
 
 namespace sweetie_bot {
 namespace motion {
@@ -29,7 +29,7 @@ class CartesianTrajectoryCache
 {
 	public:
 		typedef sweetie_bot_kinematics_msgs::RigidBodyState RigidBodyState;
-		typedef sweetie_bot_kinematics_msgs::FollowStepSequenceGoal FollowStepSequenceGoal;
+		typedef sweetie_bot_control_msgs::FollowStepSequenceGoal FollowStepSequenceGoal;
 		typedef sweetie_bot_kinematics_msgs::SupportState SupportState;
 		typedef boost::shared_ptr<const FollowStepSequenceGoal> FollowStepSequenceGoal_const_shared_ptr;
 		typedef std::list<FollowStepSequenceGoal_const_shared_ptr> StepSequenceList;
@@ -42,7 +42,7 @@ class CartesianTrajectoryCache
 
 	public:
 		/**
-		 * @brief Create new trajectory from sweetie_bot_kinematics_msgs::FollowStepSequenceGoal message.
+		 * @brief Create new trajectory from sweetie_bot_control_msgs::FollowStepSequenceGoal message.
 		 * Check message consistency and throw std::invalid_argument if check failed.
 		 * @param trajectory Pointer to goal message. Shared pointer is used to minimize number of copy operations.
 		 * @param robot_model Pointer to RobotModel.
