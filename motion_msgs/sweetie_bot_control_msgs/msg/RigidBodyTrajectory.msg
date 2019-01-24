@@ -1,6 +1,6 @@
 string name
 
-sweetie_bot_kinematics_msgs/RigidBodyTrajectoryPoint[] points
+sweetie_bot_control_msgs/RigidBodyTrajectoryPoint[] points
 
 #float64[] time_from_start
 #kdl_msgs/Vector3[] position

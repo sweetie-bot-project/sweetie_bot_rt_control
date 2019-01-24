@@ -1,0 +1,34 @@
+# Sweetie Bot base movement request.
+# 
+# * gait_type --- one of possible gaits.
+# * step_duration --- one step cycle duration
+# * steps --- the number of step cycles.
+# * base_goal --- goal pose of the robot base in header.frame_id frame.
+# * ee_goal --- goal poses for end effector. For free gait their order defines step sequece.
+# * position_tolerance --- admissable position error.
+# * orientation_tolerance  --- admissable orientaton error.
+#
+Header header
+
+string gait_type
+float64 step_duration
+uint32 steps
+
+geometry_msgs/Pose base_goal
+sweetie_bot_control_msgs/EndEffectorGoal[] ee_goal
+
+float64 position_tolerance
+float64 orientation_tolerance
+
+---
+int32 error_code
+string error_string
+
+int32 SUCCESS = 0
+int32 NO_SOLUTION = -1 #
+int32 INVALID_GOAL = -2
+int32 INTERNAL_ERROR = -3
+int32 TOLERANCE_VIOLATED = -4
+---
+
+float64 time_from_start

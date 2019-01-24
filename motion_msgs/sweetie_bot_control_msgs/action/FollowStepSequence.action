@@ -22,11 +22,9 @@
 Header header
 
 bool append
-#string[] ee_names
-#xpp_msgs/RobotStateCartesian[] trajectory
 float64[] time_from_start
-sweetie_bot_kinematics_msgs/RigidBodyTrajectory base_motion
-sweetie_bot_kinematics_msgs/RigidBodyTrajectory[] ee_motion
+sweetie_bot_control_msgs/RigidBodyTrajectory base_motion
+sweetie_bot_control_msgs/RigidBodyTrajectory[] ee_motion
 
 float64 position_tolerance
 float64 orientation_tolerance

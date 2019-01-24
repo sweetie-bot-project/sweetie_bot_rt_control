@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(sweetie_bot_kinematics_msgs)
+project(sweetie_bot_control_msgs)
 
 ### c++11 support ###
 set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   kdl_msgs
   message_generation
   std_msgs
+  actionlib_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -50,10 +51,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  JointStateAccel.msg
-  RigidBodyState.msg
-  SupportState.msg
-  BalanceState.msg
+  RigidBodyTrajectory.msg
+  RigidBodyTrajectoryPoint.msg
+  EndEffectorGoal.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -64,15 +64,17 @@ add_message_files(
 # )
 
 # Generate actions in the 'action' folder
-#add_action_files(
-#  FILES
-#  FollowStepSequence.action
-#)
+add_action_files(
+  FILES
+  SetOperational.action
+  FollowStepSequence.action
+  MoveBase.action
+)
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
-  geometry_msgs   std_msgs    kdl_msgs
+  geometry_msgs   std_msgs    kdl_msgs    actionlib_msgs
 )
 
 ################################################
