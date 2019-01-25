@@ -75,7 +75,7 @@ ExecuteStepSequence::ExecuteStepSequence(std::string const& name)  :
 
 	log(INFO) << "ExecuteStepSequence is constructed!" << endlog();
 }
-
+#
 bool ExecuteStepSequence::dataOnPortHook( RTT::base::PortInterface* portInterface ) 
 {
 	// Process EventPorts messages callbacks if component is in configured state,
@@ -176,7 +176,7 @@ void ExecuteStepSequence::newGoalHook(const Goal& pending_goal)
 	try {
 		trajectory = std::make_shared<CartesianTrajectoryCache>(action_server.getPendingGoal(), robot_model, period);
 	}
-	catch (std::exception e) {
+	catch (std::exception& e) {
 		rejectPending("newGoalHook", e.what(),  Result::UNABLE_TO_APPEND);
 		return;
 	}
@@ -189,6 +189,7 @@ void ExecuteStepSequence::newGoalHook(const Goal& pending_goal)
 	int invalid_limb_index = trajectory->checkPathToleranceFullpose(limbs_full);
 	if (invalid_limb_index >= 0) {
 		rejectPending("newGoalHook", "path tolerance is violated for " + limbs_full.name[invalid_limb_index] ,  Result::TOLERANCE_VIOLATED);
+		return;
 	}
 
 	// now we have correct goal so perform resource request
@@ -343,14 +344,14 @@ void ExecuteStepSequence::stopHook()
 		rejectPending("stopHook",  "stopOperational is triggered by external cause.", Result::SUCCESSFUL);
 		resource_client->stopOperational();
 	}
-	log(INFO) << "ExecuteJointTrajectory is stopped!" << endlog();
+	log(INFO) << "ExecuteStepSequence is stopped!" << endlog();
 }
 
 void ExecuteStepSequence::cleanupHook() 
 {
 	resource_client = 0; 
 	//action_server.shutdown(); 
-	log(INFO) << "ExecuteJointTrajectory cleaning up !" << endlog();
+	log(INFO) << "ExecuteStepSequence cleaning up !" << endlog();
 }
 
 

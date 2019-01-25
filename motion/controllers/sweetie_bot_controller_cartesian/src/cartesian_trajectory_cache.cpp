@@ -8,6 +8,12 @@ namespace sweetie_bot {
 namespace motion {
 namespace controller {
 
+/*static inline std::ostream& operator<<(std::ostream& s, const KDL::Vector& v) 
+{
+	s << "[" << v.x() << " " << v.y() << " " << v.z() << " ]";
+	return s;
+}*/
+
 static double angularDistance(const KDL::Rotation& rot, const geometry_msgs::Quaternion& quat) 
 {
 	Eigen::Quaterniond w1;
@@ -156,6 +162,12 @@ int CartesianTrajectoryCache::checkPathToleranceFullpose(const RigidBodyState& l
 	int n_limbs = msg.ee_motion.size();
 	// check end_effector pose: both poses are presented in base_link frame
 	for(int k = 0; k < n_limbs; k++) {
+		/*Eigen::Quaterniond w1;
+		limbs_full.frame[limb_index_fullpose[k]].M.GetQuaternion(w1.x(), w1.y(), w1.z(), w1.w());
+		w1.normalize();  // fix for incorrect kdl::Rotation::GetQuaternion conversation
+		std::cout <<  limb_index_fullpose[k] <<  "real.p = " << limbs_full.frame[limb_index_fullpose[k]].p << " desired.p =" <<  msg.ee_motion[k].points[time_step].pose.position << std::endl;
+		std::cout << "real.angle = " << w1.coeffs().transpose() << " desired.angle = " << msg.ee_motion[k].points[time_step].pose.orientation << " angle_error = " << angularDistance( limbs_full.frame[limb_index_fullpose[k]].M, msg.ee_motion[k].points[time_step].pose.orientation ) << std::endl;*/
+
 		if ( distance( limbs_full.frame[limb_index_fullpose[k]].p, msg.ee_motion[k].points[time_step].pose.position ) > msg.position_tolerance ) return limb_index_fullpose[k];
 		if ( angularDistance( limbs_full.frame[limb_index_fullpose[k]].M, msg.ee_motion[k].points[time_step].pose.orientation ) > msg.orientation_tolerance ) return limb_index_fullpose[k];
 	}
