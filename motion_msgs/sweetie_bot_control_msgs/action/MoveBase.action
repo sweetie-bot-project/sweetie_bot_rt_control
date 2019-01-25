@@ -1,7 +1,7 @@
 # Sweetie Bot base movement request.
 # 
 # * gait_type --- one of possible gaits.
-# * step_duration --- one step cycle duration
+# * duration --- movement duration
 # * steps --- the number of step cycles.
 # * base_goal --- goal pose of the robot base in header.frame_id frame.
 # * ee_goal --- goal poses for end effector. For free gait their order defines step sequece.
@@ -11,7 +11,7 @@
 Header header
 
 string gait_type
-float64 step_duration
+float64 duration
 uint32 steps
 
 geometry_msgs/Pose base_goal
