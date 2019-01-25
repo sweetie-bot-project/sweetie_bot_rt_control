@@ -13,7 +13,7 @@ static double angularDistance(const KDL::Rotation& rot, const geometry_msgs::Qua
 	Eigen::Quaterniond w1;
 	rot.GetQuaternion(w1.x(), w1.y(), w1.z(), w1.w());
 	w1.normalize();  // fix for incorrect kdl::Rotation::GetQuaternion conversation
-	Eigen::Quaterniond w2(quat.x, quat.y, quat.z, quat.w);
+	Eigen::Quaterniond w2(quat.w, quat.x, quat.y, quat.z);
 	w2.normalize();
 	return abs(w1.angularDistance(w2));
 }
@@ -91,7 +91,7 @@ CartesianTrajectoryCache::CartesianTrajectoryCache(FollowStepSequenceGoal_const_
 	}
 	// time intervals must be equal to period
 	for(int k = 0; k < n_points; k++) {
-		if (goal->time_from_start[k] != period*k) { 
+		if (std::abs(goal->time_from_start[k] - period*k) > 0.01*period*k ) { // 1% error tolerance
 			throw std::invalid_argument("CartesianTrajectoryCache: period is not equal to component period.");
 		}
 	}
