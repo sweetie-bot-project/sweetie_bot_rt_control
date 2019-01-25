@@ -137,6 +137,7 @@ std::vector<std::string> CartesianTrajectoryCache::getRequiredChains() const
 	std::vector<std::string> names;
 	names.reserve( msg.ee_motion.size() );
 	for(const auto& ee : msg.ee_motion) names.push_back(ee.name);
+	return names;
 }
 
 void CartesianTrajectoryCache::getEndEffectorState(RigidBodyState& limbs) const
