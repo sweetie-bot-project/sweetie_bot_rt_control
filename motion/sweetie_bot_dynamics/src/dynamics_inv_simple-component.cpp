@@ -460,7 +460,6 @@ void DynamicsInvSimple::publishStateToPorts()
 	}
 	// calculate CoP (actual center of pressure of contact forces)
 	if (base.wrench[0].force.z() > 0) {
-		// calculate ZMP
 		balance.CoP[0] = - base.wrench[0].torque.y() / base.wrench[0].force.z();
 		balance.CoP[1] =   base.wrench[0].torque.x() / base.wrench[0].force.z();
 		balance.CoP[2] =   0.0;
@@ -468,9 +467,12 @@ void DynamicsInvSimple::publishStateToPorts()
 	else balance.CoP = balance.CoM;
 	// calculate ZMP (desired center of pressure)
 	KDL::Wrench wrench;
-	Map<Vector3d>(wrench.force.data) = tau_full.head<3>();
-	Map<Vector3d>(wrench.torque.data) = tau_full.segment<3>(3);
+	// residual wrench
+	Map<Vector3d>(wrench.force.data) = tau.head<3>();
+	Map<Vector3d>(wrench.torque.data) = tau.segment<3>(3);
 	wrench.torque += base.frame[0].p * wrench.force;
+	// and wrench of reaction forces
+	wrench += base.wrench[0];
 	// calculate ZMP location
 	if (wrench.force.z() > 0) {
 		// calculate ZMP
