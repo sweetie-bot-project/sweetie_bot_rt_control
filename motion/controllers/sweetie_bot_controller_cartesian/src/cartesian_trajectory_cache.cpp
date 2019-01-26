@@ -146,6 +146,13 @@ std::vector<std::string> CartesianTrajectoryCache::getRequiredChains() const
 	return names;
 }
 
+void CartesianTrajectoryCache::getBaseState(RigidBodyState& base) const
+{
+	const FollowStepSequenceGoal& msg = *step_sequence_list.front();
+	tf::poseMsgToKDL(msg.base_motion.points[time_step].pose, base.frame[0]);
+	base.twist[0] = msg.base_motion.points[time_step].twist;
+}
+
 void CartesianTrajectoryCache::getEndEffectorState(RigidBodyState& limbs) const
 {
 	const FollowStepSequenceGoal& msg = *step_sequence_list.front();

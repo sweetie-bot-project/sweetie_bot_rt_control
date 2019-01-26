@@ -80,10 +80,16 @@ class CartesianTrajectoryCache
 		}
 
 		/**
-		 * @brief Current point of trajectory in buffer of proper size.
+		 * @brief Copy desired base state in buffer of proper size.
+		 * Method does not check buffer size. 
+		 * @param base RigidBodyState buffer receiving new base. It size must be at least one.
+		 **/
+		void getBaseState(RigidBodyState& base) const;
+
+		/**
+		 * @brief Copy desired end effector locations in buffer of proper size.
 		 * Method does not check buffer size. 
 		 * @param limbs RigidBodyState buffer receiving new state represented in base link frame.
-		 * @return true if time @a t in range of trajectory.
 		 **/
 		void getEndEffectorState(RigidBodyState& limbs) const;
 

@@ -51,8 +51,8 @@ ExecuteStepSequence::ExecuteStepSequence(std::string const& name)  :
 	//	.doc("Information about robot balance.");
 
 	// ports input 
-	//this->addPort("out_base_ref", out_base_ref_port)
-	//	.doc("Base next position to achive target given current robot state. It is computed by component each control cycle.");
+	this->addPort("out_base_ref", out_base_ref_port)
+		.doc("Base next position to achive target given current robot state. It is computed by component each control cycle.");
 	this->addPort("out_limbs_ref", out_limbs_ref_port)
 		.doc("Limbs next position to achive target given current robot state. It is computed by component each control cycle. ");
 	this->addPort("out_supports", out_supports_port)
@@ -117,6 +117,11 @@ bool ExecuteStepSequence::configureHook()
 		log(INFO) << "poseToJointStatePublish operation is disconnected. Asyncronous IK interface via port is used." << endlog();
 	}
 
+	// allocate persistent buffers
+	base_ref.name.resize(1); base_ref.name[0] = "base_link";
+	base_ref.frame.resize(1);
+	base_ref.twist.resize(1);
+
 	log(INFO) << "ExecuteStepSequence is configured !" << endlog();
 	return true;
 }
@@ -172,7 +177,7 @@ void ExecuteStepSequence::newGoalHook(const Goal& pending_goal)
 		return;
 	}
 
-	// check goal concictency and construct trajectory cache
+	// check goal consistency and construct trajectory cache
 	try {
 		trajectory = std::make_shared<CartesianTrajectoryCache>(action_server.getPendingGoal(), robot_model, period);
 	}
@@ -185,14 +190,14 @@ void ExecuteStepSequence::newGoalHook(const Goal& pending_goal)
 		rejectPending("newGoalHook", "unable to check tolerance",  Result::INTERNAL_ERROR);
 		return;
 	}
-	// check tolerance
+	// check tolerance. Note, we check only limbs positions.
 	int invalid_limb_index = trajectory->checkPathToleranceFullpose(limbs_full);
 	if (invalid_limb_index >= 0) {
 		rejectPending("newGoalHook", "path tolerance is violated for " + limbs_full.name[invalid_limb_index] ,  Result::TOLERANCE_VIOLATED);
 		return;
 	}
 
-	// now we have correct goal so perform resource request
+	// we have correct goal so perform resource request
 	log(INFO) << "newGoalHook: request resources." << endlog();
 	resource_client->resourceChangeRequest(trajectory->getRequiredChains());
 
@@ -248,7 +253,7 @@ bool ExecuteStepSequence::resourceChangedHook()
 			return false;
 		}
 	}
-	log(WARN) << "resourceChangedHook: abnomal: isActive = " << (int) action_server.isActive() << " goal_active = " << (int) (trajectory != 0) 
+	log(WARN) << "resourceChangedHook: abnomal state: isActive = " << (int) action_server.isActive() << " goal_active = " << (int) (trajectory != 0) 
 		<<  (int) action_server.isPending() << " goal_pending = " << endlog();
 	return false;
 }
@@ -298,10 +303,13 @@ void ExecuteStepSequence::updateHook()
 			return;
 		}
 		// get desired pose	
+		trajectory->getBaseState(base_ref);
 		trajectory->getEndEffectorState(limbs);
 		trajectory->getSupportState(supports);
 		// publish new reference position
-		limbs.header.stamp = ros::Time::now();
+		ros::Time stamp = ros::Time::now();
+		base_ref.header.stamp = stamp;
+		limbs.header.stamp = stamp;
 		// pass result to kinematics
 		if (poseToJointStatePublish.ready()) {
 			// syncronous interface
@@ -316,7 +324,9 @@ void ExecuteStepSequence::updateHook()
 			// async interface: assume always success
 			out_limbs_ref_port.write(limbs);
 		}
+		out_base_ref_port.write(base_ref);
 		out_supports_port.write(supports);
+
 		// move time marker forward
 		if (!trajectory->step()) {
 			// execution is finished successfully
