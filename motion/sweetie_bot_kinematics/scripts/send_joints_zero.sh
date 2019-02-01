@@ -13,7 +13,7 @@ VARIABLE="
  effort:   [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 }"
 
-echo "<<<" "$VARIABLE" "\n<<<"
+echo "<<<" $ROSTOPIC "$VARIABLE" "\n<<<"
 echo ">>>"
 rostopic pub $ROSTOPIC $ROSTYPE --once "$VARIABLE"
 echo ">>>"
