@@ -12,7 +12,7 @@ Header header
 
 string gait_type
 float64 duration
-uint32 steps
+uint32 n_steps
 
 geometry_msgs/Pose base_goal
 sweetie_bot_control_msgs/EndEffectorGoal[] ee_goal
@@ -20,15 +20,19 @@ sweetie_bot_control_msgs/EndEffectorGoal[] ee_goal
 float64 position_tolerance
 float64 orientation_tolerance
 
+bool visualize_only
+
 ---
 int32 error_code
 string error_string
 
 int32 SUCCESS = 0
-int32 NO_SOLUTION = -1 #
+int32 SOLUTION_NOT_FOUND = -1 #
 int32 INVALID_GOAL = -2
 int32 INTERNAL_ERROR = -3
 int32 TOLERANCE_VIOLATED = -4
+int32 INVALID_INITIAL_POSE = -5
+int32 EXECUTION_FAILED = -6
 ---
 
 float64 time_from_start
