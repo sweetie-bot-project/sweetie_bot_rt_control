@@ -27,12 +27,12 @@ endif()
 
 ### General Dependencies ###
 find_package(Eigen3 REQUIRED)
-include_directories("${EIGEN3_INCLUDE_DIR}")
+include_directories(SYSTEM "${EIGEN3_INCLUDE_DIR}")
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
 find_package(catkin REQUIRED COMPONENTS rtt_ros kdl_conversions)
-include_directories(${catkin_INCLUDE_DIRS})
+include_directories(SYSTEM ${catkin_INCLUDE_DIRS})
 
 ### Orocos Dependencies ###
 # Note that orocos_use_package() does not need to be called for any dependency

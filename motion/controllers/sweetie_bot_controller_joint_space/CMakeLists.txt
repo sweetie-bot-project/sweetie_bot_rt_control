@@ -28,14 +28,14 @@ endif()
 
 ### General dependencies ###
 find_package(Eigen3 REQUIRED)
-include_directories("${EIGEN3_INCLUDE_DIR}")
+include_directories(SYSTEM "${EIGEN3_INCLUDE_DIR}")
 
 find_path(alglib_INCLUDE_DIR interpolation.h PATH_SUFFIXES libalglib alglib)
 find_library(alglib_LIBRARY NAMES alglib)
 if (NOT (alglib_INCLUDE_DIR AND alglib_LIBRARY))
 	message (FATAL_ERROR "\nCould not find alglib library.")
 endif()
-include_directories(include ${alglib_INCLUDE_DIR})
+include_directories(SYSTEM ${alglib_INCLUDE_DIR})
 
 ### General Dependencies ###
 find_package(Boost REQUIRED COMPONENTS thread) # Fix for xenial linking problems
@@ -43,7 +43,7 @@ find_package(Boost REQUIRED COMPONENTS thread) # Fix for xenial linking problems
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
 find_package(catkin REQUIRED COMPONENTS rtt_ros)
-include_directories(include ${catkin_INCLUDE_DIRS} ${alglib_INCLUDE_DIR})
+include_directories(SYSTEM ${catkin_INCLUDE_DIRS})
 
 ### Orocos Dependencies ###
 # Note that orocos_use_package() does not need to be called for any dependency
@@ -51,6 +51,8 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${alglib_INCLUDE_DIR})
 include_directories(SYSTEM ${USE_OROCOS_INCLUDE_DIRS})
 
 ### Orocos Targets ###
+
+include_directories(include)
 
 # Include src/ directory.
 add_subdirectory( src )
