@@ -53,7 +53,6 @@ add_message_files(
   FILES
   RigidBodyTrajectory.msg
   RigidBodyTrajectoryPoint.msg
-  EndEffectorGoal.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -68,7 +67,6 @@ add_action_files(
   FILES
   SetOperational.action
   FollowStepSequence.action
-  MoveBase.action
 )
 
 ## Generate added messages and services with any dependencies listed here
