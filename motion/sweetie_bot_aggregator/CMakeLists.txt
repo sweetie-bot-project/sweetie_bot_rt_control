@@ -25,7 +25,7 @@ if (LOGGER_AGGREGATOR)
 elseif(LOGGER_DEFAULT)
         add_definitions(-DSWEETIEBOT_LOGGER=${LOGGER_DEFAULT})
 else()
-        add_definitions(-DSSWEETIEBOT_LOGGER=LoggerRosout)
+        add_definitions(-DSWEETIEBOT_LOGGER=LoggerRosout)
 endif()
 
 ### ROS Dependencies ###
