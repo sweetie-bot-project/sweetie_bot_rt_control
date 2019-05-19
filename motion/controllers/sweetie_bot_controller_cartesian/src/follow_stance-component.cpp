@@ -101,7 +101,7 @@ FollowStance::FollowStance(std::string const& name)  :
 	log(INFO) << "FollowStance is constructed!" << endlog();
 }
 
-bool FollowStance::setupSupports(const vector<string>& support_legs)
+bool FollowStance::setupSupports(const std::vector<std::string>& support_legs)
 {
 	// check if limb data is available
 	if (in_limbs_port.read(limbs_full, true) == NoData) {
@@ -170,7 +170,7 @@ bool FollowStance::setupSupports(const vector<string>& support_legs)
 
 	if (log(INFO)) {
 		log() << "Set anchors for chains [ "; 
-		for( const string& name :  supports.name ) log() << name << ", ";
+		for( const std::string& name :  supports.name ) log() << name << ", ";
 		log() << " ]." << endlog();
 	}
 

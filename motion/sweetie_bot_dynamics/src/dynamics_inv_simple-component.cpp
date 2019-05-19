@@ -20,7 +20,7 @@ using namespace RigidBodyDynamics;
 namespace sweetie_bot {
 namespace motion {
 
-DynamicsInvSimple::DynamicsInvSimple(string const& name) : 
+DynamicsInvSimple::DynamicsInvSimple(const std::string& name) : 
 	TaskContext(name, PreOperational),
 	log(logger::categoryFromComponentName(name))
 {
@@ -103,7 +103,7 @@ bool DynamicsInvSimple::configureHook()
 	KDL::Tree kdl_tree = robot_model->getKDLTree();
 	// now iterate over bodies and get coresponding induces
 	for(int id = 3; id < rbdl_model.mBodies.size(); id++) {
-		string body_name = rbdl_model.GetBodyName(id);
+		std::string body_name = rbdl_model.GetBodyName(id);
 		// find it in KDL
 		auto it = kdl_tree.getSegment(body_name);
 		if (it == kdl_tree.getSegments().end()) {
@@ -111,7 +111,7 @@ bool DynamicsInvSimple::configureHook()
 			return false;
 		}
 		// all KDL joints has 1 DOF
-		string joint_name = it->second.segment.getJoint().getName();
+		std::string joint_name = it->second.segment.getJoint().getName();
 		// check DOF of RBDL
 		if ( rbdl_model.mJoints[id].mDoFCount != 1 ) {
 			log(ERROR) << "Joint of body " << body_name << " (id = " << id << ") has " << rbdl_model.mJoints[id].mDoFCount << " > 1 DOF. MultiDOF joints are not supported." << endlog();

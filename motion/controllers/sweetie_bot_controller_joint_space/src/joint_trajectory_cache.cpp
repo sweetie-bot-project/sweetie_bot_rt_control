@@ -44,11 +44,11 @@ JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajec
 		}
 	}
 	// get chains list for subsequent resource requests.
-	{ 
+	{
 		 // get controlled chains from joint list
 		this->chains = robot_model->getJointsChains(this->names);
 		std::bitset<max_chains> controlled_chains_flags; // controlled chains market by true
-		for ( const string& name : this->chains) {
+		for ( const std::string& name : this->chains) {
 			// std::cout << "name: " << name << " index: " << robot_model->getChainIndex(name) << std::endl;
 			controlled_chains_flags.set(robot_model->getChainIndex(name), true);
 		}

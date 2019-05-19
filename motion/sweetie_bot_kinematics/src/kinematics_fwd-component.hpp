@@ -28,10 +28,10 @@ class KinematicsFwd : public RTT::TaskContext
 		// TODO Jacobian calculation.
 		// Support ащк base connected joints?
 		struct KinematicChainData {
-			string name; /**< Kinematic chain name */
+			std::string name; /**< Kinematic chain name */
 			int index_begin; /**< Index of first joint in chain */
-			unique_ptr<KDL::Chain> chain; /**< Kinematic chain. KDL 1.4 FKSolvers store reference to KDL::Chain so Chain object must not change memory location. */
-			unique_ptr<KDL::ChainFkSolverVel_recursive> fk_vel_solver; /**< FK solver */
+			std::unique_ptr<KDL::Chain> chain; /**< Kinematic chain. KDL 1.4 FKSolvers store reference to KDL::Chain so Chain object must not change memory location. */
+			std::unique_ptr<KDL::ChainFkSolverVel_recursive> fk_vel_solver; /**< FK solver */
 			KDL::JntArrayVel jnt_array_vel; /**< buffer */
 		};
 

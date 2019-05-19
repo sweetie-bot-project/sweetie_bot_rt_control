@@ -18,7 +18,7 @@ using namespace KDL;
 namespace sweetie_bot {
 namespace motion {
 
-KinematicsInvTracIK::KinematicsInvTracIK(string const& name) : 
+KinematicsInvTracIK::KinematicsInvTracIK(const std::string& name) : 
 	TaskContext(name, PreOperational),
 	log(logger::categoryFromComponentName(name))
 {
@@ -132,7 +132,7 @@ bool KinematicsInvTracIK::configureHook()
 }
 
 
-std::unique_ptr<TRAC_IK::TRAC_IK> KinematicsInvTracIK::getIKSolver(const string& name, const Chain& chain) 
+std::unique_ptr<TRAC_IK::TRAC_IK> KinematicsInvTracIK::getIKSolver(const std::string& name, const Chain& chain) 
 {
 	int n_joints = chain.getNrOfJoints();
 	// check limit properties

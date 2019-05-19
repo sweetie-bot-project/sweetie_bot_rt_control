@@ -70,15 +70,15 @@ class FollowJointState : public SimpleControllerBase
 		sensor_msgs::JointState actual_pose; // controlled joints actual position
 		sensor_msgs::JointState ref_pose; // controlled joints ref position
 		sweetie_bot_kinematics_msgs::SupportState supports; // contact list buffer
-		
+
 	public:
 		FollowJointState(std::string const& name);
 
 	protected:
 		bool resourceChangedHook_impl(const std::vector<std::string>& requested_resource_set);
-		bool formJointIndex(const vector<string>& controlled_chains);
+		bool formJointIndex(const std::vector<std::string>& controlled_chains);
 
-		bool configureHook_impl(); 
+		bool configureHook_impl();
 		bool startHook_impl();
 		void updateHook_impl();
 		void stopHook_impl();

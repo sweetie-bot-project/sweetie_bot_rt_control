@@ -19,7 +19,7 @@ using namespace Eigen;
 namespace sweetie_bot {
 namespace motion {
 
-Odometry::Odometry(std::string const& name) : 
+Odometry::Odometry(const std::string& name) :
 	TaskContext(name, PreOperational),
 	log(logger::categoryFromComponentName(name))
 {
@@ -75,7 +75,7 @@ bool Odometry::configureHook()
 	}
 	// reserve LimbState array
 	limbs.clear();
-	for ( const string& name : legs ) {
+	for ( const std::string& name : legs ) {
 		int index = robot_model->getChainIndex(name);
 		if (index < 0) {
 			log(ERROR) << "Kinematic chain (leg) " << name << " does not exists." << endlog();

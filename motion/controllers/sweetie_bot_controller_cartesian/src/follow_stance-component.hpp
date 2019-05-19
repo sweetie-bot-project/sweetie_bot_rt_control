@@ -75,7 +75,7 @@ class FollowStance : public SimpleControllerBase
 		sweetie_bot_kinematics_msgs::SupportState supports; // support state to publish
 		
 	protected:
-		bool setupSupports(const vector<string>& support_legs);
+		bool setupSupports(const std::vector<std::string>& support_legs);
 		void checkBalance() ;
 		bool isInsideSupportPolygone(const KDL::Vector point) ;
 

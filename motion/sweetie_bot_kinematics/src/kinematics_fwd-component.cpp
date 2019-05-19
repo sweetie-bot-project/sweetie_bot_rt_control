@@ -14,7 +14,7 @@ using namespace KDL;
 namespace sweetie_bot {
 namespace motion {
 
-KinematicsFwd::KinematicsFwd(string const& name) : 
+KinematicsFwd::KinematicsFwd(const std::string& name) : 
 	TaskContext(name, PreOperational),
 	log(logger::categoryFromComponentName(name))
 {
@@ -63,7 +63,7 @@ bool KinematicsFwd::configureHook()
 		//joint induces
 		//TODO make induces calculation more effective 
 		//TODO remove redundancy
-		vector<string> chain_joints = robot_model->listJoints(name); // contains fictive joints
+		std::vector<std::string> chain_joints = robot_model->listJoints(name); // contains fictive joints
 		data.index_begin = robot_model->getJointIndex(chain_joints.front());
 		data.jnt_array_vel.resize(data.chain->getNrOfJoints()); // some joints can be fictive!
 		// solvers
@@ -73,7 +73,7 @@ bool KinematicsFwd::configureHook()
 	};
 	// get number of joints
 	n_joints = robot_model->listJoints("").size();
-		
+
 	// init port data
 	limbs.frame.resize(limbs.name.size());
 	limbs.twist.resize(limbs.name.size());

@@ -52,7 +52,7 @@ class Aggregator : public RTT::TaskContext
 
   public:
 	// OPERATIONS
-	bool setSupportState(std::vector<string> limbs);
+	bool setSupportState(std::vector<std::string> limbs);
 
     Aggregator(std::string const& name);
     bool configureHook();
