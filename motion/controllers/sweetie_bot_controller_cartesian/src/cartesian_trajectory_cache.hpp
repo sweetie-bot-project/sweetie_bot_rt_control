@@ -83,8 +83,9 @@ class CartesianTrajectoryCache
 		 * @brief Copy desired base state in buffer of proper size.
 		 * Method does not check buffer size. 
 		 * @param base RigidBodyState buffer receiving new base. It size must be at least one.
+		 * @return true if trajectory contains information about base position, false is returned otherwise.
 		 **/
-		void getBaseState(RigidBodyState& base) const;
+		bool getBaseState(RigidBodyState& base) const;
 
 		/**
 		 * @brief Copy desired end effector locations in buffer of proper size.

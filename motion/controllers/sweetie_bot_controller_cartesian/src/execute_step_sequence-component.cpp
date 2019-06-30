@@ -303,7 +303,7 @@ void ExecuteStepSequence::updateHook()
 			return;
 		}
 		// get desired pose	
-		trajectory->getBaseState(base_ref);
+		bool base_pose_available = trajectory->getBaseState(base_ref);
 		trajectory->getEndEffectorState(limbs);
 		trajectory->getSupportState(supports);
 		// publish new reference position
@@ -324,7 +324,7 @@ void ExecuteStepSequence::updateHook()
 			// async interface: assume always success
 			out_limbs_ref_port.write(limbs);
 		}
-		out_base_ref_port.write(base_ref);
+		if (base_pose_available) out_base_ref_port.write(base_ref);
 		out_supports_port.write(supports);
 
 		// move time marker forward
