@@ -1,5 +1,7 @@
 #include "follow_joint_state-component.hpp"
 
+#include <algorithm>
+
 #include <rtt/Component.hpp>
 
 #include "sweetie_bot_orocos_misc/get_subservice_by_type.hpp"
@@ -132,6 +134,24 @@ bool FollowJointState::configureHook_impl()
 	out_supports_port.setDataSample(supports);
 
 	log(INFO) << "FollowJointState is configured !" << endlog();
+	return true;
+}
+
+bool FollowJointState::processResourceSet_impl(const std::vector<std::string>& resource_set, std::vector<std::string>& desired_resource_set)
+{
+	// check if supplied resourses represents chains
+	bool chains_set = std::all_of(resource_set.begin(), resource_set.end(), [this](const std::string& name) { return robot_model->getChainIndex(name) >= 0; } );
+	if (chains_set) {
+		desired_resource_set = resource_set;
+		return true;
+	}
+	// Check if resource set contains joint names
+	desired_resource_set = robot_model->getJointsChains(resource_set);
+	// Check if resource set is empty
+	if (desired_resource_set.size() == 0) {
+		log(ERROR) << "FollowJointState: Resource set is empty." << endlog();
+		return false;
+	}
 	return true;
 }
 

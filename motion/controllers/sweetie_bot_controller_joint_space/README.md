@@ -13,11 +13,13 @@ OROCOS components which control robot movements by publishing reference robot po
 
 * `FollowJointTrajectory` monitor `in_joints_ref` port and use filter plugin to merge received pose 
     with current robot pose on `in_joints_sorted`. Then result is published on `out_joints_fixed` port.
-	All messages have `sensor_msgs::JointState` type. The list of controlled kinematic cahins 
+	All messages have `sensor_msgs::JointState` type. The list of controlled kinematic chains 
 	is specified via pararmeter `controlled_chains`. 
 
 	Component is `SimpleControllerBase` descendant so can be activated by `SetOperational` action, `start/stop` or `rosSetOperational`
     operations. After actiavation it publishes current robot pose on `out_joints_src_reset` port for `activation_delay` cycles.
+	During activation resource list may contain the list of joints names. In the latter case corresponding list of chains 
+	is derived automatically. Note that mixing chains names and joint names is not supported.
 
 	Possible usage pattern: connect `joint_state_publiser` GUI to `in_joints_ref` and `out_joints_src_reset` ports.
 

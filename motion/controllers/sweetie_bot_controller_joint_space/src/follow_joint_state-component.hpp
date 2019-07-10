@@ -75,6 +75,7 @@ class FollowJointState : public SimpleControllerBase
 		FollowJointState(std::string const& name);
 
 	protected:
+		bool processResourceSet_impl(const std::vector<std::string>& resource_set, std::vector<std::string>& desired_resource_set);
 		bool resourceChangedHook_impl(const std::vector<std::string>& requested_resource_set);
 		bool formJointIndex(const std::vector<std::string>& controlled_chains);
 
