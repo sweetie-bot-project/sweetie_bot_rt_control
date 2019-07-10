@@ -388,7 +388,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 			set<string> chain_names;
 			for(auto& name : names) {
 				chain_name = getJointChain(name);
-				if (name != "") {
+				if (chain_name != "") {
 					chain_names.insert(chain_name);
 				}
 				this->log(DEBUG) << name << "=" << getJointChain( name ) << endlog();
