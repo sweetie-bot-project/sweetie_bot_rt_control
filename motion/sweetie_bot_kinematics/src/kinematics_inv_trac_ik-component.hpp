@@ -32,6 +32,8 @@ class KinematicsInvTracIK : public RTT::TaskContext
 			KDL::JntArray jnt_array_pose; /**< buffer */
 			KDL::JntArray jnt_array_vel; /**< buffer */
 			KDL::JntArray jnt_array_seed_pose; /**< initial approximation for solution */
+			KDL::JntArray jnt_lower_bounds; /**< upper bounds for joints */
+			KDL::JntArray jnt_upper_bounds; /**< lower bounds for joints */
 		};
 
 	protected:

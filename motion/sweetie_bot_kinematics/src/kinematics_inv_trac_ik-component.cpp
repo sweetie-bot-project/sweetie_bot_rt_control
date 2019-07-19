@@ -104,6 +104,8 @@ bool KinematicsInvTracIK::configureHook()
 		// IK initialization 
 		data.ik_solver = getIKSolver(name, *data.chain);
 		if (!data.ik_solver) return false;
+		// limits
+		data.ik_solver->getKDLLimits(data.jnt_lower_bounds, data.jnt_upper_bounds);
 	};
 	// get number of joints
 	n_joints_fullpose_ = robot_model_->listJoints("").size();
@@ -216,8 +218,14 @@ bool KinematicsInvTracIK::poseToJointState_impl(const sweetie_bot_kinematics_msg
 		}
 		joints_.name.insert(joints_.name.end(), chain_it->joint_names.begin(), chain_it->joint_names.end());
 
+		// FIX tak_ik bug: clip seed pose or CartToJnt may return incorrect value
+		// TODO: bug report.
+		// use jnt_array_vel as buffer
+		KDL::JntArray& seed = chain_it->jnt_array_vel;
+		seed.data = chain_it->jnt_array_seed_pose.data.cwiseMax(chain_it->jnt_lower_bounds.data);
+		seed.data = seed.data.cwiseMin(chain_it->jnt_upper_bounds.data);
 		// inverse kinematics
-		int ret =  chain_it->ik_solver->CartToJnt(chain_it->jnt_array_seed_pose, limbs_.frame[k], chain_it->jnt_array_pose); //, tolerances);
+		int ret =  chain_it->ik_solver->CartToJnt(seed, limbs_.frame[k], chain_it->jnt_array_pose); //, tolerances);
 		if (ret < 0) {
 			this->log(DEBUG) << "IK failed with error code: " << ret <<endlog();
 			return false;
