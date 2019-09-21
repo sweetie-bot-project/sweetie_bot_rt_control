@@ -92,8 +92,8 @@ bool KinematicsInvTracIK::configureHook()
 
 		data.name = name;
 		//joint induces
-		data.joint_names = robot_model_->listJoints(name); // contains fictive joints
-		data.index_begin = robot_model_->getJointIndex(data.joint_names.front());
+		data.joint_names = robot_model_->getChainJoints(name); // contains fictive joints
+		data.joint_induces = robot_model_->getChainJointsInduces(name, true);
 		data.size = data.chain->getNrOfJoints(); // some joints can be fictive!
 		data.jnt_array_pose.resize(data.size);
 		data.jnt_array_vel.resize(data.size);
@@ -108,7 +108,7 @@ bool KinematicsInvTracIK::configureHook()
 		data.ik_solver->getKDLLimits(data.jnt_lower_bounds, data.jnt_upper_bounds);
 	};
 	// get number of joints
-	n_joints_fullpose_ = robot_model_->listJoints("").size();
+	n_joints_fullpose_ = robot_model_->listJoints().size();
 
 	if (log(DEBUG)) {
 		log() << "Loaded " << chain_names_.size() << " chains: ";
@@ -187,7 +187,7 @@ bool KinematicsInvTracIK::startHook()
 	if (in_joints_seed_port_.read(joints_, true) != NoData && isValidJointStatePos(joints_, n_joints_fullpose_)) {
 		// update seeds
 		for ( KinematicChainData& chain_data : chain_data_ ) {
-			chain_data.jnt_array_seed_pose.data = Eigen::Map<Eigen::VectorXd>( &joints_.position[chain_data.index_begin], chain_data.size );
+			for(int i = 0; i < chain_data.size; i++) chain_data.jnt_array_seed_pose.data[i] = joints_.position[chain_data.joint_induces[i]];
 		}
 	}
 
@@ -343,7 +343,7 @@ void KinematicsInvTracIK::updateHook()
 			j++;
 			// update seeds
 			for ( KinematicChainData& chain_data : chain_data_ ) {
-				chain_data.jnt_array_seed_pose.data = Eigen::Map<Eigen::VectorXd>( &joints_.position[chain_data.index_begin], chain_data.size );
+				for(int i = 0; i < chain_data.size; i++) chain_data.jnt_array_seed_pose.data[i] = joints_.position[chain_data.joint_induces[i]];
 			}
 		}
 		else {

@@ -24,7 +24,7 @@ class KinematicsInvTracIK : public RTT::TaskContext
 		struct KinematicChainData {
 			std::string name; /**< Kinematic chain name */
 			std::vector<std::string> joint_names; /**< Names of joint. */
-			int index_begin; /**< Index of first joint in chain */
+			std::vector<int> joint_induces; /**< Induces of joints in chain */
 			int size; /**< Kinematic chain length. */
 			std::unique_ptr<KDL::Chain> chain; /**< Kinematic chain. KDL 1.4 FKSolvers store reference to KDL::Chain so Chain object must not change memory location. */ //TODO: remove size field?
 			std::unique_ptr<TRAC_IK::TRAC_IK> ik_solver; /**< IK  velocity solver */

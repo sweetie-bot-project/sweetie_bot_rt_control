@@ -63,16 +63,16 @@ bool KinematicsFwd::configureHook()
 		//joint induces
 		//TODO make induces calculation more effective 
 		//TODO remove redundancy
-		std::vector<std::string> chain_joints = robot_model->listJoints(name); // contains fictive joints
-		data.index_begin = robot_model->getJointIndex(chain_joints.front());
-		data.jnt_array_vel.resize(data.chain->getNrOfJoints()); // some joints can be fictive!
+		std::vector<std::string> chain_joints = robot_model->getChainJoints(name); // contains fictive joints
+		data.joint_induces = robot_model->getChainJointsInduces(name, virtual_links);
+		data.jnt_array_vel.resize(data.chain->getNrOfJoints()); 
 		// solvers
 		data.fk_vel_solver.reset( new ChainFkSolverVel_recursive(*data.chain) );
 		// add chain to output list buffer
 		limbs.name.push_back(name);
 	};
 	// get number of joints
-	n_joints = robot_model->listJoints("").size();
+	n_joints = robot_model->listJoints().size();
 
 	// init port data
 	limbs.frame.resize(limbs.name.size());
@@ -107,9 +107,9 @@ void KinematicsFwd::updateHook()
 		for (int k = 0; k < chain_data.size(); k++ ) {
 			KinematicChainData& data = chain_data[k];
 			// get chain pose in joint space
-			data.jnt_array_vel.q.data = Eigen::VectorXd::Map( &joints.position[data.index_begin], data.chain->getNrOfJoints() );
+			for(int i = 0; i < data.chain->getNrOfJoints(); i++) data.jnt_array_vel.q.data[i] = joints.position[data.joint_induces[i]];
 			if ( joints.velocity.size() != 0 ) {
-				data.jnt_array_vel.qdot.data = Eigen::VectorXd::Map( &joints.velocity[data.index_begin], data.chain->getNrOfJoints() );
+				for(int i = 0; i < data.chain->getNrOfJoints(); i++) data.jnt_array_vel.qdot.data[i] = joints.velocity[data.joint_induces[i]];
 			} 
 			else {
 				KDL::SetToZero(data.jnt_array_vel.qdot);
