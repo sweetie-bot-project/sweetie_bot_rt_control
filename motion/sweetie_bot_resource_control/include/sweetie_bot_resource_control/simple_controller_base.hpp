@@ -32,9 +32,9 @@ namespace controller {
  * only implements following methods.
  * @code
 		bool configureHook_impl();
-		bool processResourceSet_impl(const std::vector<std::string>& resource_set, std::vector<std::string>& desired_resource_set);
+		bool processResourceSet_impl(const std::vector<std::string>& set_operational_goal_resources, std::vector<std::string>& resources_to_request);
 		bool startHook_impl();
-		bool resourceChangedHook_impl(const std::vector<std::string>& desired_resource_set);
+		bool resourceChangedHook_impl(const std::vector<std::string>& set_operational_goal_resources, const std::vector<std::string>& requested_resources);
 		void updateHook_impl();
 		void stopHook_impl();
 		void cleanupHook_impl();
@@ -107,15 +107,15 @@ class SimpleControllerBase : public RTT::TaskContext
 		 * Always called after configureHook_impl() and before actual resource request. This function is used  
 		 * to check if action goal is sane and to determine resources which should be requested.
 		 *
-		 * Minimal implementation sets @a desired_resource_set equal to @a goal_resource_set and return true.
-		 * In more complex cases @a goal_resource_set should be checked if it comforms controller-specific 
-		 * conditions and the actual resource set to request should be assigned to @a desired_resource_set.
+		 * Minimal implementation sets @a resources_to_request equal to @a set_operational_goal_resources and return true.
+		 * In more complex cases @a set_operational_goal_resources should be checked if it comforms controller-specific 
+		 * conditions and the actual resource set to request should be assigned to @a resources_to_request.
 		 *
-		 * @param goal_resource_set A resource from SetOperationalGoal messages. start() operation uses default value from `kinematic_chains` property.
+		 * @param set_operational_goal_resources A resource from SetOperationalGoal messages. start() operation uses default value from `default_resource_set` property.
 		 * @param desired_resource_set Resource set which should be requested. Usually it is equal to goal_resource_set, but component may change it.
 		 * @return true if goal_resource_set set is acceptible for component.
 		 **/
-		virtual bool processResourceSet_impl(const std::vector<std::string>& goal_resource_set, std::vector<std::string>& desired_resource_set);
+		virtual bool processResourceSet_impl(const std::vector<std::string>& set_operational_goal_resources, std::vector<std::string>& resources_to_request);
 		/**
 		 * @brief @c startHook() implementation.
 		 * Requested and acquired resource sets are not known yet.
@@ -126,10 +126,11 @@ class SimpleControllerBase : public RTT::TaskContext
 		 * @brief Implement reaction on resource set change.
 		 * Always called after startHook_impl() and processResourceSet_impl(). Acquired resource set can be accessed via @c resource_client field.
 		 * This function must reinitialize controller to run with different resource set or return failure.
-		 * @param desired_resource_set Resource set requested from arbiter. It is the same set which was returned in second parameter of @a processResourceSet_impl().
+		 * @param set_operational_goal_resources 'resources' field of SetOperationalGoal message.
+		 * @param requested_resources Resource set requested from arbiter. It is the same set which was returned in second parameter of @a processResourceSet_impl().
 		 * @return true to activate controller.
 		 **/
-		virtual bool resourceChangedHook_impl(const std::vector<std::string>& desired_resource_set);
+		virtual bool resourceChangedHook_impl(const std::vector<std::string>& set_operational_goal_resources, const std::vector<std::string>& requested_resources);
 		/**
 		 * @brief @c updateHook() implementation. 
 		 * It is periodically called if component active.

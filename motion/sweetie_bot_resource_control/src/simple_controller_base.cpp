@@ -161,8 +161,8 @@ bool SimpleControllerBase::startHook()
 		// we was activated without action, so use default resources set.
 		// check if default resource set is sane and fill desired_resource_set
 		if (!processResourceSet_impl(default_resource_set, desired_resource_set)) return false;
+		// request desired resources
 	}
-	// request desired resources
 	resource_client->resourceChangeRequest(desired_resource_set); 
 	// clear sync port buffer
 	RTT::os::Timer::TimerId timer_id;
@@ -187,10 +187,11 @@ bool SimpleControllerBase::startHook()
  */
 bool SimpleControllerBase::resourceChangeHook() 
 {
-	// pass control to actual implementation, pass list of requested resources
-	bool is_operational = resourceChangedHook_impl(desired_resource_set);
+	bool is_operational;
 
 	if (action_server.isActive()) {
+		// pass control to actual implementation: pass SetOperationalGoal resources field and set of requested resources
+		is_operational = resourceChangedHook_impl(action_server.getActiveGoal()->resources, desired_resource_set);
 		if (!is_operational) {
 			// inform client about controller deactivation
 			goal_result.error_code = Result::SUCCESSFUL; // is this normal behavior?
@@ -203,7 +204,12 @@ bool SimpleControllerBase::resourceChangeHook()
 			action_server.publishFeedback(goal_feedback);
 		}
 	}
+	else {
+		// pass control to actual implementation: pass default resources set because (SetOperationalGoal is not available) and set of requested resources.
+		is_operational = resourceChangedHook_impl(default_resource_set, desired_resource_set);
+	}
 
+	log(DEBUG) << "SimpleControllerBase: resourceChangedHook_impl returned " << is_operational << endlog();
 	return is_operational;
 }
 
@@ -286,9 +292,9 @@ bool SimpleControllerBase::configureHook_impl()
 	return true;
 }
 
-bool SimpleControllerBase::processResourceSet_impl(const std::vector<std::string>& goal_resource_set, std::vector<std::string>& desired_resource_set)
+bool SimpleControllerBase::processResourceSet_impl(const std::vector<std::string>& set_operational_goal_resources, std::vector<std::string>& resources_to_request)
 {
-	desired_resource_set = goal_resource_set;
+	resources_to_request = set_operational_goal_resources;
 	return true;
 }
 
@@ -298,9 +304,9 @@ bool SimpleControllerBase::startHook_impl()
 	return true;
 }
 
-bool SimpleControllerBase::resourceChangedHook_impl(const std::vector<std::string>& requested_resource_set)
+bool SimpleControllerBase::resourceChangedHook_impl(const std::vector<std::string>& set_operational_goal_resources, const std::vector<std::string>& requested_resources)
 {
-	log(INFO) << "SimpleControllerBase resource set changed to " << resource_client->listResources() << ", requisted set is " << requested_resource_set << endlog();
+	log(INFO) << "SimpleControllerBase resource set changed to " << resource_client->listResources() << ", requested set is " << requested_resources << endlog();
 	return true;
 }
 

@@ -27,7 +27,7 @@ a resource (i.e. the resource is not mentioned in the last resource request).
 3. `resource_client_dummy` service always believes it owns all necessary resources. It does not interact with 
     `ResourceArbiter`. It can be used for testing purpose.
 
-4. `SimpleControllerBase` superclass which simplifies implementation of SetOperational action activated controllers.
+4. `SimpleControllerBase` superclass which simplifies implementation of `SetOperational` action activated controllers.
 
 
 ### Usage
