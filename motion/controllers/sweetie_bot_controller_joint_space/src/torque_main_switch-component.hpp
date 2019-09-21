@@ -45,7 +45,7 @@ class TorqueMainSwitch : public SimpleControllerBase
 	protected:
 		// COMPONENT STATE
 		std::vector< RTT::OperationCaller<bool(bool)> > torque_off_callers; // operation callers to control servos torque
-		std::vector< std::string > controlled_chains; // list of controlled chains
+		std::vector< std::string > controlled_groups; // list of controlled joint groups
 		// ports buffers
 		JointState actual_fullpose; // buffer for input port in_joints_port
 		
@@ -61,8 +61,8 @@ class TorqueMainSwitch : public SimpleControllerBase
 		bool setSchedulersActive(bool is_active);
 		bool setAllServosTorqueFree(bool torque_is_off);
 
-		bool processResourceSet_impl(const std::vector<std::string>& goal_resource_set, std::vector<std::string>& desired_resource_set);
-		bool resourceChangedHook_impl(const std::vector<std::string>& desired_resource_set);
+		bool processResourceSet_impl(const std::vector<std::string>& set_operational_goal_resources, std::vector<std::string>& resources_to_request);
+		bool resourceChangedHook_impl(const std::vector<std::string>& set_operational_goal_resources, const std::vector<std::string>& requested_resources);
 
 		bool configureHook_impl(); 
 		bool startHook_impl();

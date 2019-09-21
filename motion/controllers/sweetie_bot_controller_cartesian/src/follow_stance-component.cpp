@@ -264,12 +264,25 @@ bool FollowStance::startHook_impl()
 	return true;
 }
 
-bool FollowStance::resourceChangedHook_impl(const std::vector<std::string>& requested_resource_set)
+bool FollowStance::processResourceSet_impl(const std::vector<std::string>& set_operational_goal_chains, std::vector<std::string>& resources_to_request)
 {
-	if (!resource_client->hasResources(requested_resource_set)) return false;
+	// check if supplied resourses represents chains
+	bool chains_set = std::all_of(set_operational_goal_chains.begin(), set_operational_goal_chains.end(), [this](const std::string& name) { return robot_model->getChainIndex(name) >= 0; } );
+	if (!chains_set) {
+		log(ERROR) << "FollowStance: resource set must contains kinematic chains." << endlog();
+		return false;
+	}
+	resources_to_request = robot_model->getChainsGroups(set_operational_goal_chains);
+	return true;
+}
+
+
+bool FollowStance::resourceChangedHook_impl(const std::vector<std::string>& set_operational_goal_chains, const std::vector<std::string>& requested_resources)
+{
+	if (!resource_client->hasResources(requested_resources)) return false;
 
 	ik_success = true;
-	return setupSupports(requested_resource_set);
+	return setupSupports(set_operational_goal_chains);
 }
 
 bool FollowStance::isInsideSupportPolygone(const KDL::Vector point) 

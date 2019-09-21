@@ -15,57 +15,41 @@ JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajec
 
 	if (!robot_model || !robot_model->ready()) throw std::invalid_argument("JointTrajectoryCache: RobotModel is not ready");
 
-	// get list of kinematic chains
-	const unsigned int max_chains = 32;
-	const std::vector<std::string> chains_list = robot_model->listChains();
-	if (chains_list.size() >= max_chains) throw std::invalid_argument("JointTrajectoryCache: too many kineamtic chains (more then 32)");
-
 	// split received joints in two groups: actual robot joint and support points names, prepended with substring "support".
 	std::vector<bool> support_flags(goal.trajectory.joint_names.size());	// support points are market by true 
-	std::bitset<max_chains> support_chains_flags; // support chains set
 
 	for(int i = 0; i < goal.trajectory.joint_names.size(); i++) {
 		const std::string& name = goal.trajectory.joint_names[i];
 		if (0 == name.compare(0, 8, "support/")) {
 			// this joint contains support state information
-			int index = robot_model->getChainIndex(name.substr(8));
-			if (index < 0) throw std::invalid_argument("JointTrajectoryCache: unknown chain in support state: " + name);
-			support_chains_flags.set(index, true);
-			support_names.push_back(name.substr(8));
+			int chain_index = robot_model->getChainIndex(name.substr(8));
+			if (chain_index < 0) throw std::invalid_argument("JointTrajectoryCache: unknown chain in support state: " + name);
+			// register support
+			this->support_names.push_back(name.substr(8));
 			support_flags[i] = true;
 		}
 		else {
 			// ordinary joint
 			int index = robot_model->getJointIndex(name);
 			if (index < 0) throw std::invalid_argument("JointTrajectoryCache: Unknown joint: " + name);
-			names.push_back(name);
-			index_fullpose.push_back(index);
+			this->names.push_back(name);
+			this->index_fullpose.push_back(index);
 			support_flags[i] = false;
 		}
 	}
-	// get chains list for subsequent resource requests.
-	{
-		 // get controlled chains from joint list
-		this->chains = robot_model->getJointsChains(this->names);
-		std::bitset<max_chains> controlled_chains_flags; // controlled chains market by true
-		for ( const std::string& name : this->chains) {
-			// std::cout << "name: " << name << " index: " << robot_model->getChainIndex(name) << std::endl;
-			controlled_chains_flags.set(robot_model->getChainIndex(name), true);
-		}
-		// std::cout << "controlled_chains_flags: " << controlled_chains_flags << " support_chains_flags: " << support_chains_flags << std::endl;
-
-		std::bitset<max_chains> common_chains_flags = controlled_chains_flags & support_chains_flags;
-		// Calculate the set of support chains that should be added to required resourses list.
-		support_chains_flags ^= common_chains_flags;
-		// Calculate the set of controlled chains that is not mentioned in supports.
-		// They are added to support list and assumed to be free.
-		controlled_chains_flags ^= common_chains_flags;
-		// std::cout << "controlled_chains_flags: " << controlled_chains_flags << " support_chains_flags: " << support_chains_flags << " common_chains_flags: " << common_chains_flags << std::endl;
-		//
-		for(int i = 0; i < chains_list.size(); i++) {
-			if (support_chains_flags[i]) this->chains.push_back(chains_list[i]);
-			if (controlled_chains_flags[i]) this->support_names.push_back(chains_list[i]);
-		}
+	// get list of required joint groups list for subsequent resource requests.
+	this->groups = robot_model->getJointsGroups(this->names);
+	for(const std::string& chain_name : this->support_names) {
+		std::string new_group = robot_model->getChainGroup(chain_name);
+		auto it = std::find(this->groups.begin(), this->groups.end(), new_group);
+		if (it == this->groups.end()) this->groups.push_back(new_group);
+	}
+	// add to support_name controlled chains which is not mentioned in trajectory.joint_names explicitly
+	// TODO speed up this code
+	std::vector<std::string> chains_all = robot_model->getGroupsChains(this->groups);
+	for(const string& chain : chains_all) {
+		auto it = std::find(this->support_names.begin(), this->support_names.end(), chain);
+		if (it == this->support_names.end()) support_names.push_back(chain);
 	}
 	// now extract and interpolate trajectory
 	loadTrajectory(goal.trajectory, support_flags, robot_model, algorithm);

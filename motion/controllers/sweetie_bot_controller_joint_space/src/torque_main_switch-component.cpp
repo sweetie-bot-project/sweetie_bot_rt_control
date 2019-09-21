@@ -106,7 +106,7 @@ bool TorqueMainSwitch::configureHook_impl()
 		joints.insert(joints.end(), new_joints.begin(), new_joints.end());
 	}
 	// form list of necessary resources
-	controlled_chains = robot_model->getJointsChains(joints);
+	controlled_groups = robot_model->getJointsGroups(joints);
 
 	// check HerkulexSched
 	for(auto sched_name = herkulex_scheds.begin(); sched_name != herkulex_scheds.end(); sched_name++) {
@@ -123,8 +123,8 @@ bool TorqueMainSwitch::configureHook_impl()
 		log() << "Herkulex arrays: [ "; 
 		for(auto it = herkulex_arrays.begin(); it != herkulex_arrays.end(); it++) log() << *it << ", ";
 		log() << " ]." << endlog();
-		log() << "Controlled chains: [ "; 
-		for(auto it = controlled_chains.begin(); it != controlled_chains.end(); it++) log() << *it << ", ";
+		log() << "Controlled joint groups: [ "; 
+		for(auto it = controlled_groups.begin(); it != controlled_groups.end(); it++) log() << *it << ", ";
 		log() << " ]." << endlog();
 	}
 
@@ -132,10 +132,10 @@ bool TorqueMainSwitch::configureHook_impl()
 	return true;
 }
 
-bool TorqueMainSwitch::processResourceSet_impl(const std::vector<std::string>& goal_resource_set, std::vector<std::string>& desired_resource_set)
+bool TorqueMainSwitch::processResourceSet_impl(const std::vector<std::string>& set_operational_goal_resources, std::vector<std::string>& resources_to_request)
 {
-	// ignore goal_resource_set
-	desired_resource_set = controlled_chains;
+	// ignore set_operational_goal_resources, 
+	resources_to_request = controlled_groups;
 	return true;
 }
 
@@ -209,17 +209,17 @@ bool TorqueMainSwitch::setAllServosTorqueFree(bool torque_is_off)
 	return success;
 }
 
-bool TorqueMainSwitch::resourceChangedHook_impl(const std::vector<std::string>& desired_resource_set)
+bool TorqueMainSwitch::resourceChangedHook_impl(const std::vector<std::string>& set_operational_goal_resources, const std::vector<std::string>& requested_resources)
 {
 	// check if resources available
-	return resource_client->hasResources(controlled_chains);
+	return resource_client->hasResources(controlled_groups);
 }
 
 /*bool TorqueMainSwitch::resourceChangeHook() 
 {
 	// depending on resourse posession 
 	// determine servos new state
-	bool servos_troque_is_off = resource_client->hasResources(controlled_chains);
+	bool servos_troque_is_off = resource_client->hasResources(controlled_groups);
 
 	// change servos state
 	log(INFO) << "Setting servo torque " << (!servos_troque_is_off) ? "ON" : "OFF" << endlog();
@@ -259,7 +259,7 @@ void TorqueMainSwitch::stopHook_impl()
 
 void TorqueMainSwitch::cleanupHook_impl() 
 {
-	controlled_chains.clear();
+	controlled_groups.clear();
 	torque_off_callers.clear();
 	log(INFO) << "TorqueMainSwitch cleaning up !" << endlog();
 }

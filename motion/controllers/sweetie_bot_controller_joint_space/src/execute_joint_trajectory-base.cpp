@@ -68,7 +68,7 @@ bool ExecuteJointTrajectoryBase::configureHook()
 		log(ERROR) << "RobotModel service is not ready." << endlog();
 		return false;
 	}
-	this->n_joints_fullpose = robot_model->listJoints("").size();
+	this->n_joints_fullpose = robot_model->listJoints().size();
 	// check if filter present
 	filter = getSubServiceByType<filter::FilterJointStateInterface>(this->provides().get());
 	if (filter) {

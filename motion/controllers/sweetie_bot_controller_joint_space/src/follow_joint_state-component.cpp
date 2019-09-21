@@ -64,29 +64,29 @@ FollowJointState::FollowJointState(std::string const& name)  :
 }
 
 /**
- * Create joint index for given kinematic chain list. 
+ * Create joint index for given joint group list.
  * Adjust actual_pose and ref_pose buffer sizes.
  */
-bool FollowJointState::formJointIndex(const vector<string>& controlled_chains)
+bool FollowJointState::formJointIndex(const vector<string>& controlled_joint_groups)
 {
 	controlled_joints.clear();
 	ref_pose.name.clear();
 
 	vector<string> joint_names;
-	for(auto chain = controlled_chains.begin(); chain != controlled_chains.end(); chain++) {
-		joint_names = robot_model->listJoints(*chain);
+	for(const string& group : controlled_joint_groups) {
+		joint_names = robot_model->getGroupJoints(group);
 		if (joint_names.size() == 0) {
-			log(ERROR) << "Empty joint group `" << *chain << "`." << endlog();
+			log(ERROR) << "Empty joint group `" << group << "`." << endlog();
 			return false;
 		}
-		for(auto joint = joint_names.begin(); joint != joint_names.end(); joint++) {
+		for(const string& joint : joint_names) {
 			// add joint to index
-			controlled_joints.insert(std::make_pair(*joint, JointIndex(robot_model->getJointIndex(*joint), controlled_joints.size())));
-			ref_pose.name.push_back(*joint);
+			controlled_joints.insert(std::make_pair(joint, JointIndex(robot_model->getJointIndex(joint), controlled_joints.size())));
+			ref_pose.name.push_back(joint);
 		}
 	}
 	if (log(INFO)) {
-		log() << "Controlled chains: " << controlled_chains << endlog();
+		log() << "Controlled joint groups: " << controlled_joint_groups << endlog();
 		log() << "Controlled joints: " << ref_pose.name << endlog();
 	}
 
@@ -97,7 +97,7 @@ bool FollowJointState::formJointIndex(const vector<string>& controlled_chains)
 	//ref_pose.effort.assign(sz, 0);
 	actual_pose = ref_pose;
 	// supports
-	supports.name = controlled_chains;
+	supports.name = robot_model->getGroupsChains(controlled_joint_groups);
 	supports.contact.assign(supports.name.size(), "");
 	supports.support.assign(supports.name.size(), 0.0);
 
@@ -121,7 +121,7 @@ bool FollowJointState::configureHook_impl()
 		log(ERROR) << "RobotModel service is not ready." << endlog();
 		return false;
 	}
-	n_joints_fullpose = robot_model->listJoints("").size();
+	n_joints_fullpose = robot_model->listJoints().size();
 	// build joints index 
 	if (!formJointIndex(default_resource_set)) return false;
 	// allocate memory
@@ -137,18 +137,19 @@ bool FollowJointState::configureHook_impl()
 	return true;
 }
 
-bool FollowJointState::processResourceSet_impl(const std::vector<std::string>& resource_set, std::vector<std::string>& desired_resource_set)
+bool FollowJointState::processResourceSet_impl(const std::vector<std::string>& groups_or_joints, std::vector<std::string>& resources_to_request)
 {
-	// check if supplied resourses represents chains
-	bool chains_set = std::all_of(resource_set.begin(), resource_set.end(), [this](const std::string& name) { return robot_model->getChainIndex(name) >= 0; } );
-	if (chains_set) {
-		desired_resource_set = resource_set;
-		return true;
+	// check if supplied resourses represents joint groups
+	bool is_group_set = std::all_of(groups_or_joints.begin(), groups_or_joints.end(), [this](const std::string& name) { return robot_model->getGroupIndex(name) >= 0; } );
+	if (is_group_set) {
+		resources_to_request = groups_or_joints;
 	}
-	// Check if resource set contains joint names
-	desired_resource_set = robot_model->getJointsChains(resource_set);
+	else {
+		// resource set contains joint names
+		resources_to_request = robot_model->getJointsGroups(groups_or_joints);
+	}
 	// Check if resource set is empty
-	if (desired_resource_set.size() == 0) {
+	if (resources_to_request.size() == 0) {
 		log(ERROR) << "FollowJointState: Resource set is empty." << endlog();
 		return false;
 	}
@@ -172,7 +173,7 @@ bool FollowJointState::startHook_impl()
 	return true;
 }
 
-bool FollowJointState::resourceChangedHook_impl(const std::vector<std::string>& requested_resource_set)
+bool FollowJointState::resourceChangedHook_impl(const std::vector<std::string>& set_operational_groups_or_joints, const std::vector<std::string>& requested_resources)
 {
 	// Controller is able to work with arbitrary joint set.
 	// Just rebuild index and continue.
