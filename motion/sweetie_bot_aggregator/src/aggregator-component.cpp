@@ -63,7 +63,7 @@ bool Aggregator::configureHook()
   log()<<endlog();
 
   // get list of all joint names
-  output_joint_state_.name = robot_model_->listJoints("");
+  output_joint_state_.name = robot_model_->listJoints();
   int n_joints = output_joint_state_.name.size();
   // construct joint index
   joint_index_.clear();
