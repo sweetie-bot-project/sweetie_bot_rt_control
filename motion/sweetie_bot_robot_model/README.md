@@ -4,13 +4,15 @@ This packages contain `robot_model` service which provides access to URDF robot 
 It provides to another components information about joint ordering, joints groups (kinematic chains) and possible contacts.
 This package is part of [Sweetie Bot project](http://sweetiebot.net). See complete specification [here (Rus)](https://gitlab.com/sweetie-bot/sweetie_doc/wikis/plugin-robotmodel).
 
-**Joint groups**. Joints are grouped in joint groups. Each group is a kinematic chain which contains all joints between first and last link 
+**Joints**. Each joint has unique index, which specifies its position in full robot pose.
+
+**Kinematic chains**. Kinematic chain contains all joints between first and last link.
 Chain may ends with additional virtual links. They can be used to simplify inverse kinematics solution and present in full robot pose.
-One joint can not be shared between to joint group. Each group has unique index, which specifies its position in full robot pose.
+Each chain has unique index, which specifies its position in full robot pose. One joint can be shared between many chains.
 
-**Joint ordering**. Joints are ordered according to joints groups and then according to their order in kinematic chain which corresponds to the group.
+**Joint groups**. Joints are grouped in joint groups. Group consists of kinematic chains and joints. Two groups can not contains the same joints or chains.
 
-**Contacts**. Contacts are modeled as set of fixed points. Robot model provides access to these sets. Points coordinates represented in robot segments frames.
+**Contacts**. Contacts are modeled as set of fixed points.  Points coordinates represented in robot segments frames.  
 Currently contacts are not bound to any specific robot segment, so they can be viewed simply as named points sets.
 
 **Robot description**. Plugin provides access to URDF robot description and KDL models of kinematic chains.
@@ -28,6 +30,14 @@ Standard usage pattern: load plugin into aggregator component or GlobalService a
             string last_link_virtual (optional)
 			string default_contact (optional)
         PropertyBag chain_name2
+		    ...
+		...
+2. `groups` (`PropertyBag`) --- joint groups description
+         
+        PropertyBag group1 
+            string[] chains
+            string[] joints
+        PropertyBag group2
 		    ...
 		...
 2. `contacts` (`PropertyBag`) --- contacts' description:
@@ -49,14 +59,23 @@ Contacts and chains properties can be loaded from `.cpf` file.
 
 1. `strings listChains()` (`ClientThread`) --- get list of registered kinematic chains.
 1. `int getChainIndex(const string& name)` --- returns position of the given chain in full sorted pose or -1 if chain does not exists.
+1. `strings getChainJoints(const string& chain)` --- return joints in given kinematic chain.
+1. `ints getChainJointsInduces(string& chain, bool with_virtual_joints)` --- return induces of joints .
 1. `string getChainDefaultContact(const string& name)` --- returns default contact name (from property).
 1. `string getChainProperty(const string& name, const string& property)` --- return text property of kinematic chain: `first_link`, `last_link`, `last_link_virtual`, `default_contact`.
+1. `string getChainGroup(const std::string& chain)` --- return group to which given chain is belongs.
+1. `strings getChainsGroups(strings chains)` --- return groups set which corresponds to given chains.
 
+1.  `strings listGroups()` --- get list of known groups.
+1.  `int getGroupIndex(const std::string& group)` --- get index of given group. Return -1 if group does not exist.
+1.  `strings getGroupJoints(const string& group)` --- get list of joints which belong to given group. This list contains joints of kinematic chains registered in group. Return empty list if group does not exists.
+1.  `strings getGroupChains(const string& group)` --- get kinematic chains which belong to given group.
+1.  `strings getGroupsChains(strings groups)` --- get kinematic chains which corresponds to give groups' list.
 
-1. `vector<string> listJoint(const string& name)` --- return list of joints' names in given kinematic chain. If name is empty strings return full list of known joints.
+1. `vector<string> listJoint()` --- return full list of known joints.
 1. `int getJointIndex(const string& name)` --- returns position of the given joint in full sorted pose.
-1. `string getJointChain(string joint)` (`ClientThread`) --- return chain name to which belongs given joint.
-1. `strings getJointsChains(strings joints)` (`ClientThread`) --- return chains' names to which belong given joints.
+1. `string getJointGroup(string joint)` (`ClientThread`) --- return group name to which belongs given joint.
+1. `strings getJointsGroups(strings joints)` (`ClientThread`) --- return groups' names which includes given joints.
 
 1. `strings listContacts()` (`ClientThread`) --- return names of all contacts.
 1. `KDL.Vector[] getContactPoints(string name)` (`ClientThread`) --- return a set of points equivalent to the contact or nothing if contact does not exists. Points coordinates a given in a link frame.
