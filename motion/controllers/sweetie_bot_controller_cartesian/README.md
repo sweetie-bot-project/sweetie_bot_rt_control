@@ -33,8 +33,14 @@ OROCOS component which control robot movements by publishing reference robot pos
     If static stability conditions for target pose are violated and property `balance_check` is set target pose is ignored.
     If `keep_balance` is set robot will try to move base to keep balance in current situation. 
 
-* `FollowPose` controller tracks pose received on `in_pose_ref` port (`PoseStamped`) with specific limb. The limb is defined by 
-    SetOperational action (resources field maust contains only one entity). Default value specified by `controlled_chains` property.
+* `FollowPose` controller tracks pose received on `in_pose_ref` port (`PoseStamped`) with specific limb (kinematic chain). The limb is defined by 
+     SetOperational action (resources field contains kinematic chain name). Default value specified by `controlled_chains` property.
+
+    Component implements the same algorithm as `FollowStance` controller. (Filter `filter_rigid_body_state` is used to calculate limb displacment).
+
+* `LookAt` controller tracks pose received on `in_pose_ref` port (`PoseStamped`) changing orientation of end effector in such a way 
+    that x-axis points toward received pose position field and z-axis points upward in world frame. Controller is activated with SetOperational action 
+	(resources field contains single kinematic chain name). Default value is specified by `controlled_chains` property.
 
     Component implements the same algorithm as `FollowStance` controller. (Filter `filter_rigid_body_state` is used to calculate limb displacment).
 
