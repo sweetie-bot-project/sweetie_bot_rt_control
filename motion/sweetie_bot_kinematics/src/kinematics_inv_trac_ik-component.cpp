@@ -50,6 +50,9 @@ KinematicsInvTracIK::KinematicsInvTracIK(const std::string& name) :
 	this->addProperty( "use_ik_pose_as_new_seed", use_ik_pose_as_new_seed_ )
 		.doc( "Renew chain seed pose with newly calculated IK pose.")
 		.set(false);
+	this->addProperty( "use_ik_pose_as_new_seed", use_ik_pose_as_new_seed_ )
+		.doc( "Renew chain seed pose with newly calculated IK pose.")
+		.set(false);
 	// operations
 	this->addOperation("poseToJointState", &KinematicsInvTracIK::poseToJointState, this, OwnThread)
 		.doc("Process IK request syncronously. Unknown chains are ignored. Return true if request succesed. Otherwise result message is incorrect and should be ignored.")
@@ -106,6 +109,16 @@ bool KinematicsInvTracIK::configureHook()
 		if (!data.ik_solver) return false;
 		// limits
 		data.ik_solver->getKDLLimits(data.jnt_lower_bounds, data.jnt_upper_bounds);
+		// get tolerance property
+		Property< std::vector<double> >	tolerance = this->getProperty(name + "_tolerance");
+		if (tolerance.ready()) {
+			if (tolerance.rvalue().size() != 6) {
+				log(ERROR) << "Tolerance specifications must contain six elements (chain " << name << "). " << endlog();
+				return false;
+			}
+			// copy tolerance values
+			for(int shift = 0; shift < 6; shift++) data.tolerance[shift] = tolerance.rvalue()[shift];
+		}
 	};
 	// get number of joints
 	n_joints_fullpose_ = robot_model_->listJoints().size();
@@ -225,7 +238,7 @@ bool KinematicsInvTracIK::poseToJointState_impl(const sweetie_bot_kinematics_msg
 		seed.data = chain_it->jnt_array_seed_pose.data.cwiseMax(chain_it->jnt_lower_bounds.data);
 		seed.data = seed.data.cwiseMin(chain_it->jnt_upper_bounds.data);
 		// inverse kinematics
-		int ret =  chain_it->ik_solver->CartToJnt(seed, limbs_.frame[k], chain_it->jnt_array_pose); //, tolerances);
+		int ret =  chain_it->ik_solver->CartToJnt(seed, limbs_.frame[k], chain_it->jnt_array_pose, chain_it->tolerance);
 		if (ret < 0) {
 			this->log(DEBUG) << "IK failed with error code: " << ret <<endlog();
 			return false;

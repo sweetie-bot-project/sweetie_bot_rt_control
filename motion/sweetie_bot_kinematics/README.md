@@ -15,9 +15,15 @@ See complete specification [here (Rus)](https://gitlab.com/sweetie-bot/sweetie_d
     Component receive request in form of RigidBodyState message on  `in_limbs` port and publises result on `out_joints` port.
     Only declared in `kinematic_chain` property chains are processeed. If IK solution is not found for one of chain then
     all result message is discarded and filled with default failsafe values from `in_joints_seed_sorted` ports.
-    Also pose at `in_joints_seed_sorted` port is used as first approximation.
+    Also pose at `in_joints_seed_sorted` port is used as first approximation.k
 
     Component provides `poseToJointState()` operation for syncronious IK requests.
+
+	Joint limints and solver tolerance can be assigned via dynamic properties:
+
+	    <chain>_q_min (double[]) --- lower bounds, array length equal to number of joints.
+	    <chain>_q_max (double[]) --- upper bounds.
+		<chain>_tolerance (double[]) --- tolerance values in format [x, y, z, rx, ry, rz].
 
 Components depend on `robot_model` service which provides URDF robot model and list of registered kinematic chains.
 
