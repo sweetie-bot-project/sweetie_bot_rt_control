@@ -47,7 +47,7 @@ JointTrajectoryCache::JointTrajectoryCache(const control_msgs::FollowJointTrajec
 	// add to support_name controlled chains which is not mentioned in trajectory.joint_names explicitly
 	// TODO speed up this code
 	std::vector<std::string> chains_all = robot_model->getGroupsChains(this->groups);
-	for(const string& chain : chains_all) {
+	for(const std::string& chain : chains_all) {
 		auto it = std::find(this->support_names.begin(), this->support_names.end(), chain);
 		if (it == this->support_names.end()) support_names.push_back(chain);
 	}
