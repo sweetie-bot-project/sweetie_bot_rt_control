@@ -36,7 +36,8 @@ class RobotModelService : public RobotModelInterface, public Service {
 		struct ChainInfo {
 			string name; // kinematic chain name
 			std::vector<int> joint_induces; // induces of joints (with virtual joints)
-			int size_real; // chain length (only real joints)
+			int n_real_segments; // chain length (only real segments)
+			int n_real_joints; // number of real joints
 			int group_index; // index of group to which chain belongs
 			KDL::Chain kdl_chain; // KDL chain (with virtual joints)
 			string default_contact;
@@ -336,33 +337,36 @@ class RobotModelService : public RobotModelInterface, public Service {
 					return false;
 				}
 				// populate joint list 
-				chain_info.size_real = -1;
+				chain_info.n_real_joints = -1;
 				for(int j = 0; j < chain_info.kdl_chain.getNrOfSegments(); j++) { // iterate over all jsegments
 					const KDL::Segment& segment = chain_info.kdl_chain.getSegment(j);
-					const string& name = segment.getJoint().getName();
-					if (segment.getJoint().getType() == KDL::Joint::None) {
-						this->log(ERROR) << "Joints of type 'None' is not supported. Joint:  " << name << endlog();
-						return false;
+					// check if corresponding joint is movable. Fixed joints are skipped.
+					if (segment.getJoint().getType() != KDL::Joint::None) {
+						// segment assotiated with movable joint
+						const string& name = segment.getJoint().getName();
+						// register joint if it is not registered
+						int index;
+						auto it = joints_index_.find(name);
+						if (it == joints_index_.end()) {
+							// new joint, register it 
+							index = joint_names_.size();
+							joint_names_.push_back(name);
+							joints_index_[name] = index;
+						}
+						else {
+							index = it->second;
+						}
+						// add joint index
+						chain_info.joint_induces.push_back(index);
 					}
-					// register joint if it is not registered
-					int index;
-					auto it = joints_index_.find(name);
-					if (it == joints_index_.end()) {
-						// new joint, register it 
-						index = joint_names_.size();
-						joint_names_.push_back(name);
-						joints_index_[name] = index;
-					}
-					else {
-						index = it->second;
-					}
-					// add joint index
-					chain_info.joint_induces.push_back(index);
 					// real chain size
-					if (segment.getName() == last_link.rvalue()) chain_info.size_real = j+1;
+					if (segment.getName() == last_link.rvalue()) {
+						chain_info.n_real_joints = chain_info.joint_induces.size();
+						chain_info.n_real_segments = j+1;
+					}
 				}
 				// check if 'last_link' property is correct 
-				if (chain_info.size_real < 0) {
+				if (chain_info.n_real_joints < 0) {
 					this->log(ERROR) << "Link " << last_link.rvalue() << " is not found between " << first_link.rvalue() << " and " << last_link_virtual.rvalue() << " links" << endlog();
 					return false;
 				}
@@ -626,7 +630,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 			// return joint induces
 			const ChainInfo& chain_info = chains_info_[it->second];
 			if (with_virtual_joints) return chain_info.joint_induces;
-			else return vector<int>(chain_info.joint_induces.begin(), chain_info.joint_induces.begin() + chain_info.size_real);
+			else return vector<int>(chain_info.joint_induces.begin(), chain_info.joint_induces.begin() + chain_info.n_real_joints);
 		}
 
 		string getChainDefaultContact(const string& name) const
@@ -647,7 +651,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 				return element->second.segment.getName();
 			} 
 			else if (property == "last_link") {
-				return chain.kdl_chain.getSegment(chain.size_real-1).getName();
+				return chain.kdl_chain.getSegment(chain.n_real_segments-1).getName();
 			}
 			else if (property == "last_link_virtual") {
 				return chain.kdl_chain.getSegment(chain.kdl_chain.getNrOfSegments()-1).getName();
@@ -737,12 +741,13 @@ class RobotModelService : public RobotModelInterface, public Service {
 			}
 
 			const ChainInfo& chain_info = chains_info_[iterator->second];
-			if (with_virtual_joints || chain_info.size_real == chain_info.kdl_chain.getNrOfSegments()) {
+			if (with_virtual_joints || chain_info.n_real_segments == chain_info.kdl_chain.getNrOfSegments()) {
 				return chain_info.kdl_chain;
 			}
 			else {
 				KDL::Chain chain;
-				for (int i = 0; i < chain_info.size_real; i++) chain.addSegment(chain_info.kdl_chain.getSegment(i));
+				for (int i = 0; i < chain_info.n_real_segments; i++) 
+					chain.addSegment( chain_info.kdl_chain.getSegment(i) );
 				return chain;
 			}
 		}
