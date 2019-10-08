@@ -43,16 +43,16 @@ FollowStance::FollowStance(std::string const& name)  :
 	this->addPort("in_limbs_fixed", in_limbs_port)
 		.doc("Robot limbs postions. They are used only to setup anchors on component start.");
 	this->addPort("in_base", in_base_port)
-		.doc("Robot base link pose in world frame.");
+		.doc("Robot base_link current pose in world frame.");
 	this->addPort("in_base_ref", in_base_ref_port)
-		.doc("Target robot base link pose.");
+		.doc("Target base_link pose in world frame.");
 	this->addPort("in_balance", in_balance_port)
 		.doc("Information about robot balance.");
-	// ports input 
+	// ports  output
 	this->addPort("out_base_ref", out_base_ref_port)
-		.doc("Base next position to achive target given current robot state. It is computed by component each control cycle.");
+		.doc("Base reference position. It is computed by component each control cycle.");
 	this->addPort("out_limbs_ref", out_limbs_ref_port)
-		.doc("Limbs next position to achive target given current robot state. It is computed by component each control cycle. ");
+		.doc("Limbs reference position. It is computed by component each control cycle. ");
 	this->addPort("out_supports", out_supports_port)
 		.doc("Active contact list.");
 
