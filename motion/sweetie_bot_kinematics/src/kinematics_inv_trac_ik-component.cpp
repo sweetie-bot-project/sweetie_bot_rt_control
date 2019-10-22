@@ -50,9 +50,11 @@ KinematicsInvTracIK::KinematicsInvTracIK(const std::string& name) :
 	this->addProperty( "use_ik_pose_as_new_seed", use_ik_pose_as_new_seed_ )
 		.doc( "Renew chain seed pose with newly calculated IK pose.")
 		.set(false);
-	this->addProperty( "use_ik_pose_as_new_seed", use_ik_pose_as_new_seed_ )
-		.doc( "Renew chain seed pose with newly calculated IK pose.")
-		.set(false);
+	this->addProperty("period", period_)
+		.doc("Discretization period (s).");
+	this->addProperty( "max_joint_velocity", max_joint_velocity_ )
+		.doc( "Maximal allowed joint speed (rad/s). Max joint shift from seed pose is equal to max_joint_velocity*period. Set to zero skip max joint shift test.")
+		.set(0);
 	// operations
 	this->addOperation("poseToJointState", &KinematicsInvTracIK::poseToJointState, this, OwnThread)
 		.doc("Process IK request syncronously. Unknown chains are ignored. Return true if request succesed. Otherwise result message is incorrect and should be ignored.")
@@ -102,6 +104,8 @@ bool KinematicsInvTracIK::configureHook()
 		data.jnt_array_vel.resize(data.size);
 		data.jnt_array_seed_pose.resize(data.size);
 		// solvers
+		// FK solver
+		// data.fk_solver.reset( new KDL::ChainFkSolverPos_recursive(*data.chain) );
 		// instantaneous IK initialization
 		data.ik_vel_solver.reset( new KDL::ChainIkSolverVel_pinv(*data.chain, eps_vel_, max_iterations_) );
 		// IK initialization 
@@ -231,8 +235,6 @@ bool KinematicsInvTracIK::poseToJointState_impl(const sweetie_bot_kinematics_msg
 		}
 		joints_.name.insert(joints_.name.end(), chain_it->joint_names.begin(), chain_it->joint_names.end());
 
-		// FIX tak_ik bug: clip seed pose or CartToJnt may return incorrect value
-		// TODO: bug report.
 		// use jnt_array_vel as buffer
 		KDL::JntArray& seed = chain_it->jnt_array_vel;
 		seed.data = chain_it->jnt_array_seed_pose.data.cwiseMax(chain_it->jnt_lower_bounds.data);
@@ -243,7 +245,26 @@ bool KinematicsInvTracIK::poseToJointState_impl(const sweetie_bot_kinematics_msg
 			this->log(DEBUG) << "IK failed with error code: " << ret <<endlog();
 			return false;
 		}
-		// fix trak_ik bug: map angles to [-pi, pi] interval. TODO: bug report.
+		/* additional check for tolerance
+		{
+			KDL::Frame displace;
+			chain_it->fk_solver->JntToCart(chain_it->jnt_array_pose, displace);
+			displace = limbs_.frame[k].Inverse() * displace;
+			double roll, pitch, yaw;
+			displace.M.GetRPY(roll, pitch, yaw);
+			const double eps = 0.0001;
+			if (    std::abs(displace.p.x()) > chain_it->tolerance.vel.x() + eps || 
+					std::abs(displace.p.x()) > chain_it->tolerance.vel.y() + eps || 
+					std::abs(displace.p.z()) > chain_it->tolerance.vel.z() + eps ||
+					std::abs(roll) > chain_it->tolerance.rot.x() + eps ||
+					std::abs(pitch) > chain_it->tolerance.rot.y() + eps ||
+					std::abs(yaw) > chain_it->tolerance.rot.z() + eps )
+			{
+				this->log(DEBUG) << "IK failed: tolearnce limit is exceeded." << endlog();
+				return false;
+			}
+		}*/
+		// fix trak_ic bug: map angles to [-pi, pi] interval. TODO: bug report.
 		std::transform( chain_it->jnt_array_pose.data.data(), chain_it->jnt_array_pose.data.data() + chain_it->size,  chain_it->jnt_array_pose.data.data(), 
 				[](double angle) {
 					angle = std::fmod(angle + M_PI, 2*M_PI);
@@ -251,6 +272,19 @@ bool KinematicsInvTracIK::poseToJointState_impl(const sweetie_bot_kinematics_msg
 					return angle - M_PI;
 				}
 			);
+
+		// check joints pose change: calculate joints shift
+		double max_joint_shift = max_joint_velocity_ * period_;
+		if (max_joint_shift > 0) {
+			// check if maximal speed is exceeded
+			for(int k = 0; k < seed.rows(); k++) {
+				if ( std::abs(seed(k) - chain_it->jnt_array_pose(k)) > max_joint_shift ) {
+					// joint shift is too large 
+					this->log(DEBUG) << "IK failed: non local solution found, joint " << k << " shift is greate max_joint_shift." << endlog();
+					return false;
+				}
+			}
+		}
 
 		// use computed pose as new seed
 		if (use_ik_pose_as_new_seed_) chain_it->jnt_array_seed_pose = chain_it->jnt_array_pose;
@@ -269,6 +303,13 @@ bool KinematicsInvTracIK::poseToJointState_impl(const sweetie_bot_kinematics_msg
 				// fill speed with zeros
 				return false;
 			}
+
+			// compare two solutions for local IK
+			if (log(DEBUG)) {
+				log() << "Velocity shift: " << (chain_it->jnt_array_vel.data * period_).transpose() << std::endl;
+				log() << "Joint shift:   " << (chain_it->jnt_array_pose.data - seed.data).transpose() << endlog();
+			}
+
 			// check singular values 
 			if (zero_vel_at_singularity_ && chain_it->ik_vel_solver->getNrZeroSigmas() > (chain_it->size - 6)) {
 				// set velocity to zero near singularity

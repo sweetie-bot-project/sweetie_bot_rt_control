@@ -30,6 +30,7 @@ class KinematicsInvTracIK : public RTT::TaskContext
 			std::unique_ptr<KDL::Chain> chain; /**< Kinematic chain. KDL 1.4 FKSolvers store reference to KDL::Chain so Chain object must not change memory location. */ //TODO: remove size field?
 			std::unique_ptr<TRAC_IK::TRAC_IK> ik_solver; /**< IK  velocity solver */
 			std::unique_ptr<KDL::ChainIkSolverVel_pinv> ik_vel_solver; /**< IK  velocity solver */
+			// std::unique_ptr<KDL::ChainFkSolverPos_recursive> fk_solver; /**< FK solver for tolerance check */
 			KDL::JntArray jnt_array_pose; /**< buffer */
 			KDL::JntArray jnt_array_vel; /**< buffer */
 			KDL::JntArray jnt_array_seed_pose; /**< initial approximation for solution */
@@ -52,6 +53,8 @@ class KinematicsInvTracIK : public RTT::TaskContext
 		double timeout_;
 		bool use_ik_pose_as_new_seed_;
 		bool zero_vel_at_singularity_;
+		double max_joint_velocity_;
+		double period_;
 		// subservices
 		RobotModel * robot_model_;
 
