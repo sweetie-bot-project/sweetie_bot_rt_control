@@ -234,7 +234,7 @@ void FollowJointState::updateHook_impl()
 	}
 	else {
 		// read port	
-		if (in_joints_ref_port.read(ref_pose_unsorted, false) == NewData) {
+		if (in_joints_ref_port.readNewest(ref_pose_unsorted, false) == NewData) {
 			// copy controlled joint to ref_pose
 			if (isValidJointStateNamePos(ref_pose_unsorted)) {
 				for(int i = 0; i < ref_pose_unsorted.name.size(); i++) {
@@ -254,7 +254,7 @@ void FollowJointState::updateHook_impl()
 	if (log(DEBUG)) {
 		double t = os::TimeService::Instance()->secondsSince(activation_timestamp);
 		log() << " t = " << t << " actual: " << actual_pose << endlog();
-		log() << " t = " << t << " ref: " << ref_pose << endlog();
+		log(DEBUG) << " t = " << t << " ref: " << ref_pose << endlog();
 	}
 	// perform trajectory smoothing
 	// actual_pose represents state and is modified in place

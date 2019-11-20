@@ -223,7 +223,7 @@ void LookAt::updateHook_impl()
 
 	// get reference pose
 	geometry_msgs::PoseStamped pose_stamped;
-	if (in_pose_ref_port.read(pose_stamped, false) == NewData) {
+	if (in_pose_ref_port.readNewest(pose_stamped, false) == NewData) {
 		// convert to KDL 
 		tf::pointMsgToKDL(pose_stamped.pose.position, target_point);
 	}

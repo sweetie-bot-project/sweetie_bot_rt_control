@@ -395,7 +395,7 @@ void FollowStance::updateHook_impl()
 	// get reference pose
 	{
 		geometry_msgs::PoseStamped pose_stamped;
-		if (in_base_ref_port.read(pose_stamped, false) == NewData) {
+		if (in_base_ref_port.readNewest(pose_stamped, false) == NewData) {
 			// convert to KDL 
 			normalizeQuaternionMsg(pose_stamped.pose.orientation);
 			tf::poseMsgToKDL(pose_stamped.pose, base_ref.frame[0]);
