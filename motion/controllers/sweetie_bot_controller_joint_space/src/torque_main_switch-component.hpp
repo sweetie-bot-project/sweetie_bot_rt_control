@@ -21,6 +21,20 @@ class TorqueMainSwitch : public SimpleControllerBase
 {
 	protected:
 		typedef sensor_msgs::JointState JointState;
+		struct JointInfo {
+			std::string name;
+			int index_fullpose;
+			RTT::OperationCaller<bool(std::string, bool)> * setTorqueFree_caller;
+		};
+		struct HerkulexGroupInfo {
+			std::string array;
+			std::string sched;
+			RTT::OperationCaller<bool(std::string, bool)> setTorqueFree_caller;
+		};
+		struct JointGroupInfo {
+			std::vector<JointInfo> joints;
+			std::vector<int> herkulex_groups_induces;
+		};
 
 	protected:
 		// COMPONENT INTERFACE
@@ -44,10 +58,12 @@ class TorqueMainSwitch : public SimpleControllerBase
 
 	protected:
 		// COMPONENT STATE
-		std::vector< RTT::OperationCaller<bool(bool)> > torque_off_callers; // operation callers to control servos torque
-		std::vector< std::string > controlled_groups; // list of controlled joint groups
+		std::map< std::string, JointGroupInfo > joint_groups_index; // groups of joints (accodring to RobotModel)
+		std::vector< HerkulexGroupInfo > herkulex_groups; // herkulex control groups
+		std::vector< std::string > controlled_groups; // list of groups
 		// ports buffers
 		JointState actual_fullpose; // buffer for input port in_joints_port
+		JointState pose_published; // buffer for output port
 		
 #ifdef SWEETIEBOT_LOGGER
 		sweetie_bot::logger::SWEETIEBOT_LOGGER log;
@@ -58,10 +74,9 @@ class TorqueMainSwitch : public SimpleControllerBase
 	public:
 		TorqueMainSwitch(std::string const& name);
 
-		bool setSchedulersActive(bool is_active);
+		bool setSchedulersActive(const JointGroupInfo& group, bool is_active);
 		bool setAllServosTorqueFree(bool torque_is_off);
 
-		bool processResourceSet_impl(const std::vector<std::string>& set_operational_goal_resources, std::vector<std::string>& resources_to_request);
 		bool resourceChangedHook_impl(const std::vector<std::string>& set_operational_goal_resources, const std::vector<std::string>& requested_resources);
 
 		bool configureHook_impl(); 
