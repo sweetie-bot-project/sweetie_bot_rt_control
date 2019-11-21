@@ -76,7 +76,7 @@ class LookAtJoints : public SimpleControllerBase
 		bool processResourceSet_impl(const std::vector<std::string>& set_operational_goal_resources, std::vector<std::string>& resources_to_request);
 		bool resourceChangedHook_impl(const std::vector<std::string>& set_operational_goal_resources, const std::vector<std::string>& requested_resources);
 
-		bool formJointIndex(const std::vector<string>& joint_list);
+		bool formJointIndex(const std::vector<std::string>& joint_list);
 
 		bool configureHook_impl(); 
 		bool startHook_impl();

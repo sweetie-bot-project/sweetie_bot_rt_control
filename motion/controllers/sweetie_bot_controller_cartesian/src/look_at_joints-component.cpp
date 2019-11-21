@@ -163,7 +163,7 @@ bool LookAtJoints::processResourceSet_impl(const std::vector<std::string>& set_o
 	return true;
 }
 
-bool LookAtJoints::formJointIndex(const std::vector<string>& joint_list) 
+bool LookAtJoints::formJointIndex(const std::vector<std::string>& joint_list)
 {
 	int n_joints = joint_list.size() + pitch_yaw_joints.size();
 	// create joints_next buffer
