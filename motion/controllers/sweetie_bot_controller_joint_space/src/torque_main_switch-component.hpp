@@ -65,12 +65,6 @@ class TorqueMainSwitch : public SimpleControllerBase
 		JointState actual_fullpose; // buffer for input port in_joints_port
 		JointState pose_published; // buffer for output port
 		
-#ifdef SWEETIEBOT_LOGGER
-		sweetie_bot::logger::SWEETIEBOT_LOGGER log;
-#else
-		sweetie_bot::logger::LoggerRTT log;
-#endif
-
 	public:
 		TorqueMainSwitch(std::string const& name);
 

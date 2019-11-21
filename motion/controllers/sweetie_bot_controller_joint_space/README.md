@@ -27,9 +27,12 @@ OROCOS components which control robot movements by publishing reference robot po
     thrid order spline, only trajectory point positions are used, information about speed abd acceleration is ignored.
 	Component uses filter plugin to merge current robot pose (`in_joints_sorted` port) and publish pose on `out_joints_ref_fixed` port.
 
-* `MainTorqueSwitch` switches servos off when it is active using. The names of `HerkulexSched` and `HerkulexArray` components 
+* `MainTorqueSwitch` switches selected group of servos off when it is active. The names of `HerkulexSched` and `HerkulexArray` components 
     (`sweetie_bot_herkulex_control` package) should be provided via component properties. If component active it publises 
 	current robot pose received from sensors (`in_joints_actual` port) on `out_joints_ref` port.
+
+	Component is `SimpleControllerBase` descendant so can be activated by `SetOperational` action, `start/stop` or `rosSetOperational`.
+	The list of resources is list of joints groups to be turned off.
 
 ### Filter plugins
 
