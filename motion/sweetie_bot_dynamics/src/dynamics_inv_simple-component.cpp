@@ -92,7 +92,7 @@ bool DynamicsInvSimple::configureHook()
 	}
 
 	// get joints names
-	joints_accel.name = robot_model->listJoints("");
+	joints_accel.name = robot_model->listJoints();
 	n_fullpose_joints = joints_accel.name.size();
 
 	// construct index

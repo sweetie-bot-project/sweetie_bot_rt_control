@@ -27,6 +27,7 @@
   <depend>sweetie_bot_resource_control</depend>
   <depend>sweetie_bot_orocos_misc</depend> <!-- actionlib client, JointState checks, find subservice -->
   <depend>sweetie_bot_robot_model</depend>
+  <depend>sweetie_bot_controller_joint_space</depend>
   <!-- SWEETIEBOT datatypes -->
   <depend>rtt_sweetie_bot_kinematics_msgs</depend>
   <depend>rtt_sweetie_bot_control_msgs</depend>

@@ -74,7 +74,7 @@ class ExecuteStepSequence : public RTT::TaskContext
 		// ports buffers
 		sweetie_bot_kinematics_msgs::RigidBodyState base; // current pose received from in_base
 		//sweetie_bot_kinematics_msgs::RigidBodyState base_next; // next pose calucalated by component
-		sweetie_bot_kinematics_msgs::RigidBodyState base_ref; // reference pose received from in_base_ref
+		sweetie_bot_kinematics_msgs::RigidBodyState base_ref; // reference pose buffer
 		//sweetie_bot_kinematics_msgs::BalanceState balance; // balance 
 		sweetie_bot_kinematics_msgs::RigidBodyState limbs; // calculated reference pose to publish on out_port
 		sweetie_bot_kinematics_msgs::RigidBodyState limbs_full; // received limbs state on in_limbs_fixed

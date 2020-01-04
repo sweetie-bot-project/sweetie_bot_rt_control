@@ -38,8 +38,8 @@ class JointTrajectoryCache
 
 	protected:
 
-		std::vector<std::string> names;
-		std::vector<std::string> chains;
+		std::vector<std::string> names; // joint names
+		std::vector<std::string> groups; // joint groups
 		std::vector<int> index_fullpose;
 		double goal_time;
 
@@ -82,11 +82,11 @@ class JointTrajectoryCache
 		}
 
 		/**
-		 * @brief Return lists of required kinematics chains (according to RobotModel).
-		 * @return List of kinematics chains.
+		 * @brief Return lists of required joint groups (according to RobotModel).
+		 * @return List of joint groups.
 		 **/
-		const std::vector<std::string>& getRequiredChains() const {
-			return this->chains;
+		const std::vector<std::string>& getRequiredJointGroups() const {
+			return this->groups;
 		}
 
 		/**

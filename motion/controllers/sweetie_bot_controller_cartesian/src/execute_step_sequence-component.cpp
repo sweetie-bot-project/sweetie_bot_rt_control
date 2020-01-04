@@ -199,7 +199,7 @@ void ExecuteStepSequence::newGoalHook(const Goal& pending_goal)
 
 	// we have correct goal so perform resource request
 	log(INFO) << "newGoalHook: request resources." << endlog();
-	resource_client->resourceChangeRequest(trajectory->getRequiredChains());
+	resource_client->resourceChangeRequest( robot_model->getChainsGroups( trajectory->getRequiredChains() ) );
 
 	// prepare output buffers
 	trajectory->prepareEndEffectorStateBuffer(limbs);
@@ -213,10 +213,11 @@ bool ExecuteStepSequence::resourceChangedHook()
 {
 	bool has_resources;
 	bool success;
+	std::vector<std::string> required_groups = robot_model->getChainsGroups(trajectory->getRequiredChains());
 	// there are only two possibilies: there is pending goal or there is not.
 	if (action_server.isPending() && trajectory) {
 		// we have valid pending goal
-		has_resources = resource_client->hasResources(trajectory->getRequiredChains());
+		has_resources = resource_client->hasResources(required_groups);
 		if (has_resources) {
 			// accept pending goal
 			goal_result.error_code = Result::SUCCESSFUL;
@@ -238,7 +239,7 @@ bool ExecuteStepSequence::resourceChangedHook()
 	}
 	// see if we can still pursue active goal
 	if (action_server.isActive() && trajectory) {
-		has_resources = resource_client->hasResources(trajectory->getRequiredChains());
+		has_resources = resource_client->hasResources(required_groups);
 		if (has_resources) {
 			// contine active goal
 			log(INFO) << "resourceChangedHook: continue pursue active goal." << endlog();
@@ -303,7 +304,7 @@ void ExecuteStepSequence::updateHook()
 			return;
 		}
 		// get desired pose	
-		trajectory->getBaseState(base_ref);
+		bool base_pose_available = trajectory->getBaseState(base_ref);
 		trajectory->getEndEffectorState(limbs);
 		trajectory->getSupportState(supports);
 		// publish new reference position
@@ -324,7 +325,7 @@ void ExecuteStepSequence::updateHook()
 			// async interface: assume always success
 			out_limbs_ref_port.write(limbs);
 		}
-		out_base_ref_port.write(base_ref);
+		if (base_pose_available) out_base_ref_port.write(base_ref);
 		out_supports_port.write(supports);
 
 		// move time marker forward

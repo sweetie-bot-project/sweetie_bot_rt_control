@@ -95,7 +95,7 @@ void ExecuteJointTrajectory::newGoalHook(const Goal& pending_goal)
 	// now we have valid pending_goal
 	// but we will do nothing until get necessary resources
 	log(INFO) << "newGoalHook: request resources." << endlog();
-	resource_client->resourceChangeRequest(goal_pending->getRequiredChains());
+	resource_client->resourceChangeRequest(goal_pending->getRequiredJointGroups());
 	// start if component is not running
 	start();
 }
@@ -107,7 +107,7 @@ bool ExecuteJointTrajectory::resourceChangedHook()
 	// there are only two possibilies: there is pending goal or there is not.
 	if (action_server.isPending() && goal_pending) {
 		// we have valid pending goal
-		has_resources = resource_client->hasResources(goal_pending->getRequiredChains());
+		has_resources = resource_client->hasResources(goal_pending->getRequiredJointGroups());
 		if (has_resources) {
 			// active goal (if present) reult
 			goal_result.error_code = Result::SUCCESSFUL;
@@ -140,7 +140,7 @@ bool ExecuteJointTrajectory::resourceChangedHook()
 	}
 	// see if we can still pursue active goal
 	if (action_server.isActive() && goal_active) {
-		has_resources = resource_client->hasResources(goal_active->getRequiredChains());
+		has_resources = resource_client->hasResources(goal_active->getRequiredJointGroups());
 		if (has_resources) {
 			// contine active goal
 			log(INFO) << "resourceChangedHook: continue pursue active goal." << endlog();

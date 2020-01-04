@@ -29,7 +29,7 @@ class KinematicsFwd : public RTT::TaskContext
 		// Support ащк base connected joints?
 		struct KinematicChainData {
 			std::string name; /**< Kinematic chain name */
-			int index_begin; /**< Index of first joint in chain */
+			std::vector<int> joint_induces; /**< Index of  joints in chain */
 			std::unique_ptr<KDL::Chain> chain; /**< Kinematic chain. KDL 1.4 FKSolvers store reference to KDL::Chain so Chain object must not change memory location. */
 			std::unique_ptr<KDL::ChainFkSolverVel_recursive> fk_vel_solver; /**< FK solver */
 			KDL::JntArrayVel jnt_array_vel; /**< buffer */
