@@ -15,9 +15,8 @@
 
   <!-- ROS and OROCOS packages -->
   <depend>rtt</depend>
-  <depend>ocl</depend>
   <depend>rtt_ros</depend>
-  <depend>actionlib</depend>
+  <!--<depend>actionlib</depend>-->
   <depend>rtt_actionlib</depend>
   <depend>orocos_kdl</depend>
   <!-- ROS and OROCOS datatypes -->

@@ -20,7 +20,7 @@ using namespace RigidBodyDynamics;
 namespace sweetie_bot {
 namespace motion {
 
-DynamicsInvSimple::DynamicsInvSimple(string const& name) : 
+DynamicsInvSimple::DynamicsInvSimple(const std::string& name) : 
 	TaskContext(name, PreOperational),
 	log(logger::categoryFromComponentName(name))
 {
@@ -38,9 +38,9 @@ DynamicsInvSimple::DynamicsInvSimple(string const& name) :
 	this->addPort( "out_joints_accel_sorted", out_joints_accel_port )
 		.doc( "Robot pose in joint space with drives effort and accelerations." );
 	this->addPort( "out_wrenches_fixed", out_wrenches_port )
-		.doc( "Reaction forces for each contact in base_link frame." );
+		.doc( "Reaction forces for each contact in the world frame." );
 	this->addPort( "out_base", out_base_port )
-		.doc( "Base link pose and sum of reaction forces in world frame." );
+		.doc( "Base link pose and sum of reaction forces in the  world frame." );
 	this->addPort( "out_balance", out_balance_port )
 		.doc( "Information about robot balance." );
 
@@ -79,7 +79,7 @@ bool DynamicsInvSimple::configureHook()
 		<< " q_size: " << rbdl_model.q_size << "qdot_size: " << rbdl_model.qdot_size << endlog();
 
 	unsigned int rdbl_q_index = 0;
-	// floating base is modelled with to joints. Check it!
+	// floating base is modeled with to joints. Check it!
 	if (rbdl_model.mJoints.size() <= 1 || rbdl_model.mBodies.size() <= 2) {
         log(ERROR) << "Model contains not enough movable bodies to have floating platform." << endlog();
 		return false;
@@ -92,7 +92,7 @@ bool DynamicsInvSimple::configureHook()
 	}
 
 	// get joints names
-	joints_accel.name = robot_model->listJoints("");
+	joints_accel.name = robot_model->listJoints();
 	n_fullpose_joints = joints_accel.name.size();
 
 	// construct index
@@ -103,7 +103,7 @@ bool DynamicsInvSimple::configureHook()
 	KDL::Tree kdl_tree = robot_model->getKDLTree();
 	// now iterate over bodies and get coresponding induces
 	for(int id = 3; id < rbdl_model.mBodies.size(); id++) {
-		string body_name = rbdl_model.GetBodyName(id);
+		std::string body_name = rbdl_model.GetBodyName(id);
 		// find it in KDL
 		auto it = kdl_tree.getSegment(body_name);
 		if (it == kdl_tree.getSegments().end()) {
@@ -111,7 +111,7 @@ bool DynamicsInvSimple::configureHook()
 			return false;
 		}
 		// all KDL joints has 1 DOF
-		string joint_name = it->second.segment.getJoint().getName();
+		std::string joint_name = it->second.segment.getJoint().getName();
 		// check DOF of RBDL
 		if ( rbdl_model.mJoints[id].mDoFCount != 1 ) {
 			log(ERROR) << "Joint of body " << body_name << " (id = " << id << ") has " << rbdl_model.mJoints[id].mDoFCount << " > 1 DOF. MultiDOF joints are not supported." << endlog();
@@ -396,9 +396,7 @@ void DynamicsInvSimple::publishStateToPorts()
 	// publish
 	out_joints_accel_port.write(joints_accel);
 
-	// wrenches calculations is performed in world coordinates
-	// baut at the end of message base_link pose is added in world coordinates
-	// TODO do not add base link pose to the end of message
+	// wrenches and base are calculated and published in world frame
 	int point_index = 0;
 	wrenches.header.stamp = joints_accel.header.stamp;
 	// wrenches already has the same fields' order as legs array
@@ -426,7 +424,7 @@ void DynamicsInvSimple::publishStateToPorts()
 		wrenches.twist.back() = wrenches.twist.back().RefPoint(-T.p); // move reference point to frame origin
 		// wrenches.twist.back() = base.frame[0].Inverse(wrenches.twist.back() - base.twist[0]); // subtract base_link velocity and change to base_link_frame
 
-		// wrences
+		// wrenches
 		wrenches.wrench.emplace_back(KDL::Wrench::Zero());
 		KDL::Wrench& wrench = wrenches.wrench.back();
 		if (contact.is_active) {
@@ -456,18 +454,33 @@ void DynamicsInvSimple::publishStateToPorts()
 	// calculte center of mass
 	{ 
 		Vector3_t CoM;
-		//Utils::CalcCenterOfMass(rbdl_model, Q, QDot, nullptr, balance.mass, CoM, nullptr, nullptr, nullptr, nullptr, false);
-		Utils::CalcCenterOfMass(rbdl_model, Q, QDot, balance.mass, CoM, nullptr, nullptr, false);
+		Utils::CalcCenterOfMass(rbdl_model, Q, QDot, nullptr, balance.mass, CoM, nullptr, nullptr, nullptr, nullptr, false);
+		//Utils::CalcCenterOfMass(rbdl_model, Q, QDot, balance.mass, CoM, nullptr, nullptr, false);
 		Map<Vector3d>(balance.CoM.data) = CoM;
 	}
-	// calculate ZMP (center of pressure)
+	// calculate CoP (actual center of pressure of contact forces)
 	if (base.wrench[0].force.z() > 0) {
-		// calculate ZMP
 		balance.CoP[0] = - base.wrench[0].torque.y() / base.wrench[0].force.z();
 		balance.CoP[1] =   base.wrench[0].torque.x() / base.wrench[0].force.z();
 		balance.CoP[2] =   0.0;
 	}
 	else balance.CoP = balance.CoM;
+	// calculate ZMP (desired center of pressure)
+	KDL::Wrench wrench;
+	// residual wrench
+	Map<Vector3d>(wrench.force.data) = tau.head<3>();
+	Map<Vector3d>(wrench.torque.data) = tau.segment<3>(3);
+	wrench.torque += base.frame[0].p * wrench.force;
+	// and wrench of reaction forces
+	wrench += base.wrench[0];
+	// calculate ZMP location
+	if (wrench.force.z() > 0) {
+		// calculate ZMP
+		balance.ZMP[0] = - wrench.torque.y() / wrench.force.z();
+		balance.ZMP[1] =   wrench.torque.x() / wrench.force.z();
+		balance.ZMP[2] =   0.0;
+	}
+	else balance.ZMP = balance.CoM;
 	// publish
 	out_balance_port.write(balance);
 }

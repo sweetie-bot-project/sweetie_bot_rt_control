@@ -1,0 +1,7 @@
+<launch>
+
+  <include file="$(find sweetie_bot_proto2_description)/launch/display.launch" />
+
+  <node name="core" pkg="rtt_ros" type="deployer" args="-s $(find sweetie_bot_kinematics)/scripts/test_kinematics_aggregator.ops -ldebug" output="screen" />
+
+</launch>

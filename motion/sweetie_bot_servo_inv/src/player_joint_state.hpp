@@ -26,9 +26,9 @@ class PlayerJointState : public RTT::TaskContext
 		unsigned int sample_index;
 		unsigned int sample_dim;
 		sensor_msgs::JointState joints;
-		vector<double> trajectory_pos;
-		vector<double> trajectory_vel;
-		vector<double> trajectory_effort;
+		std::vector<double> trajectory_pos;
+		std::vector<double> trajectory_vel;
+		std::vector<double> trajectory_effort;
 
 	// COMPONENT INTERFACE
 	protected:
@@ -42,7 +42,7 @@ class PlayerJointState : public RTT::TaskContext
 		bool cycle;
 		bool effort_presents;
 		bool skip_first_column;
-		
+
 	public:
 		PlayerJointState(std::string const& name);
 		bool configureHook();

@@ -1,5 +1,8 @@
 #include "kinematics_inv_trac_ik-component.hpp"
 
+#include <cmath>
+#include <algorithm>
+
 #include <rtt/Component.hpp>
 
 #include <kdl/chainiksolvervel_pinv.hpp>
@@ -15,7 +18,7 @@ using namespace KDL;
 namespace sweetie_bot {
 namespace motion {
 
-KinematicsInvTracIK::KinematicsInvTracIK(string const& name) : 
+KinematicsInvTracIK::KinematicsInvTracIK(const std::string& name) : 
 	TaskContext(name, PreOperational),
 	log(logger::categoryFromComponentName(name))
 {
@@ -47,6 +50,11 @@ KinematicsInvTracIK::KinematicsInvTracIK(string const& name) :
 	this->addProperty( "use_ik_pose_as_new_seed", use_ik_pose_as_new_seed_ )
 		.doc( "Renew chain seed pose with newly calculated IK pose.")
 		.set(false);
+	this->addProperty("period", period_)
+		.doc("Discretization period (s).");
+	this->addProperty( "max_joint_velocity", max_joint_velocity_ )
+		.doc( "Maximal allowed joint speed (rad/s). Max joint shift from seed pose is equal to max_joint_velocity*period. Set to zero skip max joint shift test.")
+		.set(0);
 	// operations
 	this->addOperation("poseToJointState", &KinematicsInvTracIK::poseToJointState, this, OwnThread)
 		.doc("Process IK request syncronously. Unknown chains are ignored. Return true if request succesed. Otherwise result message is incorrect and should be ignored.")
@@ -75,7 +83,8 @@ bool KinematicsInvTracIK::configureHook()
 	chain_data_.clear();
 	int n_joints = 0;
 	for(auto &name: chain_names_) {
-		KinematicChainData data;
+		chain_data_.emplace_back();
+		KinematicChainData& data = chain_data_.back();
 		// add information about chain
 		// get kinematic chain
 		// check if chain exist
@@ -84,27 +93,46 @@ bool KinematicsInvTracIK::configureHook()
 			return false;
 		}
 		// get kdl_chain
-		Chain chain = robot_model_->getKDLChain(name, true); // we need real and virtual joints
+		data.chain.reset( new KDL::Chain( robot_model_->getKDLChain(name, true) ) ); // we need real and virtual joints
 
 		data.name = name;
 		//joint induces
-		data.joint_names = robot_model_->listJoints(name); // contains fictive joints
-		data.index_begin = robot_model_->getJointIndex(data.joint_names.front());
-		data.size = chain.getNrOfJoints(); // some joints can be fictive!
+		data.joint_names = robot_model_->getChainJoints(name); // contains fictive joints
+		data.joint_induces = robot_model_->getChainJointsInduces(name, true);
+		data.size = data.chain->getNrOfJoints(); // some joints can be fictive!
 		data.jnt_array_pose.resize(data.size);
 		data.jnt_array_vel.resize(data.size);
 		data.jnt_array_seed_pose.resize(data.size);
 		// solvers
+		// FK solver
+		// data.fk_solver.reset( new KDL::ChainFkSolverPos_recursive(*data.chain) );
 		// instantaneous IK initialization
-		data.ik_vel_solver = make_shared<KDL::ChainIkSolverVel_pinv>(chain, eps_vel_, max_iterations_);
-		// IK initialization
-		data.ik_solver = getIKSolver(name, chain);
-		// save data
-		chain_data_.push_back(data);
+		data.ik_vel_solver.reset( new KDL::ChainIkSolverVel_pinv(*data.chain, eps_vel_, max_iterations_) );
+		// IK initialization 
+		data.ik_solver = getIKSolver(name, *data.chain);
+		if (!data.ik_solver) return false;
+		// limits
+		data.ik_solver->getKDLLimits(data.jnt_lower_bounds, data.jnt_upper_bounds);
+		// get tolerance property
+		Property< std::vector<double> >	tolerance = this->getProperty(name + "_tolerance");
+		if (tolerance.ready()) {
+			if (tolerance.rvalue().size() != 6) {
+				log(ERROR) << "Tolerance specifications must contain six elements (chain " << name << "). " << endlog();
+				return false;
+			}
+			// copy tolerance values
+			for(int shift = 0; shift < 6; shift++) data.tolerance[shift] = tolerance.rvalue()[shift];
+		}
 	};
 	// get number of joints
-	n_joints_fullpose_ = robot_model_->listJoints("").size();
-		
+	n_joints_fullpose_ = robot_model_->listJoints().size();
+
+	if (log(DEBUG)) {
+		log() << "Loaded " << chain_names_.size() << " chains: ";
+		for( const auto& name : chain_names_ ) log() << name << ", ";
+		log() << endlog();
+	}
+
 	// init port data
 	joints_.name.reserve(n_joints);
 	joints_.position.reserve(n_joints);
@@ -123,7 +151,7 @@ bool KinematicsInvTracIK::configureHook()
 }
 
 
-std::shared_ptr<TRAC_IK::TRAC_IK> KinematicsInvTracIK::getIKSolver(const string& name, const Chain& chain) 
+std::unique_ptr<TRAC_IK::TRAC_IK> KinematicsInvTracIK::getIKSolver(const std::string& name, const Chain& chain) 
 {
 	int n_joints = chain.getNrOfJoints();
 	// check limit properties
@@ -141,14 +169,14 @@ std::shared_ptr<TRAC_IK::TRAC_IK> KinematicsInvTracIK::getIKSolver(const string&
 		q_min.data = Eigen::Map<Eigen::VectorXd>(&q_min_prop.value().front(), n_joints);
 		q_max.data = Eigen::Map<Eigen::VectorXd>(&q_max_prop.value().front(), n_joints);
 		// init IK
-		return make_shared<TRAC_IK::TRAC_IK>(chain, q_min, q_max, timeout_, eps_pos_, TRAC_IK::Speed);
+		return std::unique_ptr<TRAC_IK::TRAC_IK>(new TRAC_IK::TRAC_IK(chain, q_min, q_max, timeout_, eps_pos_, TRAC_IK::Speed));
 	}
 	else {
 		// hard way: use URDF to extract joints limits, because robot_model does not provides them
 		log(INFO) << name << "_q_max and " << name << "_q_min properties are not provided. Load values from URDF model." << endlog();
 		// this function tries to access ROS parameter server directly...
 		// TODO add chain limits to robot_model
-		auto ik_solver = make_shared<TRAC_IK::TRAC_IK>(robot_model_->getChainProperty(name, "first_link"), robot_model_->getChainProperty(name, "last_link_virtual"), "robot_description", timeout_, eps_pos_, TRAC_IK::Speed);
+		std::unique_ptr<TRAC_IK::TRAC_IK> ik_solver(new TRAC_IK::TRAC_IK(robot_model_->getChainProperty(name, "first_link"), robot_model_->getChainProperty(name, "last_link_virtual"), "robot_description", timeout_, eps_pos_, TRAC_IK::Speed) );
 		// get limits and check if initialization successed
 		JntArray q_min, q_max; 
 		if (!ik_solver->getKDLLimits(q_min, q_max) || q_min.rows() != n_joints || q_max.rows() != n_joints) {
@@ -176,7 +204,7 @@ bool KinematicsInvTracIK::startHook()
 	if (in_joints_seed_port_.read(joints_, true) != NoData && isValidJointStatePos(joints_, n_joints_fullpose_)) {
 		// update seeds
 		for ( KinematicChainData& chain_data : chain_data_ ) {
-			chain_data.jnt_array_seed_pose.data = Eigen::Map<Eigen::VectorXd>( &joints_.position[chain_data.index_begin], chain_data.size );
+			for(int i = 0; i < chain_data.size; i++) chain_data.jnt_array_seed_pose.data[i] = joints_.position[chain_data.joint_induces[i]];
 		}
 	}
 
@@ -207,12 +235,57 @@ bool KinematicsInvTracIK::poseToJointState_impl(const sweetie_bot_kinematics_msg
 		}
 		joints_.name.insert(joints_.name.end(), chain_it->joint_names.begin(), chain_it->joint_names.end());
 
+		// use jnt_array_vel as buffer
+		KDL::JntArray& seed = chain_it->jnt_array_vel;
+		seed.data = chain_it->jnt_array_seed_pose.data.cwiseMax(chain_it->jnt_lower_bounds.data);
+		seed.data = seed.data.cwiseMin(chain_it->jnt_upper_bounds.data);
 		// inverse kinematics
-		int ret =  chain_it->ik_solver->CartToJnt(chain_it->jnt_array_seed_pose, limbs_.frame[k], chain_it->jnt_array_pose); //, tolerances);
+		int ret =  chain_it->ik_solver->CartToJnt(seed, limbs_.frame[k], chain_it->jnt_array_pose, chain_it->tolerance);
 		if (ret < 0) {
 			this->log(DEBUG) << "IK failed with error code: " << ret <<endlog();
 			return false;
 		}
+		/* additional check for tolerance
+		{
+			KDL::Frame displace;
+			chain_it->fk_solver->JntToCart(chain_it->jnt_array_pose, displace);
+			displace = limbs_.frame[k].Inverse() * displace;
+			double roll, pitch, yaw;
+			displace.M.GetRPY(roll, pitch, yaw);
+			const double eps = 0.0001;
+			if (    std::abs(displace.p.x()) > chain_it->tolerance.vel.x() + eps || 
+					std::abs(displace.p.x()) > chain_it->tolerance.vel.y() + eps || 
+					std::abs(displace.p.z()) > chain_it->tolerance.vel.z() + eps ||
+					std::abs(roll) > chain_it->tolerance.rot.x() + eps ||
+					std::abs(pitch) > chain_it->tolerance.rot.y() + eps ||
+					std::abs(yaw) > chain_it->tolerance.rot.z() + eps )
+			{
+				this->log(DEBUG) << "IK failed: tolearnce limit is exceeded." << endlog();
+				return false;
+			}
+		}*/
+		// fix trak_ic bug: map angles to [-pi, pi] interval. TODO: bug report.
+		std::transform( chain_it->jnt_array_pose.data.data(), chain_it->jnt_array_pose.data.data() + chain_it->size,  chain_it->jnt_array_pose.data.data(), 
+				[](double angle) {
+					angle = std::fmod(angle + M_PI, 2*M_PI);
+					angle = (angle >= 0.0) ? angle : angle + 2*M_PI;
+					return angle - M_PI;
+				}
+			);
+
+		// check joints pose change: calculate joints shift
+		double max_joint_shift = max_joint_velocity_ * period_;
+		if (max_joint_shift > 0) {
+			// check if maximal speed is exceeded
+			for(int k = 0; k < seed.rows(); k++) {
+				if ( std::abs(seed(k) - chain_it->jnt_array_pose(k)) > max_joint_shift ) {
+					// joint shift is too large 
+					this->log(DEBUG) << "IK failed: non local solution found, joint " << k << " shift is greate max_joint_shift." << endlog();
+					return false;
+				}
+			}
+		}
+
 		// use computed pose as new seed
 		if (use_ik_pose_as_new_seed_) chain_it->jnt_array_seed_pose = chain_it->jnt_array_pose;
 
@@ -230,6 +303,13 @@ bool KinematicsInvTracIK::poseToJointState_impl(const sweetie_bot_kinematics_msg
 				// fill speed with zeros
 				return false;
 			}
+
+			// compare two solutions for local IK
+			if (log(DEBUG)) {
+				log() << "Velocity shift: " << (chain_it->jnt_array_vel.data * period_).transpose() << std::endl;
+				log() << "Joint shift:   " << (chain_it->jnt_array_pose.data - seed.data).transpose() << endlog();
+			}
+
 			// check singular values 
 			if (zero_vel_at_singularity_ && chain_it->ik_vel_solver->getNrZeroSigmas() > (chain_it->size - 6)) {
 				// set velocity to zero near singularity
@@ -317,7 +397,7 @@ void KinematicsInvTracIK::updateHook()
 			j++;
 			// update seeds
 			for ( KinematicChainData& chain_data : chain_data_ ) {
-				chain_data.jnt_array_seed_pose.data = Eigen::Map<Eigen::VectorXd>( &joints_.position[chain_data.index_begin], chain_data.size );
+				for(int i = 0; i < chain_data.size; i++) chain_data.jnt_array_seed_pose.data[i] = joints_.position[chain_data.joint_induces[i]];
 			}
 		}
 		else {

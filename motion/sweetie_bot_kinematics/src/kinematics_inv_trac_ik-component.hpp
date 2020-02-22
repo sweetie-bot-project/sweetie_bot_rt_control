@@ -23,14 +23,19 @@ class KinematicsInvTracIK : public RTT::TaskContext
 	protected:
 		struct KinematicChainData {
 			std::string name; /**< Kinematic chain name */
-			std::vector<string> joint_names; /**< Names of joint. */
-			int index_begin; /**< Index of first joint in chain */
+			std::vector<std::string> joint_names; /**< Names of joint. */
+			std::vector<int> joint_induces; /**< Induces of joints in chain */
+			KDL::Twist tolerance; /**< TRAC IK solver tolerance */
 			int size; /**< Kinematic chain length. */
-			shared_ptr<TRAC_IK::TRAC_IK> ik_solver; /**< IK  velocity solver */
-			shared_ptr<KDL::ChainIkSolverVel_pinv> ik_vel_solver; /**< IK  velocity solver */
+			std::unique_ptr<KDL::Chain> chain; /**< Kinematic chain. KDL 1.4 FKSolvers store reference to KDL::Chain so Chain object must not change memory location. */ //TODO: remove size field?
+			std::unique_ptr<TRAC_IK::TRAC_IK> ik_solver; /**< IK  velocity solver */
+			std::unique_ptr<KDL::ChainIkSolverVel_pinv> ik_vel_solver; /**< IK  velocity solver */
+			// std::unique_ptr<KDL::ChainFkSolverPos_recursive> fk_solver; /**< FK solver for tolerance check */
 			KDL::JntArray jnt_array_pose; /**< buffer */
 			KDL::JntArray jnt_array_vel; /**< buffer */
 			KDL::JntArray jnt_array_seed_pose; /**< initial approximation for solution */
+			KDL::JntArray jnt_lower_bounds; /**< upper bounds for joints */
+			KDL::JntArray jnt_upper_bounds; /**< lower bounds for joints */
 		};
 
 	protected:
@@ -48,6 +53,8 @@ class KinematicsInvTracIK : public RTT::TaskContext
 		double timeout_;
 		bool use_ik_pose_as_new_seed_;
 		bool zero_vel_at_singularity_;
+		double max_joint_velocity_;
+		double period_;
 		// subservices
 		RobotModel * robot_model_;
 
@@ -66,16 +73,16 @@ class KinematicsInvTracIK : public RTT::TaskContext
 		sweetie_bot::logger::LoggerRTT log;
 #endif
 	protected:
-		bool poseToJointState_impl(const sweetie_bot_kinematics_msgs::RigidBodyState& in, sensor_msgs::JointState& out); 
-		std::shared_ptr<TRAC_IK::TRAC_IK> getIKSolver(const string& chain_name, const KDL::Chain& kdl_chain);
+		bool poseToJointState_impl(const sweetie_bot_kinematics_msgs::RigidBodyState& in, sensor_msgs::JointState& out);
+		std::unique_ptr<TRAC_IK::TRAC_IK> getIKSolver(const std::string& chain_name, const KDL::Chain& kdl_chain);
 
 		// operations
-		bool poseToJointState(const sweetie_bot_kinematics_msgs::RigidBodyState& in, sensor_msgs::JointState& out); 
-		bool poseToJointStatePublish(const sweetie_bot_kinematics_msgs::RigidBodyState& in); 
+		bool poseToJointState(const sweetie_bot_kinematics_msgs::RigidBodyState& in, sensor_msgs::JointState& out);
+		bool poseToJointStatePublish(const sweetie_bot_kinematics_msgs::RigidBodyState& in);
 
 	public:
 
-		KinematicsInvTracIK(std::string const& name);
+		KinematicsInvTracIK(const std::string& name);
 
 		bool configureHook();
 		bool startHook();

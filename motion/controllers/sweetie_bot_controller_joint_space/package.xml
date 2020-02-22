@@ -11,6 +11,8 @@
 
   <author>Oleg Goncharov (disRecord)</author>
 
+  <build_depend>libalglib-dev</build_depend>
+
   <!-- ROS and OROCOS packages -->
   <depend>rtt</depend>
   <depend>actionlib</depend>
@@ -25,17 +27,18 @@
   <depend>sweetie_bot_orocos_misc</depend> <!-- actionlib client, JointState checks, find subservice -->
   <depend>sweetie_bot_robot_model</depend>
   <!-- SWEETIEBOT datatypes -->
-  <depend>rtt_sweetie_bot_resource_control_msgs</depend>
   <depend>rtt_sweetie_bot_kinematics_msgs</depend>
 
   <export>
 	  <rtt_ros>
 		  <!-- Plugin deps are loaded automatically by the rtt_ros import service -->
 		  <plugin_depend>rtt_actionlib</plugin_depend>
+		  <plugin_depend>rtt_actionlib_msgs</plugin_depend>
 		  <plugin_depend>rtt_std_srvs</plugin_depend>
 		  <plugin_depend>rtt_sensor_msgs</plugin_depend>
 		  <plugin_depend>rtt_control_msgs</plugin_depend>
-		  <plugin_depend>rtt_sweetie_bot_resource_control_msgs</plugin_depend>
+		  <plugin_depend>sweetie_bot_resource_control</plugin_depend>
+		  <plugin_depend>rtt_sweetie_bot_control_msgs</plugin_depend>
 		  <plugin_depend>rtt_sweetie_bot_kinematics_msgs</plugin_depend>
 	  </rtt_ros>
   </export>

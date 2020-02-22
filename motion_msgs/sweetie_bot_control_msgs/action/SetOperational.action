@@ -1,0 +1,28 @@
+# Controller activation/deactivation action.
+#
+# Request: activate/deactivate controller
+# * operational --- new controller state. Allows to deactivate component.
+# * resources --- list of resorces owned by controllers. Some controllers may ignore this field, 
+#      or have different interpretation of it.
+# 
+# Feedback: controller is active.
+# * resources --- actual resources set controlled by component.
+# 
+# Result: controller is not active  (deactivation can be triggered by iternal logic or external request)
+# * error_code --- deactivation reason
+# * error_string --- human redable deactivation reason
+#
+bool operational
+string[] resources
+---
+int32 error_code
+string error_string
+
+int32 SUCCESSFUL = 0 # goal is achived or deactivation was triggered by external factor (e.g. action is ABORTED or PREEMTED).
+int32 COMPONENT_IS_NOT_READY = -1 # controller is not configured properly.
+int32 INVALID_RESOURCE_SET = -2 # Unable to start with prescribed resource set (for example, cannot use head as support leg, or cann't balance on one leg).
+int32 START_CONDITIONS_VIOLATED = -3 # In current robot state controller cann't start. 
+int32 EXECUTION_ERROR = -4 # Internal error of started controller.
+---
+string[] resources
+

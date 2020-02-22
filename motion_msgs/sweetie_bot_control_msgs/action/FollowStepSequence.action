@@ -1,0 +1,42 @@
+# Robot movement presented in cartesian space.
+#
+# Request:
+#  * append --- append this trajectory to previous trajectory if possible
+#  * ee_names --- end effector names (the same order and size as in trajectory)
+#  * trajectory --- trajectory representation
+#  * position_tolerance --- maximal allowed offset from desired position for end effectors and robot base.
+#  * orientation_tolerance --- maximal allowed axis-angle errors for robot base and end effectors.
+#
+# Result:
+#  * error_code
+#      SUCCESSFUL is returned on success, INVALID_TRAJECTORY if trajectory is inconsistent (unsupported
+#      time intervals, nonmonotonic time, incorect vector length and so on), INVALID_END_EFFECTOR indicates
+#      that end effector name is unknown, UNABLE_TO_APPEND says that trajectory cannot be appended to current
+#      action and TOLERANCE_VIOLATED is raised if psition or orientation error is higher then bound,
+#      INTERNAL_ERROR indicate that trajectory cannot be execued due to internal error.
+#  * error_string
+#
+# Feedback:
+#  * time_from_start --- current execution time of compound trajectory.
+#
+Header header
+
+bool append
+float64[] time_from_start
+sweetie_bot_control_msgs/RigidBodyTrajectory base_motion
+sweetie_bot_control_msgs/RigidBodyTrajectory[] ee_motion
+
+float64 position_tolerance
+float64 orientation_tolerance
+---
+int32 error_code
+string error_string
+
+int32 SUCCESSFUL = 0
+int32 INVALID_TRAJECTORY = -1 
+int32 INVALID_END_EFFECTOR = -2
+int32 UNABLE_TO_APPEND = -3
+int32 TOLERANCE_VIOLATED = -4
+int32 INTERNAL_ERROR = -5
+---
+duration time_from_start

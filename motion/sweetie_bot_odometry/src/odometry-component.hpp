@@ -33,6 +33,7 @@ class Odometry : public RTT::TaskContext
 		std::vector<std::string> legs;
 		std::string default_contact; 
 		bool force_contact_z_to_zero;
+		bool zero_twist_if_no_contacts;
 		std::string odometry_frame;
 		std::string base_link_tf_prefix;
 	protected:
@@ -61,11 +62,11 @@ class Odometry : public RTT::TaskContext
 
 			std::vector<KDL::Vector> contact_points_limb; // coordinates in limb end segment frame
 
-			LimbState(const string& _name) : 
+			LimbState(const std::string& _name) :
 				name(_name),
 				is_in_contact(false),
 				was_in_contact(false)
-			{} 
+			{}
 		};
 
 	protected:

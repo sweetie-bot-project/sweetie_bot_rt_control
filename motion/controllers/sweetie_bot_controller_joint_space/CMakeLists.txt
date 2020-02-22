@@ -22,35 +22,37 @@ if (LOGGER_CONTROLLER_JOINT_SPACE)
 elseif(LOGGER_DEFAULT)
 	add_definitions(-DSWEETIEBOT_LOGGER=${LOGGER_DEFAULT})
 else()
-	add_definitions(-DSWEETIEBOT_LOGGER=LoggerRTT)
+	add_definitions(-DSWEETIEBOT_LOGGER=LoggerRosout)
 endif()
 
 
 ### General dependencies ###
 find_package(Eigen3 REQUIRED)
-include_directories("${EIGEN3_INCLUDE_DIR}")
+include_directories(SYSTEM "${EIGEN3_INCLUDE_DIR}")
 
 find_path(alglib_INCLUDE_DIR interpolation.h PATH_SUFFIXES libalglib alglib)
 find_library(alglib_LIBRARY NAMES alglib)
 if (NOT (alglib_INCLUDE_DIR AND alglib_LIBRARY))
 	message (FATAL_ERROR "\nCould not find alglib library.")
 endif()
-include_directories(include ${alglib_INCLUDE_DIR})
-#find_package(Boost REQUIRED COMPONENTS graph filesystem system thread regex)
-find_package(Boost REQUIRED COMPONENTS thread)
+include_directories(SYSTEM ${alglib_INCLUDE_DIR})
 
+### General Dependencies ###
+find_package(Boost REQUIRED COMPONENTS thread) # Fix for xenial linking problems
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
 find_package(catkin REQUIRED COMPONENTS rtt_ros)
-include_directories(include ${catkin_INCLUDE_DIRS} ${alglib_INCLUDE_DIR})
+include_directories(SYSTEM ${catkin_INCLUDE_DIRS})
 
 ### Orocos Dependencies ###
 # Note that orocos_use_package() does not need to be called for any dependency
 # listed in the package.xml file
-include_directories(${USE_OROCOS_INCLUDE_DIRS})
+include_directories(SYSTEM ${USE_OROCOS_INCLUDE_DIRS})
 
 ### Orocos Targets ###
+
+include_directories(include)
 
 # Include src/ directory.
 add_subdirectory( src )
@@ -61,7 +63,7 @@ add_subdirectory( src )
 orocos_install_headers(include/sweetie_bot_controller_joint_space/filter_joint_state.hpp)
 
 # Export package information (replaces catkin_package() macro)
-orocos_generate_package(INCLUDE_DIRS include DEPENDS rtt_ros)
+orocos_generate_package(INCLUDE_DIRS include)
 
 if (DEFINED _pkgconfig_error)
 if (${_pkgconfig_error})

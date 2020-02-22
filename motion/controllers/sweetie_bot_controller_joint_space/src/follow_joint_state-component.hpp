@@ -12,8 +12,6 @@
 #include <sensor_msgs/typekit/JointState.h>
 #include <sweetie_bot_kinematics_msgs/typekit/SupportState.h>
 #include <sweetie_bot_orocos_misc/simple_action_server.hpp>
-#include <sweetie_bot_resource_control_msgs/typekit/SetOperationalResult.h>
-#include <sweetie_bot_resource_control_msgs/typekit/SetOperationalAction.h>
 
 #include <sweetie_bot_logger/logger.hpp>
 #include <sweetie_bot_resource_control/resource_client.hpp>
@@ -21,14 +19,14 @@
 #include <sweetie_bot_controller_joint_space/filter_joint_state.hpp>
 #include <sweetie_bot_orocos_misc/simple_action_server.hpp>
 
-#include <sweetie_bot_resource_control/actionlib_controller_base.hpp>
+#include <sweetie_bot_resource_control/simple_controller_base.hpp>
 
 namespace sweetie_bot {
 namespace motion {
 namespace controller {
 
 
-class FollowJointState : public ActionlibControllerBase
+class FollowJointState : public SimpleControllerBase
 {
 	protected:
 		// COMPONENT INTERFACE
@@ -72,15 +70,16 @@ class FollowJointState : public ActionlibControllerBase
 		sensor_msgs::JointState actual_pose; // controlled joints actual position
 		sensor_msgs::JointState ref_pose; // controlled joints ref position
 		sweetie_bot_kinematics_msgs::SupportState supports; // contact list buffer
-		
+
 	public:
 		FollowJointState(std::string const& name);
 
 	protected:
-		bool resourceChangedHook_impl(const std::vector<std::string>& requested_resource_set);
-		bool formJointIndex(const vector<string>& controlled_chains);
+		bool processResourceSet_impl(const std::vector<std::string>& set_operational_goal_resources, std::vector<std::string>& resources_to_request);
+		bool resourceChangedHook_impl(const std::vector<std::string>& set_operational_goal_resources, const std::vector<std::string>& requested_resources);
+		bool formJointIndex(const std::vector<std::string>& controlled_chains);
 
-		bool configureHook_impl(); 
+		bool configureHook_impl();
 		bool startHook_impl();
 		void updateHook_impl();
 		void stopHook_impl();

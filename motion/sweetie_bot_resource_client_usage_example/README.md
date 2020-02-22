@@ -3,7 +3,7 @@ SWEETIE BOT CONTROLLER SWITCHING INFRASTRUCTURE USAGE EXAMPLE
 
 Sweetie Bot motion controllers examples.
 This package is part of [Sweetie Bot project](http://sweetiebot.net). 
-See complete specification [here (Rus)](https://gitlab.com/sweetie-bot/sweetie_doc/wikis/components-agregator-gait).
+See complete specification [here (Rus)](https://gitlab.com/sweetie-bot/sweetie_doc/wikis/components-aggregator-gait).
 
 Package contains following components:
 
@@ -16,6 +16,9 @@ Package contains following components:
     `sweetie_bot_resource_control_msgs/MoveManually` actionlib server.
 
     See `scripts/test_resource_control_actionlib.lua` as deployment example.
+
+* Package is missing `SimpleControlerBase` controller template. See @ref `sweetie_bot_resource_control`.
+    Use as exmple `FollowPose` or `FollowJointState` controller.
 
 * `scripts/resource_control.lua` --- lua module to simplify switching infrastructure deployment.
 

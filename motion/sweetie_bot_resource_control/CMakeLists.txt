@@ -22,30 +22,33 @@ if (LOGGER_RESOURCE_CONTROL)
 elseif(LOGGER_DEFAULT)
 	add_definitions(-DSWEETIEBOT_LOGGER=${LOGGER_DEFAULT})
 else()
-	add_definitions(-DSWEETIEBOT_LOGGER=LoggerRTT)
+	add_definitions(-DSWEETIEBOT_LOGGER=LoggerRosout)
 endif()
+
+### General dependencies ###
+find_package(Boost REQUIRED COMPONENTS thread) # Fix for linking error on xenial
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
-find_package(catkin REQUIRED COMPONENTS rtt_ros actionlib)
-include_directories(include ${catkin_INCLUDE_DIRS})
+find_package(catkin REQUIRED COMPONENTS rtt_ros)
+include_directories(SYSTEM ${catkin_INCLUDE_DIRS})
 
 ### Orocos Dependencies ###
 # Note that orocos_use_package() does not need to be called for any dependency
 # listed in the package.xml file
-include_directories(${USE_OROCOS_INCLUDE_DIRS})
-
-find_package(Boost REQUIRED COMPONENTS thread)
+include_directories(SYSTEM ${USE_OROCOS_INCLUDE_DIRS})
 
 ### Orocos Targets ###
+
+include_directories(include)
 
 # Include src/ directory.
 add_subdirectory( src )
 
 # Libraries: only .so modules from root CMakeLists are added to *.pc file.
-orocos_library(actionlib_controller_base src/actionlib_controller_base.cpp)
-set_target_properties(actionlib_controller_base PROPERTIES COMPILE_FLAGS "-DRTT_STATIC")
-target_link_libraries(actionlib_controller_base ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES})
+orocos_library(simple_controller_base src/simple_controller_base.cpp)
+set_target_properties(simple_controller_base PROPERTIES COMPILE_FLAGS "-DRTT_STATIC")
+target_link_libraries(simple_controller_base ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 ### Orocos Package Exports and Install Targets ###
 
@@ -53,7 +56,10 @@ target_link_libraries(actionlib_controller_base ${catkin_LIBRARIES} ${USE_OROCOS
 orocos_install_headers(DIRECTORY include/${PROJECT_NAME}/)
 
 # Export package information (replaces catkin_package() macro)
-orocos_generate_package(INCLUDE_DIRS include)
+orocos_generate_package(
+	INCLUDE_DIRS include
+	DEPENDS_TARGETS rtt_ros sweetie_bot_logger sweetie_bot_orocos_misc rtt_sweetie_bot_resource_control_msgs rtt_sweetie_bot_control_msgs rtt_std_srvs
+)
 
 if (DEFINED _pkgconfig_error)
 if (${_pkgconfig_error})

@@ -36,7 +36,7 @@ namespace motion {
 namespace controller {
 
 FollowPose::FollowPose(std::string const& name)  : 
-	ActionlibControllerBase(name),
+	SimpleControllerBase(name),
 	poseToJointStatePublish("poseToJointStatePublish", this->engine()) // operation caller
 {
 	// ports input 
@@ -120,35 +120,37 @@ bool FollowPose::startHook_impl()
 }
 
 
-bool FollowPose::checkResourceSet_impl(const std::vector<std::string>& controlled_chains) 
+bool FollowPose::processResourceSet_impl(const std::vector<std::string>& set_operational_goal_chains, std::vector<std::string>& resources_to_request)
 {
-	// check if controlled chains is sane
-	if (controlled_chains.size() != 1) {
+	// check if list of controlled chains contains only one element
+	if (set_operational_goal_chains.size() != 1) {
 		log(ERROR) << "FollowPose can control only one kinematics chain." << endlog();
 		return false;
 	}
+	resources_to_request = robot_model->getChainsGroups(set_operational_goal_chains);
 	return true;
 }
 
-bool FollowPose::resourceChangedHook_impl(const std::vector<std::string>& controlled_chains)
+bool FollowPose::resourceChangedHook_impl(const std::vector<std::string>& set_operational_goal_chains, const std::vector<std::string>& requested_resources)
 {
 	// check in resource available
 	// we do not have to test size: checkResourceSet_impl was called before
-	if (!resource_client->hasResource(controlled_chains[0])) return false;
+	if (!resource_client->hasResource(requested_resources[0])) return false;
 
-	chain_index = robot_model->getChainIndex(controlled_chains[0]);
+	const std::string& chain_name = set_operational_goal_chains[0];
+	chain_index = robot_model->getChainIndex(chain_name);
 	if (chain_index < 0) {
-		log(ERROR) << "Kinematic chain " << controlled_chains[0] << " is not registered in robot model." << endlog();
+		log(ERROR) << "Kinematic chain " << chain_name << " is not registered in robot model." << endlog();
 		return false;
 	}
 
 	// set chain name in output messages
-	limb_next.name[0] = controlled_chains[0];
-	supports.name[0] = controlled_chains[0];
+	limb_next.name[0] = chain_name;
+	supports.name[0] = chain_name;
 
 	// set reference pose to current limb pose
 	// check if limb data is available
-	if (in_limbs_port.read(limbs, true) == NoData || !isValidRigidBodyStateNameFrame(limbs) || limbs.name.size() < chain_index) {
+	if (in_limbs_port.read(limbs, true) == NoData || !isValidRigidBodyStateNameFrame(limbs) || limbs.name.size() <= chain_index || limbs.name[chain_index] != chain_name) {
 		log(ERROR) << "Limbs pose is unknown (in_limbs_port) or incorrect. Unable to start." << endlog();
 		return false;
 	}
@@ -165,7 +167,7 @@ bool FollowPose::resourceChangedHook_impl(const std::vector<std::string>& contro
 		return false;
 	}
 
-	log(INFO) << "FollowPose controlled chain: " << controlled_chains[0] << " chain_index = " << chain_index << endlog();
+	log(INFO) << "FollowPose controlled chain: " << set_operational_goal_chains[0] << " chain_index = " << chain_index << endlog();
 	return true;
 }
 
@@ -183,7 +185,7 @@ void FollowPose::updateHook_impl()
 		}
 	}
 	if (in_limbs_port.read(limbs, false) == NewData) {
-		if (!isValidRigidBodyStateNameFrameTwist(limbs) || limbs.name.size() < chain_index) {
+		if (!isValidRigidBodyStateNameFrameTwist(limbs) || limbs.name.size() <= chain_index) {
 			log(WARN) << "Incorrect limb poses message is received. Skip iteration." << endlog();
 			return;
 		}
@@ -192,7 +194,7 @@ void FollowPose::updateHook_impl()
 	// get reference pose
 	{
 		geometry_msgs::PoseStamped pose_stamped;
-		if (in_pose_ref_port.read(pose_stamped, false) == NewData) {
+		if (in_pose_ref_port.readNewest(pose_stamped, false) == NewData) {
 			// convert to KDL 
 			normalizeQuaternionMsg(pose_stamped.pose.orientation);
 			tf::poseMsgToKDL(pose_stamped.pose, limb_ref.frame[0]);

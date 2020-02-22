@@ -3,7 +3,7 @@ Sweetie Bot motion controllers' switching infrastructure
 
 This package contains resource management subsystem. It allows multiply motion controllers to be running concurrently 
 without conflicts.  This package is part of [Sweetie Bot project](http://sweetiebot.net). 
-See complete specification [here (Rus)](https://gitlab.com/sweetie-bot/sweetie_doc/wikis/components-agregator-gait).
+See complete specification [here (Rus)](https://gitlab.com/sweetie-bot/sweetie_doc/wikis/components-aggregator-gait).
 
 Resources represents different robot hardware, i.t. `leg1`, `tail`.
 When controller is being activated it request necessary resources. ResourcesArbiter forms resource assignment
@@ -27,7 +27,7 @@ a resource (i.e. the resource is not mentioned in the last resource request).
 3. `resource_client_dummy` service always believes it owns all necessary resources. It does not interact with 
     `ResourceArbiter`. It can be used for testing purpose.
 
-4. `ActionControllerBase` superclass which simplifies implementation of SetOperational action activated controllers.
+4. `SimpleControllerBase` superclass which simplifies implementation of `SetOperational` action activated controllers.
 
 
 ### Usage

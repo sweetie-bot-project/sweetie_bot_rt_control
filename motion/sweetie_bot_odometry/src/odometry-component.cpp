@@ -19,7 +19,7 @@ using namespace Eigen;
 namespace sweetie_bot {
 namespace motion {
 
-Odometry::Odometry(std::string const& name) : 
+Odometry::Odometry(const std::string& name) :
 	TaskContext(name, PreOperational),
 	log(logger::categoryFromComponentName(name))
 {
@@ -29,9 +29,9 @@ Odometry::Odometry(std::string const& name) :
 	}
 	// PORTS
 	this->addPort("in_supports_fixed", support_port).
-		doc("List of end effectors which are in contact. `point` fields are ignored. ");
+		doc("List of end effectors which are in contact. The order and names of robot kinematic chains must not change when component is running.");
 	this->addEventPort("in_limbs_fixed", limbs_port).
-		doc("Positions of robot end effectors relative to the base.");
+		doc("Positions of robot end effectors relative to the base. The names and order of kinematic chains must be the same as at in_supports_fixed port.");
 	this->addEventPort("in_base", body_reset_port).
 		doc("Position of robot `base_link`. Reset odometry results.");
 	this->addPort("out_base", body_port).
@@ -45,6 +45,9 @@ Odometry::Odometry(std::string const& name) :
 		doc("List of end effectors which can be in contact. (Kinematic chains names, legs)."); 
 	this->addProperty("force_contact_z_to_zero", force_contact_z_to_zero).
 		doc("Assume that first contact point always have zero Z coordinate.").
+		set(false);
+	this->addProperty("zero_twist_if_no_contacts", zero_twist_if_no_contacts).
+		doc("Set speed of the base to zero if there is no contacts.").
 		set(false);
 	this->addProperty("odometry_frame", odometry_frame)
 		.doc("Stationary frame name (header.frame_id field value in publised tf messages).")
@@ -72,7 +75,7 @@ bool Odometry::configureHook()
 	}
 	// reserve LimbState array
 	limbs.clear();
-	for ( const string& name : legs ) {
+	for ( const std::string& name : legs ) {
 		int index = robot_model->getChainIndex(name);
 		if (index < 0) {
 			log(ERROR) << "Kinematic chain (leg) " << name << " does not exists." << endlog();
@@ -87,10 +90,17 @@ bool Odometry::configureHook()
 	body_pose.frame.resize(1);
 	body_pose.twist.resize(1);
 	body_pose.name[0] = "base_link";
-	body_tf.transforms.resize(1);
+	body_tf.transforms.resize(2);
 	body_tf.transforms[0].header.frame_id = odometry_frame;
-	if (base_link_tf_prefix != "") body_tf.transforms[0].child_frame_id = base_link_tf_prefix + "/base_link";
-	else body_tf.transforms[0].child_frame_id = "base_link";
+	body_tf.transforms[1].header.frame_id = odometry_frame;
+	if (base_link_tf_prefix != "") {
+		body_tf.transforms[0].child_frame_id = base_link_tf_prefix + "/base_link";
+		body_tf.transforms[1].child_frame_id = base_link_tf_prefix + "/base_link_path";
+	}
+	else {
+		body_tf.transforms[0].child_frame_id = "base_link";
+		body_tf.transforms[1].child_frame_id = "base_link_path";
+	}
 	// body_twist.header.frame_id = odometry_frame;
 	// initialization is finished
 	log(INFO) << "Odometry configured !" << endlog();
@@ -310,6 +320,11 @@ bool Odometry::integrateBodyPose()
 			if (too_few_contact_warn_counter % 100 == 0) log(WARN) << "Too few contact points. " << too_few_contact_warn_counter << " iterations are skipped." << endlog();
 			too_few_contact_warn_counter += 1;
 		}
+		else {
+			// there are no contacts
+			if (zero_twist_if_no_contacts) body_pose.twist[0] = Twist::Zero();
+		}
+
 		// do not change pose estimation
 		if (contact_set_changed) updateAnchor(false);
 		return false;
@@ -446,11 +461,20 @@ void Odometry::updateHook()
 	// RigidBodyState message
 	body_pose.header.stamp = stamp;
 	body_port.write(body_pose);
-	// tf message
+
+	// tf message: base_link frame
 	body_tf.transforms[0].header.stamp = stamp;
 	tf::transformKDLToMsg(body_pose.frame[0], body_tf.transforms[0].transform);
 	// fix for incorrect kdl::Rotation::GetQuaternion conversation
 	normalizeQuaternionMsg(body_tf.transforms[0].transform.rotation);
+	// tf message: base_link path frame
+	body_tf.transforms[1].header.stamp = stamp;
+	body_tf.transforms[1].transform = body_tf.transforms[0].transform;
+	body_tf.transforms[1].transform.translation.z = 0.0; 
+	body_tf.transforms[1].transform.rotation.x = 0.0;
+	body_tf.transforms[1].transform.rotation.y = 0.0;
+	normalizeQuaternionMsg(body_tf.transforms[1].transform.rotation);	
+	// publish tf
 	tf_port.write(body_tf);
 	// twist message
 	/*body_twist.header.stamp = stamp;

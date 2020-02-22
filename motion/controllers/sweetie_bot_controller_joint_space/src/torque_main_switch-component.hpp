@@ -11,15 +11,30 @@
 #include <sweetie_bot_resource_control/resource_client.hpp>
 #include <sweetie_bot_robot_model/robot_model.hpp>
 
+#include <sweetie_bot_resource_control/simple_controller_base.hpp>
+
 namespace sweetie_bot {
 namespace motion {
 namespace controller {
 
-
-class TorqueMainSwitch : public RTT::TaskContext
+class TorqueMainSwitch : public SimpleControllerBase
 {
 	protected:
 		typedef sensor_msgs::JointState JointState;
+		struct JointInfo {
+			std::string name;
+			int index_fullpose;
+			RTT::OperationCaller<bool(std::string, bool)> * setTorqueFree_caller;
+		};
+		struct HerkulexGroupInfo {
+			std::string array;
+			std::string sched;
+			RTT::OperationCaller<bool(std::string, bool)> setTorqueFree_caller;
+		};
+		struct JointGroupInfo {
+			std::vector<JointInfo> joints;
+			std::vector<int> herkulex_groups_induces;
+		};
 
 	protected:
 		// COMPONENT INTERFACE
@@ -35,38 +50,34 @@ class TorqueMainSwitch : public RTT::TaskContext
 		bool velocity_zeroing;
 	protected:
 		// OPERATIONS: provides
-		bool rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp);
 		// OPERATIONS: requires
 		// SERVICES: provides
 		// SERVICES: required
 		sweetie_bot::motion::RobotModel * robot_model; // joints list, kinematics chains access
 		// SERVICES: internal interface
-		sweetie_bot::motion::ResourceClientInterface * resource_client; // resource client
 
 	protected:
 		// COMPONENT STATE
-		std::vector< RTT::OperationCaller<bool(bool)> > torque_off_callers; // operation callers to control servos torque
-		std::vector< std::string > controlled_chains; // list of controlled chains
+		std::map< std::string, JointGroupInfo > joint_groups_index; // groups of joints (accodring to RobotModel)
+		std::vector< HerkulexGroupInfo > herkulex_groups; // herkulex control groups
+		std::vector< std::string > controlled_groups; // list of groups
 		// ports buffers
 		JointState actual_fullpose; // buffer for input port in_joints_port
+		JointState pose_published; // buffer for output port
 		
-#ifdef SWEETIEBOT_LOGGER
-		sweetie_bot::logger::SWEETIEBOT_LOGGER log;
-#else
-		sweetie_bot::logger::LoggerRTT log;
-#endif
-
 	public:
 		TorqueMainSwitch(std::string const& name);
 
-		bool setSchedulersActive(bool is_active);
+		bool setSchedulersActive(const JointGroupInfo& group, bool is_active);
 		bool setAllServosTorqueFree(bool torque_is_off);
 
-		bool configureHook(); 
-		bool startHook();
-		void updateHook();
-		void stopHook();
-		void cleanupHook();
+		bool resourceChangedHook_impl(const std::vector<std::string>& set_operational_goal_resources, const std::vector<std::string>& requested_resources);
+
+		bool configureHook_impl(); 
+		bool startHook_impl();
+		void updateHook_impl();
+		void stopHook_impl();
+		void cleanupHook_impl();
 };
 
 } // namespace controller

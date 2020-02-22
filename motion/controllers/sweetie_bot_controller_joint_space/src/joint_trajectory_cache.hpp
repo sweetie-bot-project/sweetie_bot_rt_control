@@ -1,12 +1,11 @@
 #ifndef  JOINT_TRAJECTORY_CACHE_HPP
 #define  JOINT_TRAJECTORY_CACHE_HPP
 
-#include <interpolation.h>
-
 #include <sensor_msgs/typekit/JointState.h>
 #include <control_msgs/typekit/FollowJointTrajectoryGoal.h>
 #include <sweetie_bot_kinematics_msgs/typekit/SupportState.h>
 
+#include "interpolation_algorithms.hpp"
 
 namespace sweetie_bot {
 namespace motion {
@@ -39,8 +38,8 @@ class JointTrajectoryCache
 
 	protected:
 
-		std::vector<std::string> names;
-		std::vector<std::string> chains;
+		std::vector<std::string> names; // joint names
+		std::vector<std::string> groups; // joint groups
 		std::vector<int> index_fullpose;
 		double goal_time;
 
@@ -52,9 +51,9 @@ class JointTrajectoryCache
 		std::vector<double> path_tolerance; 
 		std::vector<double> goal_tolerance;
 		double goal_time_tolerance;
-		
+
 	protected:
-		void loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags, RobotModel * robot_model);
+		void loadTrajectory(const trajectory_msgs::JointTrajectory& trajectory, const std::vector<bool>& support_flags, RobotModel * robot_model, const InterpolationAlgorithmInterface& algorithm);
 		void getJointTolerance(const FollowJointTrajectoryGoal& msg);
 
 	public:
@@ -63,8 +62,9 @@ class JointTrajectoryCache
 		 * Approximate trajectory with 2-nd order spline, cache up joint names,  tolerance and joint indexes.
 		 * @param _trajectory ROS message with goal trajectory.
 		 * @param robot_mode RobotModel to interprete joints names.
+		 * @param algorithm InterpolationAlgorithm, selected for spline interpolation.
 		 **/
-		JointTrajectoryCache(const FollowJointTrajectoryGoal& _trajectory, RobotModel * robot_model);
+		JointTrajectoryCache(const FollowJointTrajectoryGoal& _trajectory, RobotModel * robot_model, const InterpolationAlgorithmInterface& algorithm);
 
 		/**
 		 * @brief Prepare joint state buffer
@@ -82,11 +82,11 @@ class JointTrajectoryCache
 		}
 
 		/**
-		 * @brief Return lists of required kinematics chains (according to RobotModel).
-		 * @return List of kinematics chains.
+		 * @brief Return lists of required joint groups (according to RobotModel).
+		 * @return List of joint groups.
 		 **/
-		const std::vector<std::string>& getRequiredChains() const {
-			return this->chains;
+		const std::vector<std::string>& getRequiredJointGroups() const {
+			return this->groups;
 		}
 
 		/**
@@ -146,7 +146,7 @@ class JointTrajectoryCache
 		/**
 		 * @brief Get supports' state to buffer of proper size.
 		 * Method does not check message
-		 * @param joints Support state buffer receiving new state
+		 * @param support Support state buffer receiving new state
 		 * @param t time in seconds from begining of movement.
 		 **/
 		void getSupportState(double t, SupportState& support) const;

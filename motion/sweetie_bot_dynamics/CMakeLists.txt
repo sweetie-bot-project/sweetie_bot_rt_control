@@ -22,27 +22,29 @@ if (LOGGER_KINEMATICS)
 elseif(LOGGER_DEFAULT)
         add_definitions(-DSWEETIEBOT_LOGGER=${LOGGER_DEFAULT})
 else()
-        add_definitions(-DSWEETIEBOT_LOGGER=LoggerRTT)
+        add_definitions(-DSWEETIEBOT_LOGGER=LoggerRosout)
 endif()
 
 ### General Dependencies ###
+find_package(Eigen3 REQUIRED)
 find_package(PkgConfig)
-pkg_check_modules(RBDL REQUIRED rbdl<=2.5.0)
+pkg_check_modules(RBDL REQUIRED rbdl>=2.6)
 find_library(RBDL_URDFREADER_LIBRARY NAMES rbdl_urdfreader PATHS ${RBDL_LIBRARY_DIRS})
 if (RBDL_URDFREADER_LIBRARY-NOTFOUND)
 	message(FATAL_ERROR "Unable to find rbdl_urdfreader library.")
 endif()
-include_directories(${RBDL_INCLUDE_DIRS})
+include_directories(SYSTEM ${RBDL_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
-find_package(catkin REQUIRED COMPONENTS rtt_ros roscpp tf eigen_conversions kdl_conversions tf_conversions)
-include_directories(${catkin_INCLUDE_DIRS})
+find_package(catkin REQUIRED COMPONENTS rtt_ros roscpp tf eigen_conversions kdl_conversions tf_conversions sensor_msgs sweetie_bot_kinematics_msgs)
+include_directories(SYSTEM ${catkin_INCLUDE_DIRS})
 
 ### Orocos Dependencies ###
 # Note that orocos_use_package() does not need to be called for any dependency
 # listed in the package.xml file
-include_directories(${USE_OROCOS_INCLUDE_DIRS})
+orocos_use_package(orocos_kdl REQUIRED)
+include_directories(SYSTEM ${USE_OROCOS_INCLUDE_DIRS})
 
 ### Orocos Targets ###
 

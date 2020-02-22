@@ -18,14 +18,14 @@
 #include <sweetie_bot_robot_model/robot_model.hpp>
 #include <sweetie_bot_controller_cartesian/filter_rigid_body_state.hpp>
 
-#include <sweetie_bot_resource_control/actionlib_controller_base.hpp>
+#include <sweetie_bot_resource_control/simple_controller_base.hpp>
 
 namespace sweetie_bot {
 namespace motion {
 namespace controller {
 
 
-class FollowPose : public ActionlibControllerBase
+class FollowPose : public SimpleControllerBase
 {
 	protected:
 		// COMPONENT INTERFACE
@@ -63,8 +63,8 @@ class FollowPose : public ActionlibControllerBase
 		FollowPose(std::string const& name);
 
 	protected:
-		bool checkResourceSet_impl(const std::vector<std::string>& desired_resource_set);
-		bool resourceChangedHook_impl(const std::vector<std::string>& requested_resource_set);
+		bool processResourceSet_impl(const std::vector<std::string>& set_operational_goal_resources, std::vector<std::string>& resources_to_request);
+		bool resourceChangedHook_impl(const std::vector<std::string>& set_operational_goal_resources, const std::vector<std::string>& requested_resources);
 
 		bool configureHook_impl(); 
 		bool startHook_impl();

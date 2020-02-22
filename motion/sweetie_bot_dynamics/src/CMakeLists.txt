@@ -19,6 +19,9 @@ set_target_properties(dynamics_inv_simple PROPERTIES LINK_FLAGS "${RBDL_LDFLAGS}
 
 add_executable(visualizer visualizer.cpp)
 target_link_libraries(visualizer ${catkin_LIBRARIES})
+add_dependencies(visualizer ${catkin_EXPORTED_TARGETS})
+orocos_set_install_rpath(visualizer ${USE_OROCOS_LIBRARY_DIRS})
+
 # node installation
 install(TARGETS visualizer
 # ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

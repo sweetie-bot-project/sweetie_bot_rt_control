@@ -59,6 +59,7 @@ class DynamicsVisualizer
 		ros::Subscriber joints_accel_sub;
 		ros::Subscriber supports_sub;
 		ros::Subscriber wrenches_sub;
+		ros::Subscriber base_sub;
 		ros::Subscriber balance_sub;
 		// tf
 		tf::TransformListener tf_listener;
@@ -70,6 +71,7 @@ class DynamicsVisualizer
 		double point_size_param;
 		double torque_scale_param;
 		double force_scale_param;
+		double velocity_angular_scale_param;
 		bool display_twist;
 
 		// robot_model parameters cache
@@ -78,6 +80,7 @@ class DynamicsVisualizer
 		// BUFFERS
 		SupportState supports;
 		RigidBodyState wrenches;
+		RigidBodyState base;
 		BalanceState balance;
 
 	public:
@@ -85,6 +88,7 @@ class DynamicsVisualizer
 		{
 			// input
 			joints_accel_sub = node_handler.subscribe<JointStateAccel>("joint_state_accel", 1, &DynamicsVisualizer::callbackJointsAccelSub, this);
+			base_sub = node_handler.subscribe<RigidBodyState>("base", 1, &DynamicsVisualizer::callbackBaseSub, this);
 			wrenches_sub = node_handler.subscribe<RigidBodyState>("wrenches", 1, &DynamicsVisualizer::callbackWrenchesSub, this);
 			supports_sub = node_handler.subscribe<SupportState>("supports", 1, &DynamicsVisualizer::callbackSupportsSub, this);
 			balance_sub = node_handler.subscribe<BalanceState>("balance", 1, &DynamicsVisualizer::callbackBalanceSub, this);
@@ -94,7 +98,7 @@ class DynamicsVisualizer
 
 			// get node parameters
 			if (!ros::param::get("~robot_model_namespace", robot_model_ns_param)) {
-				robot_model_ns_param = "/sweetie_bot";
+				robot_model_ns_param = "";
 			}
 			if (!ros::param::get("~point_size", point_size_param)) {
 				point_size_param = 0.005;
@@ -107,6 +111,9 @@ class DynamicsVisualizer
 			}
 			if (!ros::param::get("~display_twist", display_twist)) {
 				display_twist = true;
+			}
+			if (!ros::param::get("~velocity_angular_scale", velocity_angular_scale_param)) {
+				velocity_angular_scale_param = 1.0/(2.0*M_PI);
 			}
 
 			// timer
@@ -122,7 +129,7 @@ class DynamicsVisualizer
 			if (node_handler.getParamCached(robot_model_ns_param + "/robot_model/chains/" + name + "/last_link", frame)) {
 				return frame;
 			}
-			else throw ros::Exception("Unable to determine last_link frame name of " + name + " kinematic chain. Check if robot_model is loaded into Parameter Service.");
+			else throw ros::Exception("Unable to determine last_link frame name of " + name + " kinematic chain. Check if robot_model is loaded onto Parameter Service in namespace '" + robot_model_ns_param + "'.");
 		}
 
 		KDL::Vector getContactPoint(const std::string& name) {
@@ -169,6 +176,14 @@ class DynamicsVisualizer
 			if (sweetie_bot::isValidRigidBodyStateNameFrame(*msg)) {
 				// buffer message for following vizualization
 				wrenches = *msg;
+			}
+		}
+
+		void callbackBaseSub(const RigidBodyState::ConstPtr& msg) 
+		{
+			if (sweetie_bot::isValidRigidBodyStateNameFrame(*msg, 1)) {
+				// buffer message for following vizualization
+				base = *msg;
 			}
 		}
 
@@ -274,19 +289,34 @@ class DynamicsVisualizer
 					marker.points.emplace_back(); tf::pointKDLToMsg(point_torque, marker.points.back()); marker.colors.push_back(BLUE);
 			}
 			if (display_twist) {
+				// display limbs twists
 				for(int k = 0; k < wrenches.twist.size(); k++) {
 					// get velocity and bring it to limb tip
 					KDL::Twist twist = wrenches.twist[k];
 					KDL::Vector point = wrenches.frame[k].p;
 					twist = twist.RefPoint(point);
 					// velocity visualization
-					KDL::Vector point_force = point + twist.vel; // linear vel visualization
-					KDL::Vector point_torque = point + twist.rot; // angular vel visualization
+					KDL::Vector point_vel = point + twist.vel; // linear vel visualization
+					KDL::Vector point_rot = point + twist.rot*velocity_angular_scale_param; // angular vel visualization
 					// add to line list
 					marker.points.emplace_back(); tf::pointKDLToMsg(point, marker.points.back()); marker.colors.push_back(GREEN);
-					marker.points.emplace_back(); tf::pointKDLToMsg(point_force, marker.points.back()); marker.colors.push_back(GREEN);
+					marker.points.emplace_back(); tf::pointKDLToMsg(point_vel, marker.points.back()); marker.colors.push_back(GREEN);
 					marker.points.emplace_back(); tf::pointKDLToMsg(point, marker.points.back()); marker.colors.push_back(YELLOW);
-					marker.points.emplace_back(); tf::pointKDLToMsg(point_torque, marker.points.back()); marker.colors.push_back(YELLOW);
+					marker.points.emplace_back(); tf::pointKDLToMsg(point_rot, marker.points.back()); marker.colors.push_back(YELLOW);
+				}
+				// display base twist
+				if (base.name.size() == 1) {
+					KDL::Twist twist = base.twist[0];
+					KDL::Vector point = base.frame[0].p;
+					twist = twist.RefPoint(point);
+					// velocity visualization
+					KDL::Vector point_vel = point + twist.vel; // linear vel visualization
+					KDL::Vector point_rot = point + twist.rot*velocity_angular_scale_param; // angular vel visualization
+					// add to line list
+					marker.points.emplace_back(); tf::pointKDLToMsg(point, marker.points.back()); marker.colors.push_back(GREEN);
+					marker.points.emplace_back(); tf::pointKDLToMsg(point_vel, marker.points.back()); marker.colors.push_back(GREEN);
+					marker.points.emplace_back(); tf::pointKDLToMsg(point, marker.points.back()); marker.colors.push_back(YELLOW);
+					marker.points.emplace_back(); tf::pointKDLToMsg(point_rot, marker.points.back()); marker.colors.push_back(YELLOW);
 				}
 			}
 			// publish resulting message
@@ -318,11 +348,15 @@ class DynamicsVisualizer
 			marker_lines.scale.x = point_size_param/2; marker_lines.scale.y = 0.0; marker_lines.scale.z = 0.0;
 			marker_lines.color = GREEN;
 			
-			// use balance message to display CoP and CoM
+			// use balance message to display CoP, ZMP and CoM
 			// contact are assumed to be positioned in z = 0 plane
 			// CoP (z = 0)
 			marker_zmp.points.emplace_back(); 
 			tf::pointKDLToMsg(balance.CoP, marker_zmp.points.back());
+			marker_zmp.colors.push_back(GREEN);
+			// ZMP (z = 0)
+			marker_zmp.points.emplace_back();
+			tf::pointKDLToMsg(balance.ZMP, marker_zmp.points.back());
 			marker_zmp.colors.push_back(MAGENTA);
 			// CoM projection (z = 0)
 			marker_zmp.points.emplace_back(); 
@@ -363,7 +397,7 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "sweetie_dynamics_visualizer");
 	ROS_INFO("SweetieBot Dynamics Visualizer main.");
 
-	std::shared_ptr<DynamicsVisualizer> visualizer(new DynamicsVisualizer());
+	std::unique_ptr<DynamicsVisualizer> visualizer(new DynamicsVisualizer());
 
 	ros::spin();
 

@@ -36,23 +36,23 @@ namespace motion {
 namespace controller {
 
 FollowStance::FollowStance(std::string const& name)  : 
-	ActionlibControllerBase(name),
+	SimpleControllerBase(name),
 	poseToJointStatePublish("poseToJointStatePublish", this->engine()) // operation caller
 {
 	// ports input 
 	this->addPort("in_limbs_fixed", in_limbs_port)
 		.doc("Robot limbs postions. They are used only to setup anchors on component start.");
 	this->addPort("in_base", in_base_port)
-		.doc("Robot base link pose in world frame.");
+		.doc("Robot base_link current pose in world frame.");
 	this->addPort("in_base_ref", in_base_ref_port)
-		.doc("Target robot base link pose.");
+		.doc("Target base_link pose in world frame.");
 	this->addPort("in_balance", in_balance_port)
 		.doc("Information about robot balance.");
-	// ports input 
+	// ports  output
 	this->addPort("out_base_ref", out_base_ref_port)
-		.doc("Base next position to achive target given current robot state. It is computed by component each control cycle.");
+		.doc("Base reference position. It is computed by component each control cycle.");
 	this->addPort("out_limbs_ref", out_limbs_ref_port)
-		.doc("Limbs next position to achive target given current robot state. It is computed by component each control cycle. ");
+		.doc("Limbs reference position. It is computed by component each control cycle. ");
 	this->addPort("out_supports", out_supports_port)
 		.doc("Active contact list.");
 
@@ -101,7 +101,7 @@ FollowStance::FollowStance(std::string const& name)  :
 	log(INFO) << "FollowStance is constructed!" << endlog();
 }
 
-bool FollowStance::setupSupports(const vector<string>& support_legs)
+bool FollowStance::setupSupports(const std::vector<std::string>& support_legs)
 {
 	// check if limb data is available
 	if (in_limbs_port.read(limbs_full, true) == NoData) {
@@ -170,7 +170,7 @@ bool FollowStance::setupSupports(const vector<string>& support_legs)
 
 	if (log(INFO)) {
 		log() << "Set anchors for chains [ "; 
-		for( const string& name :  supports.name ) log() << name << ", ";
+		for( const std::string& name :  supports.name ) log() << name << ", ";
 		log() << " ]." << endlog();
 	}
 
@@ -264,12 +264,25 @@ bool FollowStance::startHook_impl()
 	return true;
 }
 
-bool FollowStance::resourceChangedHook_impl(const std::vector<std::string>& requested_resource_set)
+bool FollowStance::processResourceSet_impl(const std::vector<std::string>& set_operational_goal_chains, std::vector<std::string>& resources_to_request)
 {
-	if (!resource_client->hasResources(requested_resource_set)) return false;
+	// check if supplied resourses represents chains
+	bool chains_set = std::all_of(set_operational_goal_chains.begin(), set_operational_goal_chains.end(), [this](const std::string& name) { return robot_model->getChainIndex(name) >= 0; } );
+	if (!chains_set) {
+		log(ERROR) << "FollowStance: resource set must contains kinematic chains." << endlog();
+		return false;
+	}
+	resources_to_request = robot_model->getChainsGroups(set_operational_goal_chains);
+	return true;
+}
+
+
+bool FollowStance::resourceChangedHook_impl(const std::vector<std::string>& set_operational_goal_chains, const std::vector<std::string>& requested_resources)
+{
+	if (!resource_client->hasResources(requested_resources)) return false;
 
 	ik_success = true;
-	return setupSupports(requested_resource_set);
+	return setupSupports(set_operational_goal_chains);
 }
 
 bool FollowStance::isInsideSupportPolygone(const KDL::Vector point) 
@@ -382,7 +395,7 @@ void FollowStance::updateHook_impl()
 	// get reference pose
 	{
 		geometry_msgs::PoseStamped pose_stamped;
-		if (in_base_ref_port.read(pose_stamped, false) == NewData) {
+		if (in_base_ref_port.readNewest(pose_stamped, false) == NewData) {
 			// convert to KDL 
 			normalizeQuaternionMsg(pose_stamped.pose.orientation);
 			tf::poseMsgToKDL(pose_stamped.pose, base_ref.frame[0]);
