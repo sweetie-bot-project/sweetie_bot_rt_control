@@ -25,10 +25,12 @@ DynamicsInvSimple::DynamicsInvSimple(const std::string& name) :
 	log(logger::categoryFromComponentName(name))
 {
 	// input ports
-	this->addPort( "in_joints_sorted", in_joints_port )
-		.doc( "Full robot pose in joint space (without information about floating base). Fields `position` and `velocity` must present." );
-	this->addEventPort( "in_base", in_base_port )
-		.doc( "Robot base position and velocity. This port triggers calulations when first in control cycle is received.");
+	this->addPort( "in_joints_ref_sorted", in_joints_ref_port )
+		.doc( "Full reference robot pose in joint space (without information about floating base). Fields `position` and `velocity` must present." );
+	this->addPort( "in_joints_real_sorted", in_joints_real_port )
+		.doc( "Full measured robot pose in joint space (without information about floating base)." );
+	this->addEventPort( "in_base_ref", in_base_ref_port )
+		.doc( "Robot base reference position and velocity. This port triggers calulations when first in control cycle is received.");
 	this->addPort( "in_supports_sorted", in_supports_port )
 		.doc( "Active contact list." );
 	this->addPort( "sync_step", sync_port )
@@ -49,6 +51,9 @@ DynamicsInvSimple::DynamicsInvSimple(const std::string& name) :
 		.doc( "Simplified robot URDF (without fictive joints and massless links).");
 	this->addProperty( "legs", legs )
 		.doc("List of end effectors which can be in contact and be affected by external forces (Kinematic chains names, legs).");
+	this->addProperty( "use_ref_joint_position", use_ref_joint_position )
+		.doc("Use reference joints pose during calculation of inverse dynamics instead of real.")
+		.set(true);
 	this->addProperty( "tolerance", tolerance )
 		.doc("Tolerance for contact jacobain rank estimation.")
 		.set(1e-4);
@@ -204,9 +209,10 @@ bool DynamicsInvSimple::startHook()
 	QDot.setZero();
 	joints_accel.acceleration.assign(n_fullpose_joints, 0.0);
 	// clear 
-	in_joints_port.getDataSample(joints);
+	in_joints_ref_port.getDataSample(joints_ref);
+	in_joints_real_port.getDataSample(joints_real);
 	in_supports_port.getDataSample(supports);
-	in_base_port.getDataSample(base);
+	in_base_ref_port.getDataSample(base);
 	this->log(INFO) << "DynamicsInvSimple is started." <<endlog();
 	return true;
 }
@@ -217,9 +223,15 @@ bool DynamicsInvSimple::checkPorts()
 	bool trigger_update = true;
 	
 	// joint state
-	in_joints_port.read(joints, false);
-	if (!isValidJointStatePosVel(joints, n_fullpose_joints)) {
-		log(ERROR) << "Invalid JointState message on in_joints_sorted port." << endlog();	
+	in_joints_ref_port.read(joints_ref, false);
+	if (!isValidJointStatePosVel(joints_ref, n_fullpose_joints)) {
+		log(ERROR) << "Invalid JointState message on in_joints_ref_sorted port." << endlog();
+		trigger_update = false;
+	}
+
+	in_joints_ref_port.read(joints_real, false);
+	if (!isValidJointStatePosVel(joints_real, n_fullpose_joints)) {
+		log(ERROR) << "Invalid JointState message on in_joints_real_sorted port." << endlog();
 		trigger_update = false;
 	}
 
@@ -232,7 +244,7 @@ bool DynamicsInvSimple::checkPorts()
 
 	// base link pose
 	RTT::os::Timer::TimerId tmp;
-	if (in_base_port.read(base, false) == NewData && sync_port.read(tmp) == NewData) {
+	if (in_base_ref_port.read(base, false) == NewData && sync_port.read(tmp) == NewData) {
 		if (!isValidRigidBodyStateNameFrameTwist(base, 1) || base.name[0] != "base_link") {
 			log(ERROR) << "Invalid RigidBodyState message on in_base port. Information about base_link is expected." << endlog();	
 			trigger_update = false;
@@ -248,11 +260,16 @@ void DynamicsInvSimple::updateStateFromPortsBuffers()
 	// joint state
 	for(int i = 6; i < rbdl_model.qdot_size; i++) {
 		// pose
-		Q[i] = joints.position[joint_index[i]];
+		if (use_ref_joint_position) {
+			Q[i] = joints_ref.position[joint_index[i]];
+		}
+		else {
+			Q[i] = joints_real.position[joint_index[i]];
+		}
 		// acceleration calculation
-		QDDot[i] = (joints.velocity[joint_index[i]] - QDot[i]) / period;
+		QDDot[i] = (joints_ref.velocity[joint_index[i]] - QDot[i]) / period;
 		// velocity
-		QDot[i] = joints.velocity[joint_index[i]];
+		QDot[i] = joints_ref.velocity[joint_index[i]];
 	}
 	// base
 	Q.head<3>() = Map<Vector3d>(base.frame[0].p.data);
@@ -387,8 +404,8 @@ void DynamicsInvSimple::publishStateToPorts()
 {
 	// joint state
 	joints_accel.header.stamp = ros::Time::now();
-	joints_accel.position = joints.position;
-	joints_accel.velocity = joints.velocity;
+	joints_accel.position = joints_ref.position;
+	joints_accel.velocity = joints_ref.velocity;
 	for (int i = 6; i < rbdl_model.qdot_size; i++) {
 		joints_accel.acceleration[joint_index[i]] = QDDot[i];
 		joints_accel.effort[joint_index[i]] = tau[i];

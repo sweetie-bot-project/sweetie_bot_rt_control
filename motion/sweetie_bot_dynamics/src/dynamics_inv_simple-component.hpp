@@ -35,8 +35,9 @@ class DynamicsInvSimple : public RTT::TaskContext
 	protected: 
 		// COMPONENT INTERFACE 
 		// ports
-		RTT::InputPort<sensor_msgs::JointState> in_joints_port;
-		RTT::InputPort<sweetie_bot_kinematics_msgs::RigidBodyState> in_base_port;
+		RTT::InputPort<sensor_msgs::JointState> in_joints_ref_port;
+		RTT::InputPort<sensor_msgs::JointState> in_joints_real_port;
+		RTT::InputPort<sweetie_bot_kinematics_msgs::RigidBodyState> in_base_ref_port;
 		RTT::InputPort<sweetie_bot_kinematics_msgs::SupportState> in_supports_port;
 		RTT::InputPort<RTT::os::Timer::TimerId> sync_port;
 
@@ -48,6 +49,7 @@ class DynamicsInvSimple : public RTT::TaskContext
 		// properties
 		std::string robot_description;
 		std::vector<std::string> legs;
+		bool use_ref_joint_position;
 		double tolerance;
 		double period;
 		// subservices
@@ -83,7 +85,7 @@ class DynamicsInvSimple : public RTT::TaskContext
 		int n_fullpose_joints;
 		
 		// buffers
-		sensor_msgs::JointState joints;
+		sensor_msgs::JointState joints_ref, joints_real;
 		sweetie_bot_kinematics_msgs::JointStateAccel joints_accel;
 		sweetie_bot_kinematics_msgs::RigidBodyState base;	
 		sweetie_bot_kinematics_msgs::SupportState supports;
