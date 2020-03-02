@@ -56,15 +56,6 @@ ServoInvParam::ServoInvParam(std::string const& name) :
 	default_servo_model.alpha[3] = 0.0;
 }
 
-struct ModelFinder {
-       const std::string s;
-
-       ModelFinder(const std::string &str) : s(str) {};
-       bool operator()(const sweetie_bot_servo_model_msg::ServoModel &mdl) const {
-               return mdl.name == s;
-       }
-};
-
 void ServoInvParam::setupServoModelIndex(const std::vector<std::string>& joint_names) {
 	// prepare new model index
 	servo_model_index.clear();
@@ -89,6 +80,8 @@ void ServoInvParam::setupServoModelIndex(const std::vector<std::string>& joint_n
 	goals.name = joint_names;
 	goals.target_pos.assign(joint_names.size(), 0);
 	goals.playtime.assign(joint_names.size(), period);
+
+	log(DEBUG) << "Rebuild servo model index. index size = " << servo_model_index.size() << endlog();
 }
 
 bool ServoInvParam::startHook() 
@@ -136,14 +129,14 @@ void ServoInvParam::updateHook() {
 				  ) / (servo_model.kp * battery_voltage) +
 				  joints.position[i];
 
-				goals.target_pos[i] *= servo_models[i].kgear;
+				goals.target_pos[i] *= servo_model.kgear;
 			}
 			// publish goals
 			out_goals.write(goals);
 		}
 	}
 
-
+	// update servo models index
 	if (in_servo_models.read(models, false) == NewData) {
 		//update servo models with new data
 		for (const ServoModel& model : models) {

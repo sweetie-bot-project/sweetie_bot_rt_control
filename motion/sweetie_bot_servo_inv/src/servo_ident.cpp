@@ -28,7 +28,7 @@ ServoIdent::ServoIdent(std::string const& name) :
 	}
 
 	// PORTS
-	this->addEventPort("in_sync_step", in_sync_step)
+	this->addEventPort("sync_step", in_sync_step)
 		.doc("Timer event indicating beginig of next herck_sched cycle.");
 	this->addPort("in_joints_accel_ref_fixed", in_joints_ref_fixed)
 		.doc("Desired joints state. Order of joints should not change.");
