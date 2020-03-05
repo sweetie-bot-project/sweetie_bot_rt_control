@@ -53,11 +53,18 @@ inline bool isValidSupportStateNameSuppCont(const sweetie_bot_kinematics_msgs::S
 inline bool isValidJointStateAccelNamePosVelAccelEffort(const sweetie_bot_kinematics_msgs::JointStateAccel& msg, int sz = -1);
 
 /**
- * Checks if all nonzero length fields of JointState have equal sizes. Fields @a position, @a velocity abd @a acceleration must present. Does not check @a effort.
+ * Checks if all nonzero length fields of JointState have equal sizes. Fields @a position, @a velocity and @a acceleration must present. Does not check @a effort.
  * If @a sz is provided additinally check if their size is equal to @a sz.
  * @param sz expected number of joints
  */
 inline bool isValidJointStateAccelPosVelAccel(const sweetie_bot_kinematics_msgs::JointStateAccel& msg, int sz = -1);
+
+/**
+ * Checks if all nonzero length fields of JointState have equal sizes. Fields @a position and @a velocity  must present. Does not check @a effort.
+ * If @a sz is provided additinally check if their size is equal to @a sz.
+ * @param sz expected number of joints
+ */
+inline bool isValidJointStateAccelPosVel(const sweetie_bot_kinematics_msgs::JointStateAccel& msg, int sz = -1);
 
 }
 

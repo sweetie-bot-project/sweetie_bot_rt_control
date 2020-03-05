@@ -75,10 +75,20 @@ inline bool isValidJointStateAccelPosVelAccel(const sweetie_bot_kinematics_msgs:
 {
 	if (sz < 0) sz = msg.position.size();
 	else if (sz != msg.position.size()) return false;
-	if (sz != msg.name.size() && msg.name.size() > 0) return false;
+	if (sz != msg.name.size() && msg.name.size() != 0) return false;
 	if (sz != msg.velocity.size()) return false;
 	if (sz != msg.acceleration.size()) return false;
-	if (sz != msg.effort.size()) return false;
+	return true;
+
+}
+
+inline bool isValidJointStateAccelPosVel(const sweetie_bot_kinematics_msgs::JointStateAccel& msg, int sz) 
+{
+	if (sz < 0) sz = msg.position.size();
+	else if (sz != msg.position.size()) return false;
+	if (sz != msg.name.size() && msg.name.size() != 0) return false;
+	if (sz != msg.velocity.size()) return false;
+	if (sz != msg.acceleration.size() && msg.acceleration.size() != 0) return false;
 	return true;
 
 }
