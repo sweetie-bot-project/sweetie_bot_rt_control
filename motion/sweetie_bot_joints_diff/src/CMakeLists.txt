@@ -10,11 +10,7 @@
 # Creates a component library libsweetie_bot_servo_inv-<target>.so
 # and installs in the directory lib/orocos/sweetie_bot_servo_inv/
 #
-orocos_component(servo_inv_lead servo_inv_lead.hpp servo_inv_lead.cpp) # ...you may add multiple source files
-orocos_component(servo_inv_extrapolate servo_inv_extrapolate.hpp servo_inv_extrapolate.cpp) # ...you may add multiple source files
-orocos_component(servo_inv_param servo_inv_param.hpp servo_inv_param.cpp) # ...you may add multiple source files
-orocos_component(player_joint_state player_joint_state.hpp player_joint_state.cpp) # ...you may add multiple source files
-orocos_component(servo_ident servo_ident.hpp servo_ident.cpp) # ...you may add multiple source files
+orocos_component(joints_diff joints_diff.hpp joints_diff.cpp) # ...you may add multiple source files
 #
 # You may add multiple orocos_component statements.
 

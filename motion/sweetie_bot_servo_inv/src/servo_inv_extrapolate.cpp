@@ -1,7 +1,9 @@
 #include <rtt/Component.hpp>
 #include <iostream>
 
-#include "servo_inv_lead.hpp"
+#include "servo_inv_extrapolate.hpp"
+
+#include <sweetie_bot_orocos_misc/joint_state_check.hpp>
 
 using namespace RTT;
 using sweetie_bot::logger::Logger;
@@ -11,12 +13,12 @@ namespace sweetie_bot {
 namespace motion {
 
 
-ServoInvLead::ServoInvLead(std::string const& name) : 
+ServoInvExtrapolate::ServoInvExtrapolate(std::string const& name) : 
 	TaskContext(name),
 	log(logger::categoryFromComponentName(name))
 {
 	if (!log.ready()) {
-		RTT::Logger::In in("ServoInvLead");
+		RTT::Logger::In in("ServoInvExtrapolate");
 		RTT::log(RTT::Error) << "Logger is not ready!" << endlog();
 		this->fatal();
 		return;
@@ -26,8 +28,6 @@ ServoInvLead::ServoInvLead(std::string const& name) :
 		.doc("Desired joints state. Order of joints should not change. ");
 	this->addPort("out_goals", goals_port)
 		.doc("Position controlled servos goals."); 
-	this->addPort("sync_step", sync_port)
-		.doc("Timer event indicating beginig of next control cycle."); 
 
 	this->addProperty("period", period)
 		.doc("Control cycle duration (seconds).")
@@ -35,13 +35,13 @@ ServoInvLead::ServoInvLead(std::string const& name) :
 	this->addProperty("lead", lead)
 		.doc("Goal position lead in seconds. Goal position is equal desired position plus desired velocity multiplied by lead.")
 		.set(0.0112);
+	this->addProperty("extrapolate_position", extrapolate_position)
+		.doc("Goal position is extrapolated to future using velocity for one period ")
+		.set(false);
 }
 
-bool ServoInvLead::processJointStateSample(const sensor_msgs::JointState& joints) 
+bool ServoInvExtrapolate::processJointStateSample(const sensor_msgs::JointState& joints) 
 {
-	// allocate memory
-	position_perv.clear();
-	position_perv.reserve(joints.name.size());
 	// prepare transmit buffer
 	goals.name = joints.name;
 	goals.target_pos.resize(joints.name.size());
@@ -49,7 +49,7 @@ bool ServoInvLead::processJointStateSample(const sensor_msgs::JointState& joints
 	return true;
 }
 
-bool ServoInvLead::startHook()
+bool ServoInvExtrapolate::startHook()
 {
 	joints_port.getDataSample(joints);
 
@@ -59,29 +59,19 @@ bool ServoInvLead::startHook()
 	// provide data sample
 	goals_port.setDataSample(goals);
 
-	RTT::os::Timer::TimerId timer_id;
-	sync_port.readNewest(timer_id);
-
-	log(INFO) << "ServoInvLead started!" << endlog();
+	log(INFO) << "ServoInvExtrapolate started!" << endlog();
 	return true;
 }
 
-void ServoInvLead::updateHook()
+void ServoInvExtrapolate::updateHook()
 {
-	RTT::os::Timer::TimerId timer_id;
-
-	if (sync_port.read(timer_id) == NewData) {
-		// Renew state variables.
-		// At end of control period desired position of servo must be equal to reference position.
-		position_perv = joints.position;
-	}
 	if (joints_port.read(joints, false) == NewData) {
-		unsigned int njoints = joints.name.size();
-
-		if (njoints != joints.position.size() || njoints != joints.velocity.size()) {
-			log(WARN) << "goal message has incorrect structure." << endlog();
+		if (!isValidJointStatePosVel(joints)) {
+			log(WARN) << "JointState message has incorrect structure." << endlog();
 			return;
 		}
+
+		unsigned int njoints = joints.name.size();
 	
 		// check if array size has changed
 		// we does not check name content: due to fixed requipment it should be always the same.
@@ -90,19 +80,17 @@ void ServoInvLead::updateHook()
 			log(WARN) << "Size of the in_joints port message has changed." << endlog();
 		}
 
-		if (position_perv.size() == njoints) {
-			// take defined lead
-			goals.target_pos.resize(njoints);
+		// calculate extrapolation lead period
+		double extrapolation_lead = lead + ( extrapolate_position ? period : 0.0 );
+		// perform extrapolation
+		for(unsigned int i = 0; i < njoints; i++) {
+			goals.target_pos[i] = joints.position[i] + joints.velocity[i]*extrapolation_lead;
+		}
+		/*if (joints.acceleration.size() != 0) {
 			for(unsigned int i = 0; i < njoints; i++) {
-				goals.target_pos[i] = joints.position[i] + (joints.position[i] - position_perv[i]) * lead / period;
+				goals.target_pos[i] = joints.position[i] + (joints.velocity[i] + 0.5*joints.acceleration[i]*extrapolation_lead)*extrapolation_lead;
 			}
-			goals.playtime.assign(njoints, period + lead);
-		}
-		else {
-			// message size has changed, fallback to direct assigment
-			goals.target_pos = joints.position;
-			goals.playtime.assign(njoints, period);
-		}
+		}*/
 
 		goals_port.write(goals);
 	}
@@ -110,8 +98,8 @@ void ServoInvLead::updateHook()
 
 
 
-void ServoInvLead::stopHook() {
-	log(INFO) << "ServoInvLead stopped!" << endlog();
+void ServoInvExtrapolate::stopHook() {
+	log(INFO) << "ServoInvExtrapolate stopped!" << endlog();
 }
 
 } // nmaespace motion
@@ -122,11 +110,11 @@ void ServoInvLead::stopHook() {
  * in one library *and* you may *not* link this library
  * with another component library. Use
  * ORO_CREATE_COMPONENT_TYPE()
- * ORO_LIST_COMPONENT_TYPE(ServoInvLead)
+ * ORO_LIST_COMPONENT_TYPE(ServoInvExtrapolate)
  * In case you want to link with another library that
  * already contains components.
  *
  * If you have put your component class
  * in a namespace, don't forget to add it here too:
  */
-ORO_CREATE_COMPONENT(sweetie_bot::motion::ServoInvLead)
+ORO_CREATE_COMPONENT(sweetie_bot::motion::ServoInvExtrapolate)
