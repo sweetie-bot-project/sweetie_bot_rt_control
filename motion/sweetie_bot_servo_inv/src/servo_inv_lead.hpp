@@ -25,7 +25,6 @@ class ServoInvLead : public RTT::TaskContext
 		// buffers
 		sensor_msgs::JointState joints;
 		sensor_msgs::JointState::_position_type position_perv;
-		std::vector<double> gear_ratio_array;
 		sweetie_bot_herkulex_msgs::ServoGoal goals;
 
 	// COMPONENT INTERFACE
@@ -38,8 +37,6 @@ class ServoInvLead : public RTT::TaskContext
 		// PROPERTIES
 		double lead;
 		double period;
-		std::vector<std::string> gear_joints;
-		std::vector<double> gear_ratios;
 	
 	protected:
 		bool processJointStateSample(const sensor_msgs::JointState& joints);
