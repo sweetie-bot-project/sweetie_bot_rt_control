@@ -23,6 +23,7 @@ ServoInvParam::ServoInvParam(std::string const& name) :
 		return;
 	}
 
+	// PORT
 	this->addEventPort("in_joints_accel_fixed", in_joints_fixed)
 		.doc("Desired joints state with acceleration. Order of joints should not change.");
 	this->addEventPort("in_servo_models", in_servo_models)
@@ -32,19 +33,20 @@ ServoInvParam::ServoInvParam(std::string const& name) :
 	this->addPort("out_goals", out_goals)
 		.doc("Position controlled servos goals.");
 
+	// PROPERTIES
 	this->addProperty("period", period)
 		.doc("Control cycle duration (seconds).")
-		.set(0.0224);
+		.set(0.056);
+	this->addProperty("sign_dead_zone", sign_dead_zone)
+		.doc("Dead zone for detecting sign of velocity, rad/s, should be positive.")
+		.set(0.001);
+	this->addProperty("battery_voltage", battery_voltage)
+		.doc("Current voltage of the battery. Updating manually or from battery_state port.")
+		.set(7);
 	this->addProperty("default_servo_model", default_servo_model)
 		.doc("If servo does not present in servo_model list default model is used.");
 	this->addProperty("servo_models", servo_models)
 		.doc("Vector of the models of the servos. It is automatically sorted in the order corresponding to the first message on joint_fixed port. You should not change it after this moment!");
-	this->addProperty("battery_voltage", battery_voltage)
-		.doc("Current voltage of the battery. Updating manually or from battery_state port.")
-		.set(7);
-	this->addProperty("sign_dead_zone", sign_dead_zone)
-		.doc("Dead zone for detecting sign of velocity, rad/s, should be positive.")
-		.set(0.001);
 
 	// set default model to equal
 	default_servo_model.name = "";
@@ -161,8 +163,7 @@ void ServoInvParam::updateHook() {
 		}
 	}
 
-
-	//update battery voltage rate
+	// update battery voltage
 	if (in_battery_state.read(battery_state, false) == NewData) {
 		battery_voltage = battery_state.voltage;
 	}

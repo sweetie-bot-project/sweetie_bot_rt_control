@@ -29,13 +29,13 @@ ServoIdent::ServoIdent(std::string const& name) :
 
 	// PORTS
 	this->addEventPort("sync_step", in_sync_step)
-		.doc("Timer event indicating beginig of next herck_sched cycle.");
+		.doc("Timer event indicating beginig of next cotrol cycle.");
 	this->addPort("in_joints_accel_ref_fixed", in_joints_ref_fixed)
 		.doc("Desired joints state. Order of joints should not change.");
 	this->addPort("in_goals_fixed", in_goals_fixed)
-		.doc("Servo goals order of goals should be same as in in_joints_ref_fixed port.");
+		.doc("Servo goals. Order of joints should be same as in in_joints_ref_fixed port.");
 	this->addEventPort("in_joints_measured", in_joints_measured)
-		.doc("Joints state measurements from servo.");
+		.doc("Joints state measurements from servos.");
 	this->addPort("in_battery_state", in_battery_state)
 		.doc("Port for updating current voltage of the battery.");
 
@@ -46,25 +46,25 @@ ServoIdent::ServoIdent(std::string const& name) :
 
 	// OPERATIONS
 	this->addOperation("startIdentification", &ServoIdent::startIdentification, this, OwnThread)
-		.doc("It starts identification of servos.")
+		.doc("Start servos identification procedure.")
 		.arg("servos", "Names of servos to be identified.");
 	this->addOperation("endIdentification", &ServoIdent::endIdentification, this, OwnThread)
-		.doc("It ends identification of servos. If accuracy treshhold is achieved, models will be written to servo_models port. Returns names of identified servos.");
+		.doc("End identification procedure. If identification error is less then accuracy treshold, corresponding models will be written to servo_models port. Returns names of identified servos.");
 	this->addOperation("abortIdentification", &ServoIdent::abortIdentification, this, OwnThread)
-		.doc("It aborts identification of servos.");
+		.doc("Aborts identification procedure.");
 
 	// PROPERTIES
 	this->addProperty("period", period)
 		.doc("Control cycle duration (seconds).")
-		.set(0.0224);
+		.set(0.056);
 	this->addProperty("control_delay", control_delay)
 		.doc("Servo transport delay (seconds): time beetween sync event (set goal command for servos) and moment when the servo start execute command.")
-		.set(0);
+		.set(0.0224);
 	this->addProperty("relaxation_factor", relaxation_factor)
 		.doc("Relaxation factor for OLQ.")
 		.set(0.995);
 	this->addProperty("error_averaging_time", error_averaging_time)
-		.doc("Error averaging time(seconds). You should set it before start identification.")
+		.doc("Error averaging time (seconds). You should set it before start identification.")
 		.set(5);
 	this->addProperty("treshhold", treshhold)
 		.doc("Minimum permissible accuraccy, rad.")
@@ -184,6 +184,7 @@ void ServoIdent::updateHook() {
 		// reference signals must be delayed: control_delay (passing mesages to servo) + period (playtime is set to period) - 
 		//    - read delay (interval beetwen start of the cycle (send command) and read servo state request).
 		// Assume that read delay is period/2
+		// TODO Use HerkulexJointState with explicit values of read delays
 		TimeContinous<max_cycle_delay> history_cycle_ref = TimeContinous<max_cycle_delay>(history_cycle_now) - (control_delay + period/2.0)/period;
 
 		// here we process servos
@@ -308,15 +309,14 @@ void ServoIdent::updateHook() {
 		}
 
 		// fill the rest ServoData history fields with nan
-		// TODO maybe previpus values is better?
+		// TODO maybe previous values is better?
 		for(int i = 0; i < servos.size(); i++) {
 			servos[i].vel_measured.get(history_cycle_now) = NAN;
 			servos[i].pos_measured.get(history_cycle_now) = NAN;
 		}
 	}
 
-
-	//update battery voltage rate
+	// update battery voltage 
 	if (in_battery_state.read(battery_state, false) == NewData)
 		battery_voltage = battery_state.voltage;
 }
