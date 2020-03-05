@@ -32,6 +32,8 @@ class ServoInvParam : public RTT::TaskContext
 
 		// PROPERTIES
 		double period; 
+		double lead;
+		bool extrapolate_position;
 		sweetie_bot_servo_model_msg::ServoModel default_servo_model; 
 		std::vector<sweetie_bot_servo_model_msg::ServoModel> servo_models; // known models of servos
 		double sign_dead_zone; // speed smaller then sign_dead_zoneis assumed zero

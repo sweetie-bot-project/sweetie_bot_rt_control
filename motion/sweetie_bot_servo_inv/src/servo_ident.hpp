@@ -139,6 +139,7 @@ class ServoIdent : public RTT::TaskContext {
 			SampleHistory<max_cycle_delay> accel_ref;
 			SampleHistory<max_cycle_delay> effort_ref;
 			SampleHistory<max_cycle_delay> goal;
+			double playtime;
 
 			// model parameters
 			ServoModel model;
@@ -148,7 +149,7 @@ class ServoIdent : public RTT::TaskContext {
 			Eigen::Matrix4d P; 
 			double pred_error_sq_avg;
 
-			ServoData() : ident_started(false), pred_error_sq_avg(0.0) {}
+			ServoData() : playtime(0.0), ident_started(false), pred_error_sq_avg(0.0) {}
 		};
 
 	// COMPONENT INTERFACE

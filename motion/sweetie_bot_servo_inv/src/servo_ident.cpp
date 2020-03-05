@@ -211,7 +211,7 @@ void ServoIdent::updateHook() {
 				// apply servo model
 				double velocity = (servo.pos_measured.get(history_cycle_now) - servo.pos_measured.get(history_cycle_diff)) / (diff_cycles*period);
 				double velocity_sign = sign(velocity);
-				double y = (servo.goal.get(history_cycle_ref) - servo.pos_measured.get(history_cycle_now)) * servo.model.kp * battery_voltage;
+				double y = (servo.goal.get(history_cycle_ref - (servo.playtime - period)) - servo.pos_measured.get(history_cycle_now)) * servo.model.kp * battery_voltage;
 
 				double effort = (
 					 y
@@ -297,6 +297,7 @@ void ServoIdent::updateHook() {
 			// we need only traget_pos
 			for(int i = 0; i < servos.size(); i++) {
 				servos[i].goal.get(history_cycle_now) = goals.target_pos[i];
+				servos[i].playtime = goals.playtime[i];
 			}
 		}
 		else {

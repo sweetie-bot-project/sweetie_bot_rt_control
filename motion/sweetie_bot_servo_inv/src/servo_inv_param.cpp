@@ -37,6 +37,12 @@ ServoInvParam::ServoInvParam(std::string const& name) :
 	this->addProperty("period", period)
 		.doc("Control cycle duration (seconds).")
 		.set(0.056);
+	this->addProperty("lead", period)
+		.doc("Goal position lead in seconds. Goal playtime is set to period plus lead. Position is extrapolated to future using velocity and acceleration.")
+		.set(0.0);
+	this->addProperty("extrapolate_position", extrapolate_position)
+		.doc("Goal position is extrapolated to future using velocity and acceleration for one period ")
+		.set(false);
 	this->addProperty("sign_dead_zone", sign_dead_zone)
 		.doc("Dead zone for detecting sign of velocity, rad/s, should be positive.")
 		.set(0.001);
@@ -81,7 +87,7 @@ void ServoInvParam::setupServoModelIndex(const std::vector<std::string>& joint_n
 	// resize port buffers	
 	goals.name = joint_names;
 	goals.target_pos.assign(joint_names.size(), 0);
-	goals.playtime.assign(joint_names.size(), period);
+	goals.playtime.assign(joint_names.size(), period + lead);
 
 	log(DEBUG) << "Rebuild servo model index. index size = " << servo_model_index.size() << endlog();
 }
@@ -118,6 +124,8 @@ void ServoInvParam::updateHook() {
 
 				log(WARN) << "Size of the message on in_joints_fixed_fixed has changed. Regenerate index." << endlog();
 			}
+			// calculate extrapolation lead
+			double extrapolation_lead = lead + (extrapolate_position ? period : 0.0);
 
 			for(int i = 0; i < joints.name.size(); i++) {
 				int index = servo_model_index[i];
@@ -129,7 +137,8 @@ void ServoInvParam::updateHook() {
 					servo_model.alpha[2] * sign(joints.velocity[i]) +
 					servo_model.alpha[3] * joints.effort[i]
 				  ) / (servo_model.kp * battery_voltage) +
-				  joints.position[i];
+				  joints.position[i] +
+				  (joints.velocity[i] + 0.5*joints.acceleration[i]*extrapolation_lead)*extrapolation_lead;
 
 				goals.target_pos[i] *= servo_model.kgear;
 			}
