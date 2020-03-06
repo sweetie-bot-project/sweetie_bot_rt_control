@@ -249,7 +249,7 @@ bool FollowStance::configureHook_impl()
 	return true;
 }
 
-bool FollowStance::startHook_impl()
+bool FollowStance::startHook_impl(StateChangeReason reason)
 {
 	ik_success = true;
 	if (!pose_feedback) activation_delay_counter = activation_delay;
@@ -475,7 +475,7 @@ void FollowStance::updateHook_impl()
 /* 
  * Preempts the controllers and releases its resources.
  */
-void FollowStance::stopHook_impl() 
+void FollowStance::stopHook_impl(StateChangeReason reason) 
 {
 	// deinitialization
 	// release all resources

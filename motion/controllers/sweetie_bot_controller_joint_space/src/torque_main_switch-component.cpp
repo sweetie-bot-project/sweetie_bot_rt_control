@@ -169,7 +169,7 @@ bool TorqueMainSwitch::configureHook_impl()
 	return true;
 }
 
-bool TorqueMainSwitch::startHook_impl()
+bool TorqueMainSwitch::startHook_impl(StateChangeReason reason)
 {
 	in_joints_port.getDataSample(actual_fullpose);
 	// clear sync port buffer
@@ -301,10 +301,10 @@ void TorqueMainSwitch::updateHook_impl()
 /* 
  * Preempts the controllers and releases its resources.
  */
-void TorqueMainSwitch::stopHook_impl() 
+void TorqueMainSwitch::stopHook_impl(StateChangeReason reason) 
 {
 	// change servos state
-	log(ERROR) << "Setting servo torque ON" << endlog();
+	log(INFO) << "Setting servo torque ON" << endlog();
 	if ( !setAllServosTorqueFree(false) ) {
 		log(ERROR) << "Unable to set servo torque!" << endlog();
 	}

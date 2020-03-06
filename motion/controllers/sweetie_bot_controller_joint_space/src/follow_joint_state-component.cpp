@@ -164,7 +164,7 @@ bool FollowJointState::processResourceSet_impl(const std::vector<std::string>& g
  * in the updateHook if all resources were allocated or not, if some are lacking.
  * This is checked using the controller's resourceChangedHook.
  */
-bool FollowJointState::startHook_impl()
+bool FollowJointState::startHook_impl(StateChangeReason reason)
 {
 	in_joints_port.getDataSample(actual_fullpose);
 	in_joints_ref_port.getDataSample(ref_pose_unsorted);
@@ -279,7 +279,7 @@ void FollowJointState::updateHook_impl()
 /* 
  * Preempts the controllers and releases its resources.
  */
-void FollowJointState::stopHook_impl() 
+void FollowJointState::stopHook_impl(StateChangeReason reason) 
 {
 	// deinitialization
 	// release all resources

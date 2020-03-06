@@ -107,7 +107,7 @@ bool FollowPose::configureHook_impl()
 	return true;
 }
 
-bool FollowPose::startHook_impl()
+bool FollowPose::startHook_impl(StateChangeReason reason)
 {
 
 	// data samples
@@ -239,7 +239,7 @@ void FollowPose::updateHook_impl()
 /* 
  * Preempts the controllers and releases its resources.
  */
-void FollowPose::stopHook_impl() 
+void FollowPose::stopHook_impl(StateChangeReason reason) 
 {
 	// deinitialization
 	// release all resources

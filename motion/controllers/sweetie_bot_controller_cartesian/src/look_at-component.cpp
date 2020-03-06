@@ -128,7 +128,7 @@ bool LookAt::configureHook_impl()
 	return true;
 }
 
-bool LookAt::startHook_impl()
+bool LookAt::startHook_impl(StateChangeReason reason)
 {
 
 	// data samples
@@ -321,7 +321,7 @@ void LookAt::updateHook_impl()
 /* 
  * Preempts the controllers and releases its resources.
  */
-void LookAt::stopHook_impl() 
+void LookAt::stopHook_impl(StateChangeReason reason) 
 {
 	// deinitialization
 	// release all resources

@@ -33,10 +33,10 @@ namespace controller {
  * @code
 		bool configureHook_impl();
 		bool processResourceSet_impl(const std::vector<std::string>& set_operational_goal_resources, std::vector<std::string>& resources_to_request);
-		bool startHook_impl();
+		bool startHook_impl(StateChangeReason reason);
 		bool resourceChangedHook_impl(const std::vector<std::string>& set_operational_goal_resources, const std::vector<std::string>& requested_resources);
 		void updateHook_impl();
-		void stopHook_impl();
+		void stopHook_impl(StateChangeReason reason);
 		void cleanupHook_impl();
  * @endcode
  * Note that minimal implementation are already provided.
@@ -48,6 +48,14 @@ class SimpleControllerBase : public RTT::TaskContext
 	protected:
 		// Goal, Feedback, Result typedefs
 		ACTION_DEFINITION(sweetie_bot_control_msgs::SetOperationalAction);
+
+		// The reason of component activation/deactiavation.
+		enum StateChangeReason {
+			OROCOS_START_STOP, /**< OROCOS start()/stop() operation is called. */
+			ROS_SET_OPERATIONAL, /**< ROS setOperational service is called.  */
+			RESOURCE_CLIENT, /**< resourceChangedHook() returned false */
+			ACTIONLIB /** Activaion or deactivation is requested via actionlib interface */
+		};
 	protected:
 		// COMPONENT INTERFACE
 		//
@@ -86,6 +94,8 @@ class SimpleControllerBase : public RTT::TaskContext
 		// buffer
 		Result goal_result;
 		Feedback goal_feedback;
+		// reason of component state change (can be passed to startHook/stopHook only as variable).
+		StateChangeReason start_stop_reason;
 
 	protected:
 #ifdef SWEETIEBOT_LOGGER
@@ -119,9 +129,10 @@ class SimpleControllerBase : public RTT::TaskContext
 		/**
 		 * @brief @c startHook() implementation.
 		 * Requested and acquired resource sets are not known yet.
+		 * @param reason describes context in which component activation occurs.
 		 * @return true to start component.
 		 **/
-		virtual bool startHook_impl();
+		virtual bool startHook_impl(StateChangeReason reason);
 		/**
 		 * @brief Implement reaction on resource set change.
 		 * Always called after startHook_impl() and processResourceSet_impl(). Acquired resource set can be accessed via @c resource_client field.
@@ -136,7 +147,7 @@ class SimpleControllerBase : public RTT::TaskContext
 		 * It is periodically called if component active.
 		 **/
 		virtual void updateHook_impl();
-		virtual void stopHook_impl(); /**< @c stopHook() implementation. */
+		virtual void stopHook_impl(StateChangeReason reason); /**< @c stopHook() implementation. */
 		virtual void cleanupHook_impl(); /**< cleanupHook() implementation. */
 
 	public:

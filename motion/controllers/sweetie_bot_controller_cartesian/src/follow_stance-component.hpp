@@ -87,9 +87,9 @@ class FollowStance : public SimpleControllerBase
 		bool resourceChangedHook_impl(const std::vector<std::string>& set_operational_goal_resources, const std::vector<std::string>& requested_resources);
 
 		bool configureHook_impl(); 
-		bool startHook_impl();
+		bool startHook_impl(StateChangeReason reason);
 		void updateHook_impl();
-		void stopHook_impl();
+		void stopHook_impl(StateChangeReason reason);
 		void cleanupHook_impl();
 };
 

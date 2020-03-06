@@ -71,6 +71,8 @@ bool SimpleControllerBase::configureHook()
 		log(WARN) << "Unable to start action_server. Possible there are unconnected ports." << endlog();
 		//return false;
 	}
+	// reset sate chnge reason
+	start_stop_reason = OROCOS_START_STOP;
 	// call configureHook() actual implementation in subclass
 	return configureHook_impl();
 }
@@ -105,6 +107,7 @@ void SimpleControllerBase::newGoalHook(const Goal& pending_goal)
 			goal_result.error_string = "Stopped.";
 			action_server.succeedActive(goal_result);
 			// this function Stop 
+			start_stop_reason = ACTIONLIB;
 			stop(); 
 		}
 		else {
@@ -139,6 +142,7 @@ void SimpleControllerBase::newGoalHook(const Goal& pending_goal)
 		}
 		else {
 			// start() request necessary resources from active goal and start component.
+			start_stop_reason = ACTIONLIB;
 			start();
 		}
 	}
@@ -168,7 +172,9 @@ bool SimpleControllerBase::startHook()
 	RTT::os::Timer::TimerId timer_id;
 	sync_port.readNewest(timer_id);
 	// pass controll to actual implementation
-	bool is_started = startHook_impl();
+	bool is_started = startHook_impl(start_stop_reason);
+	start_stop_reason = OROCOS_START_STOP;
+	// check activation result	
 	if (!is_started) {
 		resource_client->stopOperational(); // force resource_client to NONOPERATIONAL state
 		// abort current goal
@@ -188,7 +194,6 @@ bool SimpleControllerBase::startHook()
 bool SimpleControllerBase::resourceChangeHook() 
 {
 	bool is_operational;
-
 	if (action_server.isActive()) {
 		// pass control to actual implementation: pass SetOperationalGoal resources field and set of requested resources
 		is_operational = resourceChangedHook_impl(action_server.getActiveGoal()->resources, desired_resource_set);
@@ -231,7 +236,8 @@ void SimpleControllerBase::updateHook()
 		updateHook_impl();
 	}
 	else if (state == ResourceClient::NONOPERATIONAL) {
-		this->stop();
+		start_stop_reason = RESOURCE_CLIENT;
+		stop();
 	}
 }
 
@@ -241,7 +247,8 @@ void SimpleControllerBase::updateHook()
 void SimpleControllerBase::stopHook() 
 {
 	// pass control to actual implementation of stopHook()
-	stopHook_impl();
+	stopHook_impl(start_stop_reason);
+	start_stop_reason = OROCOS_START_STOP;
 	// user calls stop() directly 
 	if (!resource_client->isNonOperational()) resource_client->stopOperational();
 	// abort active goal
@@ -260,6 +267,7 @@ void SimpleControllerBase::cancelGoalHook()
 	goal_result.error_string = "Canceled by cancel request.";
 	action_server.cancelActive(goal_result);
 	// stop only if we canceled active goal.
+	start_stop_reason = ACTIONLIB;
 	stop();
 }
 
@@ -274,10 +282,18 @@ void SimpleControllerBase::cleanupHook()
 bool SimpleControllerBase::rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp)
 {
 	if (req.data) {
-		resp.success = isRunning() || start();
-		resp.message = "start() is called.";
+		if (isRunning()) {
+			start_stop_reason = ROS_SET_OPERATIONAL;
+			resp.success = start();
+			resp.message = "start() is called.";
+		}
+		else {
+			resp.success = false;
+			resp.message = "Already started.";
+		}
 	}
 	else {
+		start_stop_reason = ROS_SET_OPERATIONAL;
 		stop();
 		resp.success = true;
 		resp.message = "stop() is called.";
@@ -298,9 +314,9 @@ bool SimpleControllerBase::processResourceSet_impl(const std::vector<std::string
 	return true;
 }
 
-bool SimpleControllerBase::startHook_impl()
+bool SimpleControllerBase::startHook_impl(StateChangeReason reason)
 {
-	log(INFO) << "SimpleControllerBase is started." << endlog();
+	log(INFO) << "SimpleControllerBase is started (reason = " << reason << ")." << endlog();
 	return true;
 }
 
@@ -313,9 +329,9 @@ bool SimpleControllerBase::resourceChangedHook_impl(const std::vector<std::strin
 void SimpleControllerBase::updateHook_impl()
 {}
 
-void SimpleControllerBase::stopHook_impl()
+void SimpleControllerBase::stopHook_impl(StateChangeReason reason)
 {
-	log(INFO) << "SimpleControllerBase is stopped." << endlog();
+	log(INFO) << "SimpleControllerBase is stopped (reason = " << reason << ")." << endlog();
 }
 
 void SimpleControllerBase::cleanupHook_impl()
