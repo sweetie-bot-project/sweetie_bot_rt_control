@@ -45,6 +45,11 @@ TorqueMainSwitch::TorqueMainSwitch(std::string const& name)  :
 		.doc("Set velocity to zero before coping it to reference pose. Can be handy if velocity measurements are noisy.")
 		.set(false);
 
+	// OPERATIONS: provides
+	this->addOperation("setOperational", &TorqueMainSwitch::setOperational, this)
+		.doc("Activate/deactivate component.")
+		.arg("state", "Set true to activaion, set false to deactivation");
+
 	base::PropertyBase * support_legs = this->getProperty("controlled_chains");
 	Property< std::vector<std::string> > support_legs_prop(support_legs);
 	if (support_legs_prop.ready()) {
@@ -169,8 +174,21 @@ bool TorqueMainSwitch::configureHook_impl()
 	return true;
 }
 
+bool TorqueMainSwitch::setOperational(bool state)
+{
+	std_srvs::SetBool::Request req;
+	std_srvs::SetBool::Response resp;
+	// use ROS compatible operation provided by SimpleControllerBase
+	req.data = state;
+	rosSetOperational(req, resp);
+	return resp.success;
+}
+
 bool TorqueMainSwitch::startHook_impl(StateChangeReason reason)
 {
+	// reject start request caused by direct start() operation call.
+	if (reason == OROCOS_START_STOP) return false;
+	// start component
 	in_joints_port.getDataSample(actual_fullpose);
 	// clear sync port buffer
 	RTT::os::Timer::TimerId timer_id;
@@ -304,9 +322,11 @@ void TorqueMainSwitch::updateHook_impl()
 void TorqueMainSwitch::stopHook_impl(StateChangeReason reason) 
 {
 	// change servos state
-	log(INFO) << "Setting servo torque ON" << endlog();
-	if ( !setAllServosTorqueFree(false) ) {
-		log(ERROR) << "Unable to set servo torque!" << endlog();
+	if (reason != OROCOS_START_STOP) { // prevent servos turning on during OROCOS subsystem deactivation
+		log(INFO) << "Setting servo torque ON" << endlog();
+		if ( !setAllServosTorqueFree(false) ) {
+			log(ERROR) << "Unable to set servo torque!" << endlog();
+		}
 	}
 	log(INFO) << "TorqueMainSwitch is stopped!" << endlog();
 }

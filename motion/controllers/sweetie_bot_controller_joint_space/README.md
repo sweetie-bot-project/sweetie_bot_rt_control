@@ -31,8 +31,12 @@ OROCOS components which control robot movements by publishing reference robot po
     (`sweetie_bot_herkulex_control` package) should be provided via component properties. If component active it publises 
 	current robot pose received from sensors (`in_joints_actual` port) on `out_joints_ref` port.
 
-	Component is `SimpleControllerBase` descendant so can be activated by `SetOperational` action, `start/stop` or `rosSetOperational`.
+	Component can be activated by `SetOperational` action or `rosSetOperational` and `setOperational` operations.
 	The list of resources is list of joints groups to be turned off.
+
+	DIRECT CALL TO `start` OPERATION IS IGNORED, `stop` DEACTIVATES CONTROLLER BUT DOES NOT TURN SERVOS ON.
+	`stop()` opeation should be used only during robot deactivation sequence. 
+	Use `setOperational()` operation to activate or deactivate component from OROCOS context.
 
 ### Filter plugins
 

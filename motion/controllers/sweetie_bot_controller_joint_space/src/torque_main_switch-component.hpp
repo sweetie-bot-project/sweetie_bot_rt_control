@@ -50,6 +50,7 @@ class TorqueMainSwitch : public SimpleControllerBase
 		bool velocity_zeroing;
 	protected:
 		// OPERATIONS: provides
+		bool setOperational(bool state);
 		// OPERATIONS: requires
 		// SERVICES: provides
 		// SERVICES: required
