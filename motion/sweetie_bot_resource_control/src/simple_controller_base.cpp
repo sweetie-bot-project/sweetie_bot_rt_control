@@ -282,7 +282,7 @@ void SimpleControllerBase::cleanupHook()
 bool SimpleControllerBase::rosSetOperational(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& resp)
 {
 	if (req.data) {
-		if (isRunning()) {
+		if (!isRunning()) {
 			start_stop_reason = ROS_SET_OPERATIONAL;
 			resp.success = start();
 			resp.message = "start() is called.";
