@@ -19,7 +19,6 @@
 	<depend>rtt_sensor_msgs</depend>
 	<!-- SWEETIEBOT packages -->
 	<depend>sweetie_bot_logger</depend>
-	<depend>sweetie_bot_common</depend>
 	<depend>sweetie_bot_orocos_misc</depend>
 	<!-- SWEETIEBOT datatypes -->
 	<depend>sweetie_bot_herkulex_msgs</depend>
