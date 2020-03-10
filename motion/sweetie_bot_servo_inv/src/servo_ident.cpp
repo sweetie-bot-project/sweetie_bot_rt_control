@@ -119,7 +119,7 @@ void ServoIdent::setupServoData(const std::vector<std::string>& joint_names)
 		auto iter = std::find_if(servo_models.begin(), servo_models.end(), [name](const ServoModel& model) -> bool { return model.name == name;} );
 		if (iter != servo_models.end()) {
 			// check if model name is unique
-			if (std::find_if(iter, servo_models.end(), [name](const ServoModel& model) -> bool { return model.name == name;}) != servo_models.end()) {
+			if (std::find_if(iter + 1, servo_models.end(), [name](const ServoModel& model) -> bool { return model.name == name;}) != servo_models.end()) {
 				log(WARN) << "Incorrect servo_models property: name '" << name << "' is not unique." << endlog();
 			}
 			// assign parameters from property
@@ -137,6 +137,8 @@ void ServoIdent::setupServoData(const std::vector<std::string>& joint_names)
 	joints_effort.position.assign(n_joints, 0.0);
 	joints_effort.velocity.assign(n_joints, 0.0);
 	joints_effort.effort.assign(n_joints, 0.0);
+
+	log(DEBUG) << "ServoIdent: successfully setupServoData for " << n_joints << " servos." << endlog();
 }
 
 bool ServoIdent::startHook() {
@@ -293,8 +295,8 @@ void ServoIdent::updateHook() {
 		}
 
 		// check goals and store its content
-		if (njoints != goals.name.size() || njoints != goals.target_pos.size() || njoints != goals.playtime.size()) {
-			// we need only traget_pos
+		if (njoints == goals.name.size() && njoints == goals.target_pos.size() && njoints == goals.playtime.size()) {
+			// we need only traget_pos and playtime
 			for(int i = 0; i < servos.size(); i++) {
 				servos[i].goal.get(history_cycle_now) = goals.target_pos[i];
 				servos[i].playtime = goals.playtime[i];
