@@ -37,7 +37,7 @@ ServoInvParam::ServoInvParam(std::string const& name) :
 	this->addProperty("period", period)
 		.doc("Control cycle duration (seconds).")
 		.set(0.056);
-	this->addProperty("lead", period)
+	this->addProperty("lead", lead)
 		.doc("Goal position lead in seconds. Goal playtime is set to period plus lead. Position is extrapolated to future using velocity and acceleration.")
 		.set(0.0);
 	this->addProperty("extrapolate_position", extrapolate_position)
