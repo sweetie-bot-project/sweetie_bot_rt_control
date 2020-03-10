@@ -1,0 +1,37 @@
+<package format="2">
+	<name>sweetie_bot_imu_fusion</name>
+	<version>1.0.0</version>
+	<description>IMU support package for Sweetie Bot. Contains RTIMULib based component for imu filtering and fusion.  </description>
+	<maintainer email="goncharovoi@yandex.ru">disRecord</maintainer>
+
+	<license>BSD</license>
+	<url>https://gitlab.com/sweetie-bot/sweetie_bot</url>
+
+	<author>disRecord</author>
+
+	<!-- ROS and OROCOS packages -->
+	<depend>rtt</depend>
+	<depend>orocos_kdl</depend>
+	<depend>rtt_ros</depend>
+	<!-- ROS and OROCOS datatypes -->
+	<depend>sensor_msgs</depend>
+	<depend>rtt_sensor_msgs</depend>
+	<depend>tf2_msgs</depend>
+	<depend>rtt_tf2_msgs</depend>
+	<!-- SWEETIEBOT packages -->
+	<depend>sweetie_bot_logger</depend>
+	<depend>sweetie_bot_orocos_misc</depend>
+	<depend>sweetie_bot_robot_model</depend>
+	<!-- SWEETIEBOT datatypes -->
+	<depend>sweetie_bot_kinematics_msgs</depend>
+	<depend>rtt_sweetie_bot_kinematics_msgs</depend>
+
+	<export>
+		<rtt_ros>
+			<!-- Plugin deps are loaded automatically by the rtt_ros import service -->
+			<plugin_depend>rtt_sensor_msgs</plugin_depend>
+			<plugin_depend>rtt_sweetie_bot_kinematics_msgs</plugin_depend>
+			<plugin_depend>rtt_tf2_msgs</plugin_depend>
+		</rtt_ros>
+	</export>
+</package>

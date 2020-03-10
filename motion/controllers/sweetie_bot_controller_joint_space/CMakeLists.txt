@@ -25,7 +25,6 @@ else()
 	add_definitions(-DSWEETIEBOT_LOGGER=LoggerRosout)
 endif()
 
-
 ### General dependencies ###
 find_package(Eigen3 REQUIRED)
 include_directories(SYSTEM "${EIGEN3_INCLUDE_DIR}")
