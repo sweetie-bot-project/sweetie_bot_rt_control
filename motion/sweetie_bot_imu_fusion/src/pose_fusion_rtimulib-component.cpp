@@ -72,21 +72,21 @@ bool PoseFusionRTIMULib::configureHook()
 	}
 
 	// Create IMU object.
-    imu.reset( RTIMU::createIMU(settings.get()) );
+	imu.reset( RTIMU::createIMU(settings.get()) );
 
-    // Initialise the imu object
-    if ((imu == nullptr) || (imu->IMUType() == RTIMU_TYPE_NULL) || !imu->IMUInit())
-    {
+	// Initialise the imu object
+	if ((imu == nullptr) || (imu->IMUType() == RTIMU_TYPE_NULL) || !imu->IMUInit())
+	{
 		log(ERROR) << "Unable to init IMU." << endlog();
 		return false;
-    }
+	}
 
-    // Set the Fusion coefficient
-    imu->setSlerpPower(0.02);
-    // Enable the sensors
-    imu->setGyroEnable(true);
-    imu->setAccelEnable(true);
-    imu->setCompassEnable(compass_enable);
+	// Set the Fusion coefficient
+	imu->setSlerpPower(0.02);
+	// Enable the sensors
+	imu->setGyroEnable(true);
+	imu->setAccelEnable(true);
+	imu->setCompassEnable(compass_enable);
 
 	// Set recommended period
 	this->setPeriod(imu->IMUGetPollInterval() / 1000.0);
@@ -114,7 +114,7 @@ bool PoseFusionRTIMULib::configureHook()
 
 bool PoseFusionRTIMULib::startHook()
 {
-    imu->resetFusion();
+	imu->resetFusion();
 
 	log(INFO) << "PoseFusionRTIMULib is started !" << endlog();
 	return true;
