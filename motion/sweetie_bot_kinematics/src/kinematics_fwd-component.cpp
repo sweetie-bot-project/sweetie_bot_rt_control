@@ -61,9 +61,6 @@ bool KinematicsFwd::configureHook()
 		}
 		data.name = name;
 		//joint induces
-		//TODO make induces calculation more effective 
-		//TODO remove redundancy
-		std::vector<std::string> chain_joints = robot_model->getChainJoints(name); // contains fictive joints
 		data.joint_induces = robot_model->getChainJointsInduces(name, virtual_links);
 		data.jnt_array_vel.resize(data.chain->getNrOfJoints()); 
 		// solvers
@@ -77,9 +74,6 @@ bool KinematicsFwd::configureHook()
 	// init port data
 	limbs.frame.resize(limbs.name.size());
 	limbs.twist.resize(limbs.name.size());
-	joints.name.resize(n_joints);
-	joints.position.resize(n_joints);
-	joints.velocity.resize(n_joints);
 	// data samples
 	out_limbs_port.setDataSample(limbs);
 	in_joints_port.getDataSample(joints);
