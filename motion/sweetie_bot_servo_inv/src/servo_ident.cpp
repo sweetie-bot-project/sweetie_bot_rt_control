@@ -128,6 +128,7 @@ void ServoIdent::setupServoData(const std::vector<std::string>& joint_names)
 		else {
 			// use default model
 			servo.model = default_servo_model;
+			servo.model.name = name;
 		}
 	}
 	// resize port buffers	
@@ -399,6 +400,8 @@ std::vector<std::string> ServoIdent::endIdentification() {
 }
 
 bool ServoIdent::abortIdentification() {
+	std::string name;
+
 	for (ServoData& servo : servos) {
 		if (servo.ident_started) {
 			// stop identification
@@ -409,7 +412,9 @@ bool ServoIdent::abortIdentification() {
 				servo.model = *iter;
 			}
 			else {
+				name = servo.model.name;
 				servo.model = default_servo_model;
+				servo.model.name = name;
 			}
 		}
 	}
