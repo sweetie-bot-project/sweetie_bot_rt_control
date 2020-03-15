@@ -169,7 +169,7 @@ class ServoIdent : public RTT::TaskContext {
 		double control_delay;
 		double relaxation_factor;
 		double error_averaging_time;
-		double treshhold;
+		double threshold;
 		double sign_dead_zone;
 		double battery_voltage;
 		ServoModel default_servo_model;

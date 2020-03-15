@@ -49,7 +49,7 @@ ServoIdent::ServoIdent(std::string const& name) :
 		.doc("Start servos identification procedure.")
 		.arg("servos", "Names of servos to be identified.");
 	this->addOperation("endIdentification", &ServoIdent::endIdentification, this, OwnThread)
-		.doc("End identification procedure. If identification error is less then accuracy treshold, corresponding models will be written to servo_models port. Returns names of identified servos.");
+		.doc("End identification procedure. If identification error is less then accuracy threshold, corresponding models will be written to servo_models port. Returns names of identified servos.");
 	this->addOperation("abortIdentification", &ServoIdent::abortIdentification, this, OwnThread)
 		.doc("Aborts identification procedure.");
 
@@ -66,7 +66,7 @@ ServoIdent::ServoIdent(std::string const& name) :
 	this->addProperty("error_averaging_time", error_averaging_time)
 		.doc("Error averaging time (seconds). You should set it before start identification.")
 		.set(5);
-	this->addProperty("treshhold", treshhold)
+	this->addProperty("threshold", threshold)
 		.doc("Minimum permissible accuraccy, rad.")
 		.set(0.01);
 	this->addProperty("sign_dead_zone", sign_dead_zone)
@@ -368,7 +368,7 @@ std::vector<std::string> ServoIdent::endIdentification() {
 		if (servo.ident_started) {
 			// get averaged prediction error
 			double pred_error = std::sqrt(servo.pred_error_sq_avg);
-			if (pred_error <= treshhold) {
+			if (pred_error <= threshold) {
 				// identification succesed
 				
 				// add model to message
