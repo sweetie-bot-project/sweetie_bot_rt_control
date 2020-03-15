@@ -227,6 +227,7 @@ void ServoIdent::updateHook() {
 				if (!std::isnan(effort)) joints_effort.effort[j] = effort - servo.effort_ref.get(history_cycle_ref);
 				else joints_effort.effort[j] = 0.0;
 
+				bool display_debug = true;
 				//now do identification, if it is necessary
 				if (servo.ident_started && (std::abs(velocity) > 0.1)){
 					//FIXME: velocity threshold and accelerations
@@ -248,6 +249,11 @@ void ServoIdent::updateHook() {
 					// error statistics
 					pred_error /= battery_voltage * servo.model.kp;
 					servo.pred_error_sq_avg = pred_error_avg_alpha * servo.pred_error_sq_avg + (1.0 - pred_error_avg_alpha) * pred_error*pred_error;
+
+					if (log(DEBUG) && display_debug) {
+						display_debug = false;
+						log() << "pred_err = " << pred_error << " alpha = " << alpha.transpose() << " P = " << std::endl << servo.P << endlog();
+					}
 				}
 
 			}
@@ -349,7 +355,7 @@ bool ServoIdent::startIdentification(std::vector<std::string> names) {
 			// init identification constants
 			servo.ident_started = true;
 			servo.pred_error_sq_avg = 0.0;
-			servo.P.setZero();
+			servo.P = decltype(servo.P)::Identity();
 		}
 	}
 
@@ -390,6 +396,7 @@ std::vector<std::string> ServoIdent::endIdentification() {
 			else {
 				log() << servo.model.name << " FAILED (" << pred_error << "), ";
 			}
+			servo.ident_started = false;
 		}
 	}
 	log() << endlog();
