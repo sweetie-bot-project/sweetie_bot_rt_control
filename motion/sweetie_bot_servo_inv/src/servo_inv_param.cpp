@@ -165,7 +165,7 @@ void ServoInvParam::updateHook() {
 					auto joint_it = std::find(joints.name.begin(), joints.name.end(), model.name);
 					if (joint_it != joints.name.end()) {
 						// update index
-						servo_model_index[joint_it - joints.name.end()] = servo_models.size() - 1;
+						servo_model_index[joint_it - joints.name.begin()] = servo_models.size() - 1;
 					}
 				}
 			}
