@@ -167,6 +167,8 @@ class ServoIdent : public RTT::TaskContext {
 		// PROPERTIES
 		double period;
 		double control_delay;
+		int diff_cycles;
+		double min_velocity;
 		double relaxation_factor;
 		double error_averaging_time;
 		double threshold;

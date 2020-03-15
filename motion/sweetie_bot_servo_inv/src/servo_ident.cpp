@@ -60,6 +60,12 @@ ServoIdent::ServoIdent(std::string const& name) :
 	this->addProperty("control_delay", control_delay)
 		.doc("Servo transport delay (seconds): time beetween sync event (set goal command for servos) and moment when the servo start execute command.")
 		.set(0.0224);
+	this->addProperty("velocity_diff_cycles", diff_cycles)
+		.doc("Velocity is estimated using difference over 'diff_cycles' control periods. ")
+		.set(1);
+	this->addProperty("min_accepted_velocity", min_velocity)
+		.doc("Measurement is used for identification only if velocity is greater then this value (rad/s).")
+		.set(0.1);
 	this->addProperty("relaxation_factor", relaxation_factor)
 		.doc("Relaxation factor for OLQ.")
 		.set(0.995);
@@ -181,8 +187,6 @@ void ServoIdent::updateHook() {
 		bool history_good = history_update_counter >= max_cycle_delay;
 
 		// calculate time shifts
-		// TODO adjustments via properties
-		const int diff_cycles = 2;
 		TimeDiscrete<max_cycle_delay> history_cycle_diff = history_cycle_now - diff_cycles; // is used for positon derivative calculation
 		// reference signals must be delayed: control_delay (passing mesages to servo) + period (playtime is set to period) 
 		// (assume that read happens immediately after servo applies goal)
@@ -229,8 +233,7 @@ void ServoIdent::updateHook() {
 
 				bool display_debug = true;
 				//now do identification, if it is necessary
-				if (servo.ident_started && (std::abs(velocity) > 0.1)){
-					//FIXME: velocity threshold and accelerations
+				if (servo.ident_started && (std::abs(velocity) > min_velocity)){
 					Eigen::Vector4d phi;
 					Eigen::Vector4d L;
 					Eigen::Map<Eigen::Vector4d> alpha(&servo.model.alpha[0]);
