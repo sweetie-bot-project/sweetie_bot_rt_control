@@ -183,11 +183,10 @@ void ServoIdent::updateHook() {
 		// TODO adjustments via properties
 		const int diff_cycles = 2;
 		TimeDiscrete<max_cycle_delay> history_cycle_diff = history_cycle_now - diff_cycles; // is used for positon derivative calculation
-		// reference signals must be delayed: control_delay (passing mesages to servo) + period (playtime is set to period) - 
-		//    - read delay (interval beetwen start of the cycle (send command) and read servo state request).
-		// Assume that read delay is period/2
+		// reference signals must be delayed: control_delay (passing mesages to servo) + period (playtime is set to period) 
+		// (assume that read happens immediately after servo applies goal)
 		// TODO Use HerkulexJointState with explicit values of read delays
-		TimeContinous<max_cycle_delay> history_cycle_ref = TimeContinous<max_cycle_delay>(history_cycle_now) - (control_delay + period/2.0)/period;
+		TimeContinous<max_cycle_delay> history_cycle_ref = TimeContinous<max_cycle_delay>(history_cycle_now) - (control_delay + period)/period;
 
 		// here we process servos
 		for(int i = 0; i < joints_measured.name.size(); i++) {
