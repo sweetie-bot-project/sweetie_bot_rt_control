@@ -26,16 +26,16 @@ else()
 endif()
 
 ### General dependencies ###
-find_path(rtimulib_INCLUDE_DIR RTIMULib.h PATH_SUFFIXES rtimulib)
-find_library(rtimulib_LIBRARY NAMES RTIMULib)
-if (NOT (rtimulib_INCLUDE_DIR AND rtimulib_LIBRARY))
-	message (FATAL_ERROR "\nCould not find rtimulib library.")
-endif()
-include_directories(SYSTEM ${rtimulib_INCLUDE_DIR})
+#find_path(rtimulib_INCLUDE_DIR RTIMULib.h PATH_SUFFIXES rtimulib)
+#find_library(rtimulib_LIBRARY NAMES RTIMULib)
+#if (NOT (rtimulib_INCLUDE_DIR AND rtimulib_LIBRARY))
+#	message (FATAL_ERROR "\nCould not find rtimulib library.")
+#endif()
+#include_directories(SYSTEM ${rtimulib_INCLUDE_DIR})
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
-find_package(catkin REQUIRED COMPONENTS rtt_ros kdl_conversions)
+find_package(catkin REQUIRED COMPONENTS rtt_ros kdl_conversions rtimulib)
 include_directories(SYSTEM ${catkin_INCLUDE_DIRS})
 
 ### Orocos Dependencies ###

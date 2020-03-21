@@ -4,7 +4,7 @@
 #include <rtt/RTT.hpp>
 #include <rtt/os/Timer.hpp>
 
-#include <RTIMULib.h>
+#include <rtimulib/RTIMULib.h>
 
 #include <sensor_msgs/typekit/Imu.h>
 #include <tf2_msgs/typekit/TFMessage.h>

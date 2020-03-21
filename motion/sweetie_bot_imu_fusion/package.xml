@@ -11,6 +11,7 @@
 
 	<!-- ROS and OROCOS packages -->
 	<depend>rtt</depend>
+	<depend>rtimulib</depend>
 	<depend>orocos_kdl</depend>
 	<depend>rtt_ros</depend>
 	<!-- ROS and OROCOS datatypes -->
