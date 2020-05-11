@@ -201,14 +201,16 @@ void Aggregator::updateHook(){
   }
 
   // Publish messages
+  ros::Time stamp = ros::Time::now();
   if (publish_support_state) {
 	log(DEBUG) << "Publishing support state " << endlog();
+	output_support_state_.header.stamp = stamp;
 	output_port_support_state_.write(output_support_state_);
   }
   if (publish_joint_state) {
 	// Set message timestamp
 	log(DEBUG) << "Publishing joint state " << endlog();
-	output_joint_state_.header.stamp = ros::Time::now();
+	output_joint_state_.header.stamp = stamp;
 	output_port_joint_state_.write(output_joint_state_);
   }
 }
