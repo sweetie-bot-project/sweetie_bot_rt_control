@@ -100,7 +100,7 @@ bool PoseFusionRTIMULib::configureHook()
 	imu->setCompassEnable(compass_enable);
 
 	// Set recommended period
-	this->setPeriod(imu->IMUGetPollInterval() / 1000.0);
+	// this->setPeriod(imu->IMUGetPollInterval() / 1000.0);
 
 	// Buffers
 	imu_msg.header.frame_id = imu_frame;
