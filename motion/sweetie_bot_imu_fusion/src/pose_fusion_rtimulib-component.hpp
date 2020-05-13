@@ -30,6 +30,7 @@ class PoseFusionRTIMULib : public RTT::TaskContext
 		// buffers
 		sensor_msgs::Imu imu_msg;
 		sweetie_bot_kinematics_msgs::RigidBodyState base;
+		sweetie_bot_kinematics_msgs::RigidBodyState base_ref;
 		tf2_msgs::TFMessage base_tf;
 
 		// IMU state
@@ -39,6 +40,7 @@ class PoseFusionRTIMULib : public RTT::TaskContext
 	// COMPONENT INTERFACE
 	protected: 
 		// PORTS
+		RTT::InputPort<sweetie_bot_kinematics_msgs::RigidBodyState> base_ref_port;
 		RTT::OutputPort<sweetie_bot_kinematics_msgs::RigidBodyState> base_port;
 		RTT::OutputPort<sensor_msgs::Imu> imu_port;
 		RTT::OutputPort<tf2_msgs::TFMessage> tf_port;

@@ -6,6 +6,8 @@
 #include <kdl_conversions/kdl_msg.h>
 #include <rtt/Component.hpp>
 
+#include <sweetie_bot_orocos_misc/message_checks.hpp>
+
 using namespace RTT;
 
 namespace sweetie_bot {
@@ -27,6 +29,8 @@ PoseFusionRTIMULib::PoseFusionRTIMULib(std::string const& name) :
 		.doc("Base orientation and speed estimate.");
 	this->addPort("out_tf", tf_port)
 		.doc("Base orientation for tf.");
+	this->addPort("in_base_ref", base_ref_port)
+		.doc("Robot base reference pose (RTIMULib does not produce position estimate).");
 
 	// PROPERTIES
 	this->addProperty("rtimulib_config_file", rtimulib_config_file)
@@ -107,6 +111,10 @@ bool PoseFusionRTIMULib::configureHook()
 		base_tf.transforms[0].child_frame_id = "base_link";
 	}
 
+	// set data samples
+	base_port.setDataSample(base);
+	tf_port.setDataSample(base_tf);
+	imu_port.setDataSample(imu_msg);
 
 	log(INFO) << "PoseFusionRTIMULib is configured !" << endlog();
 	return true;
@@ -115,6 +123,10 @@ bool PoseFusionRTIMULib::configureHook()
 bool PoseFusionRTIMULib::startHook()
 {
 	imu->resetFusion();
+	base.frame[0] = KDL::Frame::Identity();
+
+	// get data samples
+	base_ref_port.getDataSample(base_ref);
 
 	log(INFO) << "PoseFusionRTIMULib is started !" << endlog();
 	return true;
@@ -149,8 +161,13 @@ void PoseFusionRTIMULib::updateHook()
 
 		// base link 
 		base.header.stamp = stamp;
+		// get orientation from IMU
 		base.frame[0].M = KDL::Rotation::Quaternion(imu_data.fusionQPose.x(), imu_data.fusionQPose.y(), imu_data.fusionQPose.z(), imu_data.fusionQPose.scalar());
-		base.frame[0].p = KDL::Vector(imu_data.fusionPose.x(), imu_data.fusionPose.y(), imu_data.fusionPose.z());
+		// get position from reference pose (if it is available)
+		if (base_ref_port.read(base_ref, false) == RTT::NewData && isValidRigidBodyStateNameFrame(base_ref)) {
+			base.frame[0].p = base_ref.frame[0].p;
+		}
+		// publish results
 		base_port.write(base);
 
 		// tf
