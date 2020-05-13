@@ -38,7 +38,9 @@ class PoseFusionRTIMULib : public RTT::TaskContext
 		std::shared_ptr<RTIMU> imu;
 
 		// component state
-		int pose_publish_cycle;
+		int pose_publish_cycle; // number of execution cycle
+		KDL::Rotation R_corr; // difference between IMU orientaton at startup and reference orientaton
+		bool R_corr_valid; // difference is caluculated and contains valid value
 
 	// COMPONENT INTERFACE
 	protected: 
@@ -56,6 +58,7 @@ class PoseFusionRTIMULib : public RTT::TaskContext
 		std::string tf_prefix;
 		bool compass_enable;
 		int pose_publish_divider;
+		double filter_startup_time;
 
 	public:
 		PoseFusionRTIMULib(std::string const& name);
