@@ -50,6 +50,9 @@ PoseFusionRTIMULib::PoseFusionRTIMULib(std::string const& name) :
 	this->addProperty("compass_enable", compass_enable)
 		.doc("Use magnetometer during data fussion.")
 		.set(true);
+	this->addProperty("pose_publish_divider", pose_publish_divider)
+		.doc("Publish pose estimate only each pose_publish_divider cycle.")
+		.set(10);
 
 	log(INFO) << "PoseFusionRTIMULib constructed !" << endlog();
 }
@@ -57,6 +60,10 @@ PoseFusionRTIMULib::PoseFusionRTIMULib(std::string const& name) :
 bool PoseFusionRTIMULib::configureHook()
 {
 	// initialize IMU
+	if (pose_publish_divider <= 0) {
+		log(ERROR) << "Publish divider must be positive." << endlog();
+		return false;
+	}
 	
 	// check if configuration file exists
 	std::string filename = rtimulib_config_path + "/" + rtimulib_config_file + ".ini";
@@ -124,6 +131,7 @@ bool PoseFusionRTIMULib::startHook()
 {
 	imu->resetFusion();
 	base.frame[0] = KDL::Frame::Identity();
+	pose_publish_cycle = 0;
 
 	// get data samples
 	base_ref_port.getDataSample(base_ref);
@@ -159,22 +167,28 @@ void PoseFusionRTIMULib::updateHook()
 
 		imu_port.write(imu_msg);
 
-		// base link 
-		base.header.stamp = stamp;
-		// get orientation from IMU
-		base.frame[0].M = KDL::Rotation::Quaternion(imu_data.fusionQPose.x(), imu_data.fusionQPose.y(), imu_data.fusionQPose.z(), imu_data.fusionQPose.scalar());
-		// get position from reference pose (if it is available)
-		if (base_ref_port.read(base_ref, false) == RTT::NewData && isValidRigidBodyStateNameFrame(base_ref)) {
-			base.frame[0].p = base_ref.frame[0].p;
+		// trottle pose publishing
+		if (pose_publish_cycle % pose_publish_divider == 0) {
+			// base link
+			base.header.stamp = stamp;
+			// get orientation from IMU
+			base.frame[0].M = KDL::Rotation::Quaternion(imu_data.fusionQPose.x(), imu_data.fusionQPose.y(), imu_data.fusionQPose.z(), imu_data.fusionQPose.scalar());
+			// get position from reference pose (if it is available)
+			if (base_ref_port.read(base_ref, false) == RTT::NewData && isValidRigidBodyStateNameFrame(base_ref)) {
+				base.frame[0].p = base_ref.frame[0].p;
+			}
+			// publish results
+			base_port.write(base);
+
+			// tf
+			base_tf.transforms[0].header.stamp = stamp;
+			tf::transformKDLToMsg(base.frame[0], base_tf.transforms[0].transform);
+
+			tf_port.write(base_tf);
 		}
-		// publish results
-		base_port.write(base);
 
-		// tf
-		base_tf.transforms[0].header.stamp = stamp;
-		tf::transformKDLToMsg(base.frame[0], base_tf.transforms[0].transform);
-
-		tf_port.write(base_tf);
+		// increase cycle counter
+		pose_publish_cycle++;
 	}
 }
 

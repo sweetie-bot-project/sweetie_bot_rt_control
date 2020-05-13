@@ -37,6 +37,9 @@ class PoseFusionRTIMULib : public RTT::TaskContext
 		std::shared_ptr<RTIMUSettings> settings;
 		std::shared_ptr<RTIMU> imu;
 
+		// component state
+		int pose_publish_cycle;
+
 	// COMPONENT INTERFACE
 	protected: 
 		// PORTS
@@ -52,6 +55,7 @@ class PoseFusionRTIMULib : public RTT::TaskContext
 		std::string odometry_frame;
 		std::string tf_prefix;
 		bool compass_enable;
+		int pose_publish_divider;
 
 	public:
 		PoseFusionRTIMULib(std::string const& name);
