@@ -290,6 +290,7 @@ bool TorqueMainSwitch::resourceChangedHook_impl(const std::vector<std::string>& 
 	int n_joints = pose_published.name.size();
 	pose_published.position.resize(n_joints);
 	pose_published.velocity.assign(n_joints, 0);
+	return true;
 }
 
 void TorqueMainSwitch::updateHook_impl()
