@@ -33,18 +33,18 @@ find_library(RBDL_URDFREADER_LIBRARY NAMES rbdl_urdfreader PATHS ${RBDL_LIBRARY_
 if (RBDL_URDFREADER_LIBRARY-NOTFOUND)
 	message(FATAL_ERROR "Unable to find rbdl_urdfreader library.")
 endif()
-include_directories(SYSTEM ${RBDL_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
+include_directories(${RBDL_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
 find_package(catkin REQUIRED COMPONENTS rtt_ros roscpp tf eigen_conversions kdl_conversions tf_conversions sensor_msgs sweetie_bot_kinematics_msgs)
-include_directories(SYSTEM ${catkin_INCLUDE_DIRS})
+include_directories(${catkin_INCLUDE_DIRS})
 
 ### Orocos Dependencies ###
 # Note that orocos_use_package() does not need to be called for any dependency
 # listed in the package.xml file
 orocos_use_package(orocos_kdl REQUIRED)
-include_directories(SYSTEM ${USE_OROCOS_INCLUDE_DIRS})
+include_directories(${USE_OROCOS_INCLUDE_DIRS})
 
 ### Orocos Targets ###
 

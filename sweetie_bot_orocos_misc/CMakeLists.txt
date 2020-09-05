@@ -16,13 +16,13 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
 find_package(catkin REQUIRED COMPONENTS rtt_ros kdl_msgs sensor_msgs geometry_msgs sweetie_bot_kinematics_msgs)
-include_directories(SYSTEM ${catkin_INCLUDE_DIRS})
+include_directories(${catkin_INCLUDE_DIRS})
 
 ### Orocos Dependencies ###
 # Note that orocos_use_package() does not need to be called for any dependency
 # listed in the package.xml file
 orocos_use_package(orocos_kdl REQUIRED)
-include_directories(SYSTEM ${USE_OROCOS_INCLUDE_DIRS})
+include_directories(${USE_OROCOS_INCLUDE_DIRS})
 
 include_directories(
 	include
