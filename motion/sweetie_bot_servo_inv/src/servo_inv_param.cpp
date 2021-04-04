@@ -132,15 +132,13 @@ void ServoInvParam::updateHook() {
 				const ServoModel& servo_model = (index >= 0) ? servo_models[index] : default_servo_model;
 				//calculate target position using inverse model of the servo
 				goals.target_pos[i] = (
-					servo_model.alpha[0] * joints.acceleration[i] +
-					servo_model.alpha[1] * joints.velocity[i] +
+					servo_model.alpha[0] * (joints.acceleration[i] * servo_model.kgear) +
+					servo_model.alpha[1] * (joints.velocity[i] * servo_model.kgear) +
 					servo_model.alpha[2] * sign(joints.velocity[i]) +
-					servo_model.alpha[3] * joints.effort[i]
-				  ) / (servo_model.kp * battery_voltage) +
+					servo_model.alpha[3] * (joints.effort[i] / servo_model.kgear)
+				  ) / (servo_model.kp * battery_voltage * servo_model.kgear) +
 				  joints.position[i] +
 				  (joints.velocity[i] + 0.5*joints.acceleration[i]*extrapolation_lead)*extrapolation_lead;
-
-				goals.target_pos[i] *= servo_model.kgear;
 			}
 			// publish goals
 			out_goals.write(goals);
