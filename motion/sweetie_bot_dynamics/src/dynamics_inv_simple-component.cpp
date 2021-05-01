@@ -229,7 +229,7 @@ bool DynamicsInvSimple::checkPorts()
 		trigger_update = false;
 	}
 
-	in_joints_ref_port.read(joints_real, false);
+	in_joints_real_port.read(joints_real, false);
 	if (!isValidJointStatePosVel(joints_real, n_fullpose_joints)) {
 		log(ERROR) << "Invalid JointState message on in_joints_real_sorted port." << endlog();
 		trigger_update = false;
