@@ -146,8 +146,9 @@ void Aggregator::updateHook(){
       // copy position data
       output_joint_state_.position[it->second] = input_joint_state_.position[j];
       // copy non empty velocity data
-      if(input_joint_state_.velocity.size() == input_joint_state_.name.size())
-        output_joint_state_.velocity[it->second] = input_joint_state_.velocity[j];
+      if(input_joint_state_.velocity.size() == input_joint_state_.name.size()) {
+          output_joint_state_.velocity[it->second] = input_joint_state_.velocity[j];
+      }
       // copy non empty effort data
       //if(input_joint_state_.effort.size() == input_joint_state_.name.size())
         //output_joint_state_.effort[it->second] = input_joint_state_.effort[j];
