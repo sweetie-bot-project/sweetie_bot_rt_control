@@ -31,6 +31,8 @@ PoseFusionRTIMULib::PoseFusionRTIMULib(std::string const& name) :
 		.doc("Base orientation for tf.");
 	this->addPort("in_base_ref", base_ref_port)
 		.doc("Robot base reference pose (RTIMULib does not produce position estimate).");
+	this->addPort("sync_step", sync_port)
+		.doc("Timer event indicating beginig of next control cycle."); 
 
 	// PROPERTIES
 	this->addProperty("rtimulib_config_file", rtimulib_config_file)
@@ -55,6 +57,9 @@ PoseFusionRTIMULib::PoseFusionRTIMULib(std::string const& name) :
 		.set(10);
 	this->addProperty("filter_startup_time", filter_startup_time)
 		.doc("During this period (seconds) IMU filter output is considered not valid.")
+		.set(1.0);
+	this->addProperty("period", period)
+		.doc("Control cycle duration (s). ")
 		.set(1.0);
 
 	log(INFO) << "PoseFusionRTIMULib constructed !" << endlog();
@@ -135,11 +140,14 @@ bool PoseFusionRTIMULib::startHook()
 	imu->resetFusion();
 	base.frame[0] = KDL::Frame::Identity();
 	pose_publish_cycle = 0;
-	R_corr_valid = false;
-	R_corr = KDL::Rotation::Identity();
+	startup = true;
 
 	// get data samples
 	base_ref_port.getDataSample(base_ref);
+	base_ref_port.getDataSample(prev_base_ref);
+
+	RTT::os::Timer::TimerId timer_id;
+	sync_port.readNewest(timer_id);
 
 	log(INFO) << "PoseFusionRTIMULib is started !" << endlog();
 	return true;
@@ -149,10 +157,11 @@ void PoseFusionRTIMULib::updateHook()
 {
 	const double G_TO_MPSS = 9.80665;
 
+	ros::Time stamp = ros::Time::now();
+	RTIMU_DATA imu_data;
 	if (imu->IMURead())
 	{
-		ros::Time stamp = ros::Time::now();
-		RTIMU_DATA imu_data = imu->getIMUData();
+		imu_data = imu->getIMUData();
 
 		// IMU message
 		imu_msg.header.stamp = stamp;
@@ -171,35 +180,70 @@ void PoseFusionRTIMULib::updateHook()
 		imu_msg.linear_acceleration.z = imu_data.accel.z() * G_TO_MPSS;
 
 		imu_port.write(imu_msg);
+	}
+
+	if (startup && pose_publish_cycle*getPeriod() > filter_startup_time) {
+		// check if reference pose is valid
+		if (base_ref_port.read(base_ref, true) != RTT::NoData && isValidRigidBodyStateNameFrame(base_ref)) {
+			// store current postion 
+			base = base_ref;
+			// calculate rotation correction for IMU pose
+			KDL::Rotation R_imu = KDL::Rotation::Quaternion(imu_data.fusionQPose.x(), imu_data.fusionQPose.y(), imu_data.fusionQPose.z(), imu_data.fusionQPose.scalar());
+			R_corr = R_imu.Inverse() * base_ref.frame[0].M;
+			// init position shift variablares
+			prev_base_ref = base_ref;
+			pos_shift_ref = KDL::Vector::Zero();
+			velocity_ref = KDL::Vector::Zero();
+			prev_base_ref_good = false;
+			// startup is finished
+			startup = false;
+		}
+	} 
+	else if (!startup) {
+		// check data ports
+		RTT::os::Timer::TimerId timer_id;
+		if (sync_port.read(timer_id) == RTT::NewData) {
+			if (base_ref_port.readNewest(base_ref, false) != RTT::NewData && isValidRigidBodyStateNameFrame(base_ref)) {
+				// calculate shift
+				if (prev_base_ref_good) {
+					pos_shift_ref = prev_base_ref.frame[0].M.Inverse( base_ref.frame[0].p - prev_base_ref.frame[0].p );
+					velocity_ref = prev_base_ref.twist[0].vel;
+				}
+				else {
+					pos_shift_ref = KDL::Vector::Zero();
+					velocity_ref = KDL::Vector::Zero();
+				}
+				// save previous pose
+				prev_base_ref = base_ref;
+				prev_base_ref_good = true;
+			}
+			else {
+				pos_shift_ref = KDL::Vector::Zero();
+				velocity_ref = KDL::Vector::Zero();
+				prev_base_ref_good = false;
+			}
+		}
+
+		// base link
+		base.header.stamp = stamp;
+		// get orientation from IMU
+		base.frame[0].M = KDL::Rotation::Quaternion(imu_data.fusionQPose.x(), imu_data.fusionQPose.y(), imu_data.fusionQPose.z(), imu_data.fusionQPose.scalar()) * R_corr;
+		// integrate position
+		base.frame[0].p += base.frame[0].M * (getPeriod()/period * pos_shift_ref);
 
 		// trottle pose publishing
 		if (pose_publish_cycle % pose_publish_divider == 0) {
-			// base link
-			base.header.stamp = stamp;
-			// get orientation from IMU
-			base.frame[0].M = KDL::Rotation::Quaternion(imu_data.fusionQPose.x(), imu_data.fusionQPose.y(), imu_data.fusionQPose.z(), imu_data.fusionQPose.scalar()) * R_corr;
-			// get position from reference pose (if it is available)
-			if (base_ref_port.read(base_ref, false) == RTT::NewData && isValidRigidBodyStateNameFrame(base_ref)) {
-				base.frame[0].p = base_ref.frame[0].p;
-				// calculate pose correction (if filter is running longer then filter_startup_time)
-				if (!R_corr_valid && pose_publish_cycle*getPeriod() > filter_startup_time) {
-					R_corr = base.frame[0].M.Inverse() * base_ref.frame[0].M;
-					R_corr_valid = true;
-				}
-			}
 			// publish results
 			base_port.write(base);
-
 			// tf
 			base_tf.transforms[0].header.stamp = stamp;
 			tf::transformKDLToMsg(base.frame[0], base_tf.transforms[0].transform);
-
 			tf_port.write(base_tf);
 		}
-
-		// increase cycle counter
-		pose_publish_cycle++;
 	}
+
+	// increase cycle counter
+	pose_publish_cycle++;
 }
 
 void PoseFusionRTIMULib::stopHook() 

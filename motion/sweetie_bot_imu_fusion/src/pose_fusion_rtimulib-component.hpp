@@ -30,7 +30,7 @@ class PoseFusionRTIMULib : public RTT::TaskContext
 		// buffers
 		sensor_msgs::Imu imu_msg;
 		sweetie_bot_kinematics_msgs::RigidBodyState base;
-		sweetie_bot_kinematics_msgs::RigidBodyState base_ref;
+		sweetie_bot_kinematics_msgs::RigidBodyState base_ref, prev_base_ref;
 		tf2_msgs::TFMessage base_tf;
 
 		// IMU state
@@ -40,12 +40,16 @@ class PoseFusionRTIMULib : public RTT::TaskContext
 		// component state
 		int pose_publish_cycle; // number of execution cycle
 		KDL::Rotation R_corr; // difference between IMU orientaton at startup and reference orientaton
-		bool R_corr_valid; // difference is caluculated and contains valid value
+		bool startup; // IMU is in startup mode
+		bool prev_base_ref_good; // previous reference value is valid
+		KDL::Vector pos_shift_ref; // reference pose shift during last control cycle
+		KDL::Vector velocity_ref; // reference velocity
 
 	// COMPONENT INTERFACE
 	protected: 
 		// PORTS
 		RTT::InputPort<sweetie_bot_kinematics_msgs::RigidBodyState> base_ref_port;
+		RTT::InputPort<RTT::os::Timer::TimerId> sync_port;
 		RTT::OutputPort<sweetie_bot_kinematics_msgs::RigidBodyState> base_port;
 		RTT::OutputPort<sensor_msgs::Imu> imu_port;
 		RTT::OutputPort<tf2_msgs::TFMessage> tf_port;
@@ -59,6 +63,7 @@ class PoseFusionRTIMULib : public RTT::TaskContext
 		bool compass_enable;
 		int pose_publish_divider;
 		double filter_startup_time;
+		double period;
 
 	public:
 		PoseFusionRTIMULib(std::string const& name);
