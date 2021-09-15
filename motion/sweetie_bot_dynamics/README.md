@@ -21,6 +21,11 @@ moment point (the center of pressure), support polygon) on `out_balance` port (`
 
 `visualizer` display information about robot balance, reaction forces and velocities in rviz using `MarkerArray` mesages.
 Also it converts `JointStateAccel` messages to `JointState`.
+* reaction forces are displayed as red lines
+* end effectors linear speeds are represented by green lines, yellow lines represent angular speeds.
+* support polygon is marked by green
+* ZMP has magenta color, CoM and its projection is marked by light blue
+* ZMP history (one point per discretization period): green points if stable conditions are fulfilled and red otherwise.
 
 ### ROS interface
 
@@ -50,3 +55,4 @@ Also it converts `JointStateAccel` messages to `JointState`.
 * `~force_scale` (`double`, 0.01) --- force scale factor (from N to m)
 * `~display_twist` (`bool`, true) --- torque scale factor.
 * `~velocity_angular_scale` (`double`, 1/(2*pi)) --- twist scale factor.
+* `~balance_history_length` (`int`, 1) --- number of previous ZMP positions to be displayed.
