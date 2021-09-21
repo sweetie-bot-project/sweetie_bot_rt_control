@@ -94,7 +94,6 @@ bool KinematicsInvTracIK::configureHook()
 		}
 		// get kdl_chain
 		data.chain.reset( new KDL::Chain( robot_model_->getKDLChain(name, true) ) ); // we need real and virtual joints
-
 		data.name = name;
 		//joint induces
 		data.joint_names = robot_model_->getChainJoints(name); // contains fictive joints

@@ -125,7 +125,7 @@ class CartesianTrajectoryCache
 
 		/**
 		 * @brief Get supports' state to buffer of proper size.
-		 * Method does not check message
+		 * Method does not check message size
 		 * @param supports Support state buffer receiving new state
 		 **/
 		void getSupportState(SupportState& support) const;
