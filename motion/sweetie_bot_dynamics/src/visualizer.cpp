@@ -368,8 +368,10 @@ class DynamicsVisualizer
 			// message with ZMP trajectory
 			marker_zmp = marker;
 			marker_zmp.id = 2;
-			marker_zmp.type = visualization_msgs::Marker::POINTS;
-			marker_zmp.scale.x = point_size_param/2; marker_zmp.scale.y = point_size_param/2; marker_zmp.scale.z = point_size_param/2;
+			// marker_zmp.type = visualization_msgs::Marker::POINTS;
+			// marker_zmp.scale.x = point_size_param/2; marker_zmp.scale.y = point_size_param/2; marker_zmp.scale.z = point_size_param/2;
+			marker_zmp.type = visualization_msgs::Marker::LINE_STRIP;
+			marker_zmp.scale.x = point_size_param/2; marker_zmp.scale.y = 0.0; marker_zmp.scale.z = 0.0;
 			marker_cog.points.reserve(balance_history_length);
 			marker_cog.colors.reserve(balance_history_length);
 		}
@@ -423,7 +425,7 @@ class DynamicsVisualizer
 					in_balance = false;
 				}
 			}
-			ColorRGBAInit zmp_color = in_balance ? MAGENTA : RED;
+			ColorRGBAInit zmp_color = in_balance ? GREEN : RED;
 
 			// add point to ZMP history
 			marker_zmp.header.stamp = stamp;
