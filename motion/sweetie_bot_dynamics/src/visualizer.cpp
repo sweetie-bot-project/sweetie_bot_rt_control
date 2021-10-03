@@ -1,3 +1,5 @@
+#include <xmlrpcpp/XmlRpcException.h>
+
 #include <ros/ros.h>
 #include <ros/time.h>
 #include <tf/transform_listener.h>
@@ -149,16 +151,20 @@ class DynamicsVisualizer
 			auto it = contact_points_cache.find(name);
 			if (it != contact_points_cache.end()) return it->second;
 			// contact not found. Request it from robot model
-			KDL::Vector point;
-			bool success = true;
-			success = success && node_handler.getParam(robot_model_ns_param + "/robot_model/contacts/" + name + "/points/Element0/X", point[0]);
-			success = success && node_handler.getParam(robot_model_ns_param + "/robot_model/contacts/" + name + "/points/Element0/Y", point[1]);
-			success = success && node_handler.getParam(robot_model_ns_param + "/robot_model/contacts/" + name + "/points/Element0/Z", point[2]);
-			if (success) {
+
+			try { 
+				XmlRpc::XmlRpcValue points_param;
+				node_handler.getParam(robot_model_ns_param + "/robot_model/contacts/" + name + "/points", points_param);
+				// depend on OROCOS version arrays have different representations
+				const XmlRpc::XmlRpcValue& point_param = (points_param.getType() == XmlRpc::XmlRpcValue::TypeStruct) ? points_param["Element0"] : points_param[0]; 
+				KDL::Vector point(point_param["X"], point_param["Y"], point_param["Z"]);
+				// cache up retrived point
 				contact_points_cache[name] = point;
 				return point;
 			}
-			else throw ros::Exception("Unable to get contact point " + name + ". Check if robot_model is loaded into Parameter Service and contact point exists.");
+			catch (const XmlRpc::XmlRpcException& e) {
+				throw ros::Exception("Unable to get contact point " + name + ". Check if robot_model is loaded into Parameter Service and contact point exists.");
+			}
 		}
 
 		void callbackJointsAccelSub(const JointStateAccel::ConstPtr& msg)
