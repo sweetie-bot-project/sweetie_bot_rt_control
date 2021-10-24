@@ -127,7 +127,6 @@ class DynamicsVisualizer
 			}
 
 			// maker array buffer buffers
-			marker_balance.markers.resize(3);
 			prepareBalanceBuffers();
 
 			// timer
@@ -343,10 +342,13 @@ class DynamicsVisualizer
 
 		void prepareBalanceBuffers() 
 		{
+			marker_balance.markers.resize(4);
+
 			Marker marker;
-			Marker& marker_cog = marker_balance.markers[0];
+			Marker& marker_points = marker_balance.markers[0];
 			Marker& marker_lines = marker_balance.markers[1];
 			Marker& marker_zmp = marker_balance.markers[2];
+			Marker& marker_cog = marker_balance.markers[3];
 
 			// common header
 			marker.header.frame_id = "odom_combined"; // we can calculate ZMP only on world frame
@@ -359,18 +361,18 @@ class DynamicsVisualizer
 			marker.frame_locked = true; // odom_combined IS FIXED FRAMe
 
 			// message with CoM and ZMP points
-			marker_cog = marker;
-			marker_cog.id = 0;
-			marker_cog.type = visualization_msgs::Marker::POINTS;
-			marker_cog.scale.x = point_size_param; marker_cog.scale.y = point_size_param; marker_cog.scale.z = 0.0;
-			marker_cog.points.resize(4);
-			marker_cog.colors = { GREEN, MAGENTA, LIGHT_BLUE, LIGHT_BLUE }; // CoP, ZMP, CoM projection, CoM
+			marker_points = marker;
+			marker_points.id = 0;
+			marker_points.type = visualization_msgs::Marker::POINTS;
+			marker_points.scale.x = point_size_param; marker_points.scale.y = point_size_param; marker_points.scale.z = 0.0;
+			marker_points.points.resize(4);
+			marker_points.colors = { GREEN, MAGENTA, LIGHT_BLUE, LIGHT_BLUE }; // CoP, ZMP, CoM projection, CoM
 			// message with support polygone
 			marker_lines = marker;
 			marker_lines.id = 1;
 			marker_lines.type = visualization_msgs::Marker::LINE_STRIP;
 			marker_lines.scale.x = point_size_param/2; marker_lines.scale.y = 0.0; marker_lines.scale.z = 0.0;
-			marker_cog.points.reserve(4);
+			marker_lines.points.reserve(4);
 			// message with ZMP trajectory
 			marker_zmp = marker;
 			marker_zmp.id = 2;
@@ -378,31 +380,41 @@ class DynamicsVisualizer
 			// marker_zmp.scale.x = point_size_param/2; marker_zmp.scale.y = point_size_param/2; marker_zmp.scale.z = point_size_param/2;
 			marker_zmp.type = visualization_msgs::Marker::LINE_STRIP;
 			marker_zmp.scale.x = point_size_param/2; marker_zmp.scale.y = 0.0; marker_zmp.scale.z = 0.0;
+			marker_zmp.points.reserve(balance_history_length);
+			marker_zmp.colors.reserve(balance_history_length);
+			// message with COM trajectory
+			marker_cog = marker;
+			marker_cog.id = 3;
+			// marker_cog.type = visualization_msgs::Marker::POINTS;
+			// marker_cog.scale.x = point_size_param/2; marker_cog.scale.y = point_size_param/2; marker_cog.scale.z = point_size_param/2;
+			marker_cog.type = visualization_msgs::Marker::LINE_STRIP;
+			marker_cog.scale.x = point_size_param/2; marker_cog.scale.y = 0.0; marker_cog.scale.z = 0.0;
 			marker_cog.points.reserve(balance_history_length);
 			marker_cog.colors.reserve(balance_history_length);
 		}
 
 		void visualizeBalance() {
 			// get references to marker messages 
-			Marker& marker_cog = marker_balance.markers[0];
+			Marker& marker_points = marker_balance.markers[0];
 			Marker& marker_lines = marker_balance.markers[1];
 			Marker& marker_zmp = marker_balance.markers[2];
+			Marker& marker_cog = marker_balance.markers[3];
 
 			ros::Time stamp = ros::Time::now();
 			
 			// use balance message to display CoP, ZMP and CoM
 			// points and colors arrays are already allocated
 			// contact are assumed to be positioned in z = 0 plane
-			marker_cog.header.stamp = stamp;
+			marker_points.header.stamp = stamp;
 			// CoP (z = 0)
-			tf::pointKDLToMsg(balance.CoP, marker_cog.points[0]);
+			tf::pointKDLToMsg(balance.CoP, marker_points.points[0]);
 			// ZMP (z = 0)
-			tf::pointKDLToMsg(balance.ZMP, marker_cog.points[1]);
+			tf::pointKDLToMsg(balance.ZMP, marker_points.points[1]);
 			// CoM projection (z = 0)
-			tf::pointKDLToMsg(balance.CoM, marker_cog.points[2]);
-			marker_cog.points[2].z = 0.0;
+			tf::pointKDLToMsg(balance.CoM, marker_points.points[2]);
+			marker_points.points[2].z = 0.0;
 			// CoM 
-			tf::pointKDLToMsg(balance.CoM, marker_cog.points[3]);
+			tf::pointKDLToMsg(balance.CoM, marker_points.points[3]);
 
 			// now add support polygone
 			marker_lines.header.stamp = stamp;
@@ -449,6 +461,25 @@ class DynamicsVisualizer
 				}
 				tf::pointKDLToMsg(balance.ZMP, marker_zmp.points.back());
 				marker_zmp.colors.back() = zmp_color;
+			}
+
+			// add point to CoM history
+			marker_cog.header.stamp = stamp;
+			if (marker_cog.points.size() < balance_history_length) {
+				// add point 
+				marker_cog.points.emplace_back();
+				tf::pointKDLToMsg(balance.CoM, marker_cog.points.back());
+				marker_cog.points.back().z = 0.0;
+				marker_cog.colors.push_back(LIGHT_BLUE);
+			}
+			else {
+				// shift vector and add new point
+				for(int k = 1; k < marker_cog.points.size(); k++) {
+					marker_cog.points[k-1] = marker_cog.points[k];
+					marker_cog.colors[k-1] = marker_cog.colors[k];
+				}
+				tf::pointKDLToMsg(balance.CoM, marker_cog.points.back());
+				marker_cog.points.back().z = 0.0;
 			}
 
 			// publish resulting message
