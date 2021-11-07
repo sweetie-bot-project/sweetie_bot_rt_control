@@ -27,6 +27,7 @@ class KinematicsInvTracIK : public RTT::TaskContext
 			std::vector<int> joint_induces; /**< Induces of joints in chain */
 			KDL::Twist tolerance; /**< TRAC IK solver tolerance */
 			int size; /**< Kinematic chain length. */
+			int size_real; /**< Kinematic chain length without fictive joints */
 			std::unique_ptr<KDL::Chain> chain; /**< Kinematic chain. KDL 1.4 FKSolvers store reference to KDL::Chain so Chain object must not change memory location. */ //TODO: remove size field?
 			std::unique_ptr<TRAC_IK::TRAC_IK> ik_solver; /**< IK  velocity solver */
 			std::unique_ptr<KDL::ChainIkSolverVel_pinv> ik_vel_solver; /**< IK  velocity solver */

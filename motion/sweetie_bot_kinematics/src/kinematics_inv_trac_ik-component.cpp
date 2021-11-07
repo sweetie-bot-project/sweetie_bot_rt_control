@@ -99,6 +99,7 @@ bool KinematicsInvTracIK::configureHook()
 		data.joint_names = robot_model_->getChainJoints(name); // contains fictive joints
 		data.joint_induces = robot_model_->getChainJointsInduces(name, true);
 		data.size = data.chain->getNrOfJoints(); // some joints can be fictive!
+		data.size_real = robot_model_->getKDLChain(name, false).getNrOfJoints(); //
 		data.jnt_array_pose.resize(data.size);
 		data.jnt_array_vel.resize(data.size);
 		data.jnt_array_seed_pose.resize(data.size);
@@ -241,7 +242,7 @@ bool KinematicsInvTracIK::poseToJointState_impl(const sweetie_bot_kinematics_msg
 		// inverse kinematics
 		int ret =  chain_it->ik_solver->CartToJnt(seed, limbs_.frame[k], chain_it->jnt_array_pose, chain_it->tolerance);
 		if (ret < 0) {
-			this->log(DEBUG) << "IK failed with error code: " << ret <<endlog();
+			this->log(DEBUG) << "IK failed " << name << " with error code: " << ret <<endlog();
 			return false;
 		}
 		/* additional check for tolerance
@@ -276,10 +277,10 @@ bool KinematicsInvTracIK::poseToJointState_impl(const sweetie_bot_kinematics_msg
 		double max_joint_shift = max_joint_velocity_ * period_;
 		if (max_joint_shift > 0) {
 			// check if maximal speed is exceeded
-			for(int k = 0; k < seed.rows(); k++) {
+			for(int k = 0; k < chain_it->size_real; k++) {
 				if ( std::abs(seed(k) - chain_it->jnt_array_pose(k)) > max_joint_shift ) {
 					// joint shift is too large 
-					this->log(DEBUG) << "IK failed: non local solution found, joint " << k << " shift is greate max_joint_shift." << endlog();
+					this->log(DEBUG) << "IK failed " << name << ": non local solution found, joint " << k << " shift is greate max_joint_shift." << endlog();
 					return false;
 				}
 			}

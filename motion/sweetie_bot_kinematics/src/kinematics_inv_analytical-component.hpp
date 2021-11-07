@@ -26,6 +26,7 @@ class KinematicsInvAnalytical : public RTT::TaskContext
 			std::vector<std::string> joint_names; /**< Names of joint. */
 			std::vector<int> joint_induces; /**< Induces of joints in chain */
 			int size; /**< Kinematic chain length. */
+			int size_real; /**< Kinematic chain length without fictive joints */
 			std::unique_ptr<KDL::Chain> chain; /**< Kinematic chain. KDL 1.4 FKSolvers store reference to KDL::Chain so Chain object must not change memory location. */ //TODO: remove size field?
 			std::unique_ptr<KDL::ChainIkSolverVel_pinv> ik_vel_solver; /**< IK  velocity solver */
 			KDL::JntArray jnt_array_pose; /**< buffer */

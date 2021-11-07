@@ -116,6 +116,7 @@ bool KinematicsInvAnalytical::configureHook()
 		data.joint_names = robot_model_->getChainJoints(name); // contains fictive joints
 		data.joint_induces = robot_model_->getChainJointsInduces(name, true);
 		data.size = data.chain->getNrOfJoints(); // some joints can be fictive!
+		data.size_real = robot_model_->getKDLChain(name, false).getNrOfJoints();
 		data.jnt_array_pose.resize(data.size);
 		data.jnt_array_vel.resize(data.size);
 		// check if chain can be processed by analytical solver
@@ -238,6 +239,7 @@ bool KinematicsInvAnalytical::solveIK(KinematicChainData& data, Frame b_T_e, Jnt
 
 	// move to first joint origin
 	KDL::Vector p = b_T_e.p - joint0.JointOrigin();
+	log(DEBUG) << "IK solve: " << data.name << std::endl;
 	log(DEBUG) << "IK solve: p = " << p << std::endl;
 
 	//
@@ -270,7 +272,7 @@ bool KinematicsInvAnalytical::solveIK(KinematicChainData& data, Frame b_T_e, Jnt
 	double cosJoint2 = - (d2 - l1*l1 - l2*l2) / (2.0*l1*l2);
 	if (abs(cosJoint2) > 1.0001) {
 		// out of rechability
-		log(DEBUG) << "IK failed: out of rechability: d = " << sqrt(d2) << ", l1 = " << l1 << ", l2 = " << l2 << endlog();
+		log(DEBUG) << "IK failed " << data.name << ": out of rechability: d = " << sqrt(d2) << ", l1 = " << l1 << ", l2 = " << l2 << endlog();
 		return false;
 	}
 	else if (cosJoint2 > 1.0) cosJoint2 = 1.0;
@@ -328,7 +330,7 @@ bool KinematicsInvAnalytical::solveIK(KinematicChainData& data, Frame b_T_e, Jnt
 	if ( (jnt.data.array() > data.jnt_upper_bounds.data.array()).any()  || 
 		 (jnt.data.array() < data.jnt_lower_bounds.data.array()).any() ) 
 	{
-		log(DEBUG) << "IK failed: joint limits: solution  " << jnt.data.transpose() << ", lower " << data.jnt_lower_bounds.data.transpose() << ", upper = " << data.jnt_upper_bounds.data.transpose() << endlog();
+		log(DEBUG) << "IK failed " << data.name << ": joint limits: solution  " << jnt.data.transpose() << ", lower " << data.jnt_lower_bounds.data.transpose() << ", upper = " << data.jnt_upper_bounds.data.transpose() << endlog();
 		return false;
 	}
 
@@ -380,10 +382,10 @@ bool KinematicsInvAnalytical::poseToJointState_impl(const sweetie_bot_kinematics
 		double max_joint_shift = max_joint_velocity_ * period_;
 		if (max_joint_shift > 0 && isValidJointStatePos(joints_current_, n_joints_fullpose_)) {
 			// check if maximal speed is exceeded
-			for(int k = 0; k < chain_it->size; k++) {
+			for(int k = 0; k < chain_it->size_real; k++) {
 				if ( std::abs(joints_current_.position[chain_it->joint_induces[k]] - chain_it->jnt_array_pose(k)) > max_joint_shift ) {
 					// joint shift is too large 
-					this->log(DEBUG) << "IK failed: non local solution found, joint " << k << " shift is greate max_joint_shift." << endlog();
+					this->log(DEBUG) << "IK failed " << chain_it->name << ": non local solution found, joint " << k << " shift is greate max_joint_shift." << endlog();
 					return false;
 				}
 			}
