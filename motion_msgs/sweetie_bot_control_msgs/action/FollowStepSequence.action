@@ -2,8 +2,8 @@
 #
 # Request:
 #  * append --- append this trajectory to previous trajectory if possible
-#  * ee_names --- end effector names (the same order and size as in trajectory)
-#  * trajectory --- trajectory representation
+#  * base_motion --- base trajectory representation
+#  * ee_motion --- end effector trajectory representation
 #  * position_tolerance --- maximal allowed offset from desired position for end effectors and robot base.
 #  * orientation_tolerance --- maximal allowed axis-angle errors for robot base and end effectors.
 #
