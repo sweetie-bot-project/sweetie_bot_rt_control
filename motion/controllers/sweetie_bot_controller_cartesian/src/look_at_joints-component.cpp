@@ -350,7 +350,7 @@ void LookAtJoints::updateHook_impl()
 		joints_ref.name.push_back(pitch_yaw_joints[0]);
 		joints_ref.name.push_back(pitch_yaw_joints[1]);
 		// calculate pose
-		KDL::Vector tpos = target_point; // target position in base_link frame
+		KDL::Vector tpos = limbs.frame[chain_index].Inverse(target_point); // target position in base_link frame
 		double rxy = std::sqrt(tpos.x()*tpos.x() + tpos.y()*tpos.y());
 		joints_ref.position.push_back( std::atan2(tpos.z(), rxy) ); // pitch
 		joints_ref.position.push_back( -std::atan2(tpos.y(), tpos.x()) ); // yaw
