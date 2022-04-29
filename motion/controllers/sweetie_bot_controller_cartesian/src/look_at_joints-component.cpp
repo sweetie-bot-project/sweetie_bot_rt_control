@@ -74,7 +74,10 @@ LookAtJoints::LookAtJoints(std::string const& name)  :
 
 	// properties
 	this->addProperty("pitch_yaw_joints", pitch_yaw_joints)
-		.doc("Names of pitch and yaw joints which represents \"eyes\" position. Must be empty or contain two elements. ");
+		.doc("Names of pitch and yaw joints which represents \"eyes\" position. Must be empty or contain two elements.");
+	this->addProperty("viewpoint_z_shift", viewpoint_z_shift)
+		.doc("Shift \"eyes\" viewpoint postion along z-axis of chain end frame. It mainly affects pitch value.")
+		.set(0.0);
 	// operations: provided
 	// operations: required
 	this->requires()->addOperationCaller(poseToJointState); // kinematics service
@@ -350,7 +353,8 @@ void LookAtJoints::updateHook_impl()
 		joints_ref.name.push_back(pitch_yaw_joints[0]);
 		joints_ref.name.push_back(pitch_yaw_joints[1]);
 		// calculate pose
-		KDL::Vector tpos = limbs.frame[chain_index].Inverse(target_point); // target position in base_link frame
+		KDL::Vector tpos = limbs.frame[chain_index].Inverse(target_point); // target position in head frame (head kinematic chain end frame)
+		tpos.z(tpos.z() - viewpoint_z_shift);
 		double rxy = std::sqrt(tpos.x()*tpos.x() + tpos.y()*tpos.y());
 		joints_ref.position.push_back( std::atan2(tpos.z(), rxy) ); // pitch
 		joints_ref.position.push_back( -std::atan2(tpos.y(), tpos.x()) ); // yaw

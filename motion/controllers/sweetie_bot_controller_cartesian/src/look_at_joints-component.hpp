@@ -43,6 +43,7 @@ class LookAtJoints : public SimpleControllerBase
 		// PROPERTIES
 		std::string chain_name;
 		std::vector< std::string > pitch_yaw_joints;
+		double viewpoint_z_shift;
 
 	protected:
 		// OPERATIONS: provides
