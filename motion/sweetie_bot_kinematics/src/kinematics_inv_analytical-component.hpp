@@ -14,6 +14,7 @@
 #include <sensor_msgs/typekit/JointState.h>
 #include <sweetie_bot_kinematics_msgs/typekit/RigidBodyState.h>
 
+#include "solver_ik.hpp"
 
 namespace sweetie_bot {
 namespace motion {
@@ -28,6 +29,7 @@ class KinematicsInvAnalytical : public RTT::TaskContext
 			int size; /**< Kinematic chain length. */
 			int size_real; /**< Kinematic chain length without fictive joints */
 			std::unique_ptr<KDL::Chain> chain; /**< Kinematic chain. KDL 1.4 FKSolvers store reference to KDL::Chain so Chain object must not change memory location. */ //TODO: remove size field?
+			std::unique_ptr<SolverIK> ik_pos_solver; /**< IK position solver */
 			std::unique_ptr<KDL::ChainIkSolverVel_pinv> ik_vel_solver; /**< IK  velocity solver */
 			KDL::JntArray jnt_array_pose; /**< buffer */
 			KDL::JntArray jnt_array_vel; /**< buffer */
@@ -69,8 +71,6 @@ class KinematicsInvAnalytical : public RTT::TaskContext
 		sweetie_bot::logger::LoggerRTT log;
 #endif
 	protected:
-		bool checkChain(const KDL::Chain& chain);
-		bool solveIK(KinematicChainData& data, KDL::Frame b_T_e, KDL::JntArray& jnt, double joint2_sign = -1.0);
 		bool poseToJointState_impl(const sweetie_bot_kinematics_msgs::RigidBodyState& in, sensor_msgs::JointState& out);
 
 		// operations

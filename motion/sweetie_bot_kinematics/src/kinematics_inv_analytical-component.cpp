@@ -11,32 +11,11 @@
 #include <sweetie_bot_orocos_misc/message_checks.hpp>
 #include <sweetie_bot_orocos_misc/joint_state_check.hpp>
 
+#include "kdl_ostream.hpp"
+
 using sweetie_bot::logger::Logger;
 using namespace RTT;
 using namespace KDL;
-
-inline std::ostream& operator<<(std::ostream& s, const KDL::Vector& v) 
-{
-	s << "[" << v.x() << " " << v.y() << " " << v.z() << " ]";
-	return s;
-}
-
-inline std::ostream& operator<<(std::ostream& s, const KDL::Twist& v) 
-{
-	s << "[ rot = " << v.rot << ", vel = " << v.vel << " ]";
-	return s;
-}
-inline std::ostream& operator<<(std::ostream& s, const KDL::Rotation& R) 
-{
-	KDL::Vector rpy;
-	R.GetRPY(rpy.data[0], rpy.data[1], rpy.data[2]);
-	s << "RPY = " << rpy << std::endl;
-	return s;
-}
-inline std::ostream& operator<<(std::ostream& s, const KDL::Frame& T) { 
-	s << "[ p = " << T.p <<  ", " << T.M  << " ]"<< std::endl;
-	return s;
-}
 
 namespace sweetie_bot {
 namespace motion {
@@ -119,8 +98,11 @@ bool KinematicsInvAnalytical::configureHook()
 		data.size_real = robot_model_->getKDLChain(name, false).getNrOfJoints();
 		data.jnt_array_pose.resize(data.size);
 		data.jnt_array_vel.resize(data.size);
-		// check if chain can be processed by analytical solver
-		if (!checkChain(*data.chain)) {
+		// check if chain can be processed by analytical solver and get solver
+		log(DEBUG) << "Finding solver for chain " << name << endlog();
+		data.ik_pos_solver = SolverIKFactory::GetSolver(*data.chain, log);
+		if ( !data.ik_pos_solver ) {
+			log(ERROR) << name << ": compatible IK solver is not found." << endlog();
 			return false;
 		}
 		// instantaneous IK solver
@@ -170,174 +152,6 @@ bool KinematicsInvAnalytical::configureHook()
 	return true;
 }
 
-bool KinematicsInvAnalytical::checkChain(const KDL::Chain& chain) 
-{
-	const double eps = 1e-6;
-	KDL::Frame f_tip;
-	const KDL::Joint * joint;
-	KDL::Vector origin, axis;
-
-	// check number of joints
-	if (chain.getNrOfJoints() != 6 || chain.getNrOfSegments() != 6) {
-		log(ERROR) << "Number of joints and segments must be equal to 6."  << std::endl;
-		return false;
-	}
-
-	// check each segment
-	for(int seg = 0; seg < 6; seg++) {
-		// common references
-		f_tip = chain.getSegment(seg).getFrameToTip();
-		joint = &chain.getSegment(seg).getJoint();
-		// joint specific limitations
-		switch (seg) {
-			case 0:
-				origin = joint->JointOrigin();
-				axis = Vector(joint->JointAxis().x(), 0.0, 0.0);
-				break;
-			case 1:
-				origin = Vector::Zero();
-				axis = Vector(0.0, joint->JointAxis().y(), 0.0);
-				break;
-			case 2:
-				origin = Vector(0.0, 0.0, - std::abs(joint->JointOrigin().z()));
-				axis = Vector(0.0, joint->JointAxis().y(), 0.0);
-				break;
-			case 3:
-				origin = Vector(0.0, joint->JointOrigin().y(), - std::abs(joint->JointOrigin().z()));
-				axis = Vector(0.0, joint->JointAxis().y(), 0.0);
-				break;
-			case 4:
-				origin = Vector::Zero();
-				axis = Vector(joint->JointAxis().x(), 0.0, 0.0);
-				break;
-			case 5:
-				origin = Vector::Zero();
-				axis = Vector(0.0, 0.0, joint->JointAxis().z());
-				break;
-		}
-		// perform checks
-		bool check_passed = Equal(f_tip, Frame(Rotation::Identity(), origin), eps) &&
-							Equal(joint->JointOrigin(), origin, eps) || 
-							Equal(joint->JointAxis(), axis, eps);
-		if (!check_passed) {
-			log(ERROR) << "Kineamtic chain check: unsupported geometry  " << chain.getSegment(seg).getName() << " segment: origin " << joint->JointOrigin() << " axis " << joint->JointAxis() << " f_tip " << f_tip <<  std::endl;
-			log(ERROR) << "expected origin " << origin << " axis " << axis << " f_tip " << Frame(Rotation::Identity(), origin) << endlog();
-			return false;
-		}
-	}
-	return true;
-}
-
-bool KinematicsInvAnalytical::solveIK(KinematicChainData& data, Frame b_T_e, JntArray& jnt, double joint2_sign) 
-{
-	const Joint& joint0 = data.chain->getSegment(0).getJoint();
-	const Joint& joint1 = data.chain->getSegment(1).getJoint();
-	const Joint& joint2 = data.chain->getSegment(2).getJoint();
-	const Joint& joint3 = data.chain->getSegment(3).getJoint();
-	const Joint& joint4 = data.chain->getSegment(4).getJoint();
-	const Joint& joint5 = data.chain->getSegment(5).getJoint();
-
-	// move to first joint origin
-	KDL::Vector p = b_T_e.p - joint0.JointOrigin();
-	log(DEBUG) << "IK solve: " << data.name << std::endl;
-	log(DEBUG) << "IK solve: p = " << p << std::endl;
-
-	//
-	// calculate positions of JOINT0
-	//
-	jnt(0) = atan2(p.y(), -p.z());
-	double shift_y_123 = joint3.JointOrigin().y();
-	double pxy_norm = Vector2(p.y(), p.z()).Norm();
-	// if target point is near axis of joint0 then precise analytical soltion may not exists
-	// so use approximate solution on this area
-	double d2;
-	if (10.0*fabs(shift_y_123) < pxy_norm) {
-		// precise solution: angle correction is less then 5 degrees
-		jnt(0) -= asin( shift_y_123 / pxy_norm);
-		d2 = p.x()*p.x() + p.y()*p.y() + p.z()*p.z()  - shift_y_123*shift_y_123;
-	}
-	else {
-		// aproximate solution
-		d2 = p.x()*p.x() + p.y()*p.y() + p.z()*p.z();
-	}
-	// reverse sign if necessaru
-	jnt(0) *= joint0.JointAxis().x();
-	log(DEBUG) << "IK solve: shift_y_123 = " << shift_y_123 << ", j0_uncorr = " << atan2(p.y(), -p.z())*joint0.JointAxis().x() << ", j0 = " << jnt(0) <<  std::endl;
-
-	//
-	// calculate positions of JOINT2
-	//
-	double l1 = - joint2.JointOrigin().z();
-	double l2 = - joint3.JointOrigin().z();
-	double cosJoint2 = - (d2 - l1*l1 - l2*l2) / (2.0*l1*l2);
-	if (abs(cosJoint2) > 1.0001) {
-		// out of rechability
-		log(DEBUG) << "IK failed " << data.name << ": out of rechability: d = " << sqrt(d2) << ", l1 = " << l1 << ", l2 = " << l2 << endlog();
-		return false;
-	}
-	else if (cosJoint2 > 1.0) cosJoint2 = 1.0;
-	else if (cosJoint2 < -1.0) cosJoint2 = -1.0;
-	double theta2 = acos( cosJoint2 );
-	jnt(2) = joint2_sign * (M_PI - theta2); 
-	// reverse sign if necessaru
-	jnt(2) *= joint2.JointAxis().y();
-	log(DEBUG) << "IK solve:  d = " << sqrt(d2) << ", l1 = " << l1 << ", l2 = " << l2 << ", theta2 = " << theta2 << ", j2 = " << jnt(2) << std::endl;
-
-
-	//
-	// calculate positions of JOINT1
-	//
-	jnt(1) = - asin( p.x() / sqrt(d2) );
-	jnt(1) -= joint2_sign * asin( l2 * sin(theta2) /  sqrt(d2) );
-	// reverse sign if necessaru
-	jnt(1) *= joint1.JointAxis().y();
-	log(DEBUG) << "IK solve: theta1 = " << - asin( p.x() / sqrt(d2) ) << ", j1 = " << jnt(1) << std::endl;
-
-	// 
-	// calculate positions of JOINT3, JOINT4, JOINT5
-	//
-	Frame b_T_4s = joint0.pose(jnt(0)) * joint1.pose(jnt(1)) * joint2.pose(jnt(2)) * joint3.pose(0.0);
-	b_T_4s.p -= joint0.JointOrigin();
-	// check if result is sane
-	if ( (b_T_4s.p - p).Norm() > tolerance_pos_ ) {
-		log(DEBUG) << "IK Solver: chain " << data.name << " position tolerance exceeded: b_T3_s = " << b_T_4s << std::endl;
-	}
-
-	// transform axes: Y -> Z, X -> Y, Z -> X
-	Rotation Rc = Rotation(0.0, 0.0, 1.0, 
-	                      1.0, 0.0, 0.0, 
-						  0.0, 1.0, 0.0);
-	Rotation R = Rc*b_T_e.M.Inverse()*b_T_4s.M*Rc.Inverse();
-	R.SetInverse();
-	// calculate angles
-	R.GetEulerZYX(jnt(3), jnt(4), jnt(5));
-	// reverse signs if necessary
-	jnt(3) *= joint3.JointAxis().y();
-	jnt(4) *= joint4.JointAxis().x();
-	jnt(5) *= joint5.JointAxis().z();
-
-	// Debug output
-	if (log(DEBUG)) {
-		log() << "IK Solver: b_T_3s = " << b_T_4s << " jnt345 = " << jnt.data.tail<3>().transpose() <<  std::endl;
-		log() << "IK Solver: b_R_3s = " << std::endl << b_T_4s.M.data[0] << b_T_4s.M.data[1] << b_T_4s.M.data[2] << std::endl << b_T_4s.M.data[3] << b_T_4s.M.data[4] << b_T_4s.M.data[5] << std::endl << b_T_4s.M.data[6] << b_T_4s.M.data[7] << b_T_4s.M.data[8] << std::endl;
-		log() << "IK Solver: R = " << std::endl << R.data[0] << R.data[1] << R.data[2] << std::endl << R.data[3] << R.data[4] << R.data[5] << std::endl << R.data[6] << R.data[7] << R.data[8] << std::endl;
-		log() << endlog();
-	}
-
-	//
-	// Limits check
-	//
-	if ( (jnt.data.array() > data.jnt_upper_bounds.data.array()).any()  || 
-		 (jnt.data.array() < data.jnt_lower_bounds.data.array()).any() ) 
-	{
-		log(DEBUG) << "IK failed " << data.name << ": joint limits: solution  " << jnt.data.transpose() << ", lower " << data.jnt_lower_bounds.data.transpose() << ", upper = " << data.jnt_upper_bounds.data.transpose() << endlog();
-		return false;
-	}
-
-	return true;
-}
-
-
 bool KinematicsInvAnalytical::startHook()
 {
 	// get data samples
@@ -348,7 +162,6 @@ bool KinematicsInvAnalytical::startHook()
 	this->log(INFO) << "KinematicsInvAnalytical started." <<endlog();
 	return true;
 }
-
 
 bool KinematicsInvAnalytical::poseToJointState_impl(const sweetie_bot_kinematics_msgs::RigidBodyState& limbs_, sensor_msgs::JointState& joints_result_) 
 {
@@ -373,7 +186,7 @@ bool KinematicsInvAnalytical::poseToJointState_impl(const sweetie_bot_kinematics
 		joints_result_.name.insert(joints_result_.name.end(), chain_it->joint_names.begin(), chain_it->joint_names.end());
 
 		// inverse kinematics
-		bool success = solveIK(*chain_it, limbs_.frame[k], chain_it->jnt_array_pose);
+		bool success = chain_it->ik_pos_solver->solveIK(*chain_it->chain, limbs_.frame[k], chain_it->jnt_lower_bounds, chain_it->jnt_upper_bounds, chain_it->jnt_array_pose, log);
 		if (!success) {
 			return false;
 		}

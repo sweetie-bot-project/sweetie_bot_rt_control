@@ -17,7 +17,7 @@ orocos_component(kinematics_fwd kinematics_fwd-component.cpp) # ...you may add m
 
 orocos_component(kinematics_fwd_force kinematics_fwd_force-component.cpp) # ...you may add multiple source files
 
-orocos_component(kinematics_fwd_inv_analytical kinematics_inv_analytical-component.cpp) # ...you may add multiple source files
+orocos_component(kinematics_fwd_inv_analytical kinematics_inv_analytical-component.cpp solver_ik.cpp solver_ik_head.cpp solver_ik_nose.cpp solver_ik_leg.cpp) # ...you may add multiple source files
 #
 # Additional headers:
 #
