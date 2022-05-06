@@ -256,7 +256,7 @@ bool KinematicsInvAnalytical::poseToJointState(const sweetie_bot_kinematics_msgs
 		return false;
 	}
 	// call IK solver
-	return KinematicsInvAnalytical::poseToJointState_impl(limbs_, joints_result_);
+	return KinematicsInvAnalytical::poseToJointState_impl(limbs_, joints_);
 }
 
 

@@ -340,7 +340,6 @@ void LookAtJoints::updateHook_impl()
 		// check if result is sane
 		if (joints_ref.name.size() + pitch_yaw_joints.size() != joint_index.size()) {
 			log(WARN) << "Skip iteration. Invalid joint index: " << joints_ref.name << " + " << pitch_yaw_joints << " vs " << joint_index << endlog();
-			formJointIndex(joints_ref.name);
 			return;
 		}
 	}
