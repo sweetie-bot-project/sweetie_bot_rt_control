@@ -1,6 +1,6 @@
 #
 # The find_package macro for Orocos-RTT works best with
-# cmake >= 2.6.3
+# cmake >= 3.6.3
 #
 cmake_minimum_required(VERSION 3.6.3)
 #
