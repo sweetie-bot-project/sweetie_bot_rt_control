@@ -19,6 +19,7 @@
   <depend>orocos_kdl</depend>
   <depend>kdl_parser</depend>
   <depend>kdl_typekit</depend>
+  <depend>urdf</depend>
   <!-- ROS and OROCOS datatypes -->
   <!-- SWEETIEBOT packages -->
   <depend>sweetie_bot_logger</depend>

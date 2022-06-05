@@ -7,6 +7,7 @@
 
 #include <kdl_parser/kdl_parser.hpp>
 #include <kdl_typekit/typekit/Types.hpp>
+#include <urdf/model.h>
 
 #include <sensor_msgs/typekit/JointState.h>
 
@@ -26,7 +27,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 	protected:
 		struct JointInfo {
 			string name; // joint group name
-			int group_index; // index of group to which joint belongs
+			double lower_limit, upper_limit; // joint limits (KDL::Joint does not contains information about limits)
 		};
 		struct GroupInfo {
 			string name; // joint group name
@@ -60,7 +61,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 		TaskContext* owner_;
 		bool is_configured;
 		// joints list
-		vector<string> joint_names_;
+		vector<JointInfo> joints_info_;
 		// joint groups
 		vector<GroupInfo> groups_info_; 
 		// kinematic chains
@@ -165,6 +166,12 @@ class RobotModelService : public RobotModelInterface, public Service {
 			this->addOperation("getChainsGroups", &RobotModelService::getChainsGroups, this, ClientThread)
 				.doc("Returns list of group names to which the given cahin are belongs.")
 				.arg("chains", "List of chains names.");
+			this->addOperation("getChainUpperLimits", &RobotModelService::getChainUpperLimits, this, ClientThread)
+				.doc("Returns JntArray with upper limits for chain joints.")
+				.arg("chain", "Chain name.");
+			this->addOperation("getChainLowerLimits", &RobotModelService::getChainLowerLimits, this, ClientThread)
+				.doc("Returns JntArray with lower limits for chain joints.")
+				.arg("chain", "Chain name.");
 
 			this->addOperation("listJoints", &RobotModelService::listJoints, this, ClientThread)
 				.doc("Return the list of all joints.");
@@ -177,6 +184,12 @@ class RobotModelService : public RobotModelInterface, public Service {
 			this->addOperation("getJointsGroups", &RobotModelService::getJointsGroups, this, ClientThread)
 				.doc("Returns list of chains names to which the given joints are belongs.")
 				.arg("joints", "List of joints names.");
+			this->addOperation("getJointLowerLimit", &RobotModelService::getJointLowerLimit, this, ClientThread)
+				.doc("Returns lower limits for joints or NaN if joint does not exists.")
+				.arg("joint", "Joint name.");
+			this->addOperation("getJointUpperLimit", &RobotModelService::getJointUpperLimit, this, ClientThread)
+				.doc("Returns upper limits for joints or NaN if joint does not exists.")
+				.arg("joint", "Joint name.");
 
 			this->addOperation("listContacts", &RobotModelService::listContacts, this, ClientThread)
 				.doc("Return list of registered contacts.");
@@ -234,6 +247,8 @@ class RobotModelService : public RobotModelInterface, public Service {
 			}
 			log(DEBUG) << "Loaded " << tree_.getNrOfSegments() << " segments and " << tree_.getNrOfJoints() << " joints from robot_description to KDL::Tree" <<endlog();
 
+			// Get joints limits
+
 			// Get contacts from properties
 			if (!readContacts()) {
 				cleanup();	
@@ -252,6 +267,12 @@ class RobotModelService : public RobotModelInterface, public Service {
 				return false;
 			}
 
+			// Get joint limits from URDF model
+			if (!readLimits()) {
+				cleanup();
+				return false;
+			}
+
 			this->log(INFO) << "RobotModel is configured." <<endlog();
 			is_configured = true;
 			return true;
@@ -260,7 +281,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 		void cleanup()
 		{	
 			// clear all buffers
-			joint_names_.clear();
+			joints_info_.clear();
 			chains_info_.clear();
 			groups_info_.clear();
 			joints_index_.clear();
@@ -278,7 +299,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 			Property<std::string> first_link, last_link, last_link_virtual, default_contact;
 			char joint_num = 0;
 			// clear all buffers
-			joint_names_.clear();
+			joints_info_.clear();
 			chains_info_.clear();
 			joints_index_.clear();
 			chains_index_.clear();
@@ -348,10 +369,15 @@ class RobotModelService : public RobotModelInterface, public Service {
 						int index;
 						auto it = joints_index_.find(name);
 						if (it == joints_index_.end()) {
-							// new joint, register it 
-							index = joint_names_.size();
-							joint_names_.push_back(name);
+							// register new joint index
+							index = joints_info_.size();
 							joints_index_[name] = index;
+							// add joint
+							joints_info_.emplace_back();
+							JointInfo& joint_info = joints_info_.back();
+							joint_info.name = name;
+							joint_info.lower_limit = -M_PI;
+							joint_info.upper_limit =  M_PI;
 						}
 						else {
 							index = it->second;
@@ -373,7 +399,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 				// chain is not assotiated with any group
 				chain_info.group_index = -1;
 			}
-			this->log(INFO) << "Loaded " << chains_info_.size() << " chains and registered " << joint_names_.size() << " joints." <<endlog();
+			this->log(INFO) << "Loaded " << chains_info_.size() << " chains and registered " << joints_info_.size() << " joints." <<endlog();
 			return true;
 		}
 
@@ -455,18 +481,22 @@ class RobotModelService : public RobotModelInterface, public Service {
 							log(ERROR) << "Joint '" << joint_name << "' is not defined in URDF model." << endlog();
 							return false;
 						}
-						// add joint
-						int joint_index = joint_names_.size();
-						joints_index_[joint_name] = joint_index;
-						joint_names_.push_back(joint_name);
-						// assotiate it with given group
+						// assotiate joint with given group and register it in index
+						int joint_index = joints_info_.size();
 						group_info.joint_induces.insert(joint_index);
+						joints_index_[joint_name] = joint_index;
+						// add joint
+						joints_info_.emplace_back();
+						JointInfo& joint_info = joints_info_.back();
+						joint_info.name = joint_name;
+						joint_info.lower_limit = -M_PI;
+						joint_info.upper_limit =  M_PI;
 					}
 				}
 
 				if (log(DEBUG)) {
 					log() << "Joint group '" << group_info.name << "' registered with joints: ";
-					for (int joint_index : group_info.joint_induces) log() << joint_names_[joint_index] << ", ";
+					for (int joint_index : group_info.joint_induces) log() << joints_info_[joint_index].name << ", ";
 					log() << endlog();
 				}
 			}
@@ -482,13 +512,13 @@ class RobotModelService : public RobotModelInterface, public Service {
 				// check intersection
 				for (int index : group_info.joint_induces) {
 					if (all_joints.count(index)) {
-						log(ERROR) << "Joint '" << joint_names_[index] << "' belongs to multiple groups." << endlog();
+						log(ERROR) << "Joint '" << joints_info_[index].name << "' belongs to multiple groups." << endlog();
 						return false;
 					}
 				}
 				all_joints.insert(group_info.joint_induces.begin(), group_info.joint_induces.end());
 			}
-			this->log(INFO) << "Registered " << groups_info_.size() << " groups. Total number of joints: " << joint_names_.size() << endlog();
+			this->log(INFO) << "Registered " << groups_info_.size() << " groups. Total number of joints: " << joints_info_.size() << endlog();
 			return true;
 		}
 
@@ -529,6 +559,32 @@ class RobotModelService : public RobotModelInterface, public Service {
 			return true;
 		}
 
+		bool readLimits()
+		{	
+			// use ROS urdf model to get joints limits
+			urdf::Model urdf_model;
+			if (!urdf_model.initString(robot_description_)) {
+				log(ERROR) << "Unable to init URDF model from robot_description." << endlog();
+				return false;
+			}
+			// get joint limits
+			for(JointInfo& joint_info : joints_info_) {
+				auto joint_ptr = urdf_model.getJoint(joint_info.name);
+				if (joint_ptr) {
+					if (joint_ptr->limits) {
+						joint_info.lower_limit = joint_ptr->limits->lower;
+						joint_info.upper_limit = joint_ptr->limits->upper;
+					}
+				}
+				else {
+					log(WARN) << "Joint " << joint_info.name << " does not present in urdf model." << endlog();
+				}
+			}
+			return true;
+		}
+
+		// GENERAL operations
+
 		const string& getRobotDescription() const
 		{
 			return robot_description_;
@@ -561,7 +617,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 			// return joint list
 			std::vector<string> joints_list;
 			joints_list.reserve(group_info.joint_induces.size());
-			for(int index : group_info.joint_induces) joints_list.push_back(joint_names_[index]);
+			for(int index : group_info.joint_induces) joints_list.push_back(joints_info_[index].name);
 			return joints_list;
 		}
 
@@ -617,7 +673,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 			// return joint list
 			std::vector<string> joints_list;
 			joints_list.reserve(chain_info.joint_induces.size());
-			for(int index : chain_info.joint_induces) joints_list.push_back(joint_names_[index]);
+			for(int index : chain_info.joint_induces) joints_list.push_back(joints_info_[index].name);
 			return joints_list;
 		}
 
@@ -672,7 +728,7 @@ class RobotModelService : public RobotModelInterface, public Service {
 			else return ""; // chain not found!
 		}
 
-		vector<string> getChainsGroups(const vector<string>& names)
+		vector<string> getChainsGroups(const vector<string>& names) const
 		{
 			string group_name;
 			// derive group set
@@ -690,10 +746,39 @@ class RobotModelService : public RobotModelInterface, public Service {
 			return group_list;
 		}
 
+		KDL::JntArray getChainUpperLimits(const std::string& name) const
+		{
+			// get chain information
+			auto it = chains_index_.find(name);
+			if (it == chains_index_.end()) return KDL::JntArray(0); // not found
+			const ChainInfo& chain_info = chains_info_[it->second];
+			// return limits list
+			KDL::JntArray limits(chain_info.joint_induces.size());
+			int k = 0;
+			for(int index : chain_info.joint_induces) limits.data[k++] = joints_info_[index].upper_limit;
+			return limits;
+		}
+
+		KDL::JntArray getChainLowerLimits(const std::string& name) const
+		{
+			// get chain information
+			auto it = chains_index_.find(name);
+			if (it == chains_index_.end()) return KDL::JntArray(0); // not found
+			const ChainInfo& chain_info = chains_info_[it->second];
+			// return limits list
+			KDL::JntArray limits(chain_info.joint_induces.size());
+			int k = 0;
+			for(int index : chain_info.joint_induces) limits.data[k++] = joints_info_[index].lower_limit;
+			return limits;
+		}
+
 		// JOINTS related operations
 		vector<string> listJoints() const
 		{
-			return joint_names_;
+			std::vector<string> joint_names;
+			joint_names.reserve(joints_info_.size());
+			std::transform(joints_info_.begin(), joints_info_.end(), std::back_inserter(joint_names), [](const JointInfo& info) -> std::string { return info.name; }); 
+			return joint_names;
 		}
 
 		int getJointIndex(const string& name) const
@@ -728,6 +813,20 @@ class RobotModelService : public RobotModelInterface, public Service {
 				}
 			}
 			return groups_names;
+		}
+
+		double getJointLowerLimit(const std::string& name) const
+		{
+			auto it = joints_index_.find(name);
+			if (it == joints_index_.end()) return std::nan(""); // joint not found!
+			return joints_info_[it->second].lower_limit;
+		}
+
+		double getJointUpperLimit(const std::string& name) const
+		{
+			auto it = joints_index_.find(name);
+			if (it == joints_index_.end()) return std::nan(""); // joint not found!
+			return joints_info_[it->second].upper_limit;
 		}
 
 		// KDL MODEL related operations 

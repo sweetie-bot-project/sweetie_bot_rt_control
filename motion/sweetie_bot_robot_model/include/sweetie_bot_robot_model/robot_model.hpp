@@ -1,10 +1,11 @@
- #ifndef OROCOS_ROBOT_MODEL_REQUESTER_HPP
+#ifndef OROCOS_ROBOT_MODEL_REQUESTER_HPP
 #define OROCOS_ROBOT_MODEL_REQUESTER_HPP
 
 #include <rtt/RTT.hpp>
 
 #include <kdl/chain.hpp>
 #include <kdl/tree.hpp>
+#include <kdl/jntarray.hpp>
 #include <kdl_typekit/typekit/Types.hpp>
 
 namespace sweetie_bot {
@@ -12,7 +13,7 @@ namespace motion {
 
 class RobotModelInterface
 {
-   public:
+    public:
 		// configuartion	   
         virtual bool isConfigured() = 0;
         virtual bool configure() = 0;
@@ -31,7 +32,9 @@ class RobotModelInterface
 		virtual std::string getChainDefaultContact(const std::string& chain) const = 0;
 		virtual std::string getChainProperty(const std::string& name, const std::string& property) = 0;
         virtual std::string getChainGroup(const std::string& chain) const = 0;
-        virtual std::vector<std::string> getChainsGroups(const std::vector<std::string>& chains) = 0;
+        virtual std::vector<std::string> getChainsGroups(const std::vector<std::string>& chains) const = 0;
+        virtual KDL::JntArray getChainLowerLimits(const std::string& name) const = 0;
+        virtual KDL::JntArray getChainUpperLimits(const std::string& name) const = 0;
 
 		// joint groups
         virtual std::vector<std::string> listGroups() const = 0;
@@ -45,6 +48,8 @@ class RobotModelInterface
         virtual int getJointIndex(const std::string& joint) const = 0;
         virtual std::string getJointGroup(const std::string& joint) const = 0;
         virtual std::vector<std::string> getJointsGroups(const std::vector<std::string>& joints) = 0;
+        virtual double getJointLowerLimit(const std::string& name) const = 0;
+        virtual double getJointUpperLimit(const std::string& name) const = 0;
 
 		// contacts
 		virtual std::vector<std::string> listContacts() const = 0;
@@ -72,6 +77,8 @@ class RobotModel : public RTT::ServiceRequester {
 		RTT::OperationCaller<std::string(const std::string&, const std::string&)> getChainProperty;
         RTT::OperationCaller<std::string(const std::string&)> getChainGroup;
         RTT::OperationCaller<std::vector<std::string>(const std::vector<std::string>&)> getChainsGroups;
+        RTT::OperationCaller<KDL::JntArray(const std::string&)> getChainLowerLimits;
+        RTT::OperationCaller<KDL::JntArray(const std::string&)> getChainUpperLimits;
 
 		// joint groups
         RTT::OperationCaller<std::vector<std::string>()> listGroups;
@@ -85,6 +92,8 @@ class RobotModel : public RTT::ServiceRequester {
         RTT::OperationCaller<int(const std::string&)> getJointIndex;
         RTT::OperationCaller<std::string(const std::string&)> getJointGroup;
         RTT::OperationCaller<std::vector<std::string>(const std::vector<std::string>&)> getJointsGroups;
+        RTT::OperationCaller<double(const std::string&)> getJointLowerLimit;
+        RTT::OperationCaller<double(const std::string&)> getJointUpperLimit;
 
 		// contacts
 		RTT::OperationCaller<std::vector<std::string> ()> listContacts;
@@ -109,6 +118,8 @@ class RobotModel : public RTT::ServiceRequester {
 			getChainProperty("getChainProperty"),
 			getChainGroup("getChainGroup"),
 			getChainsGroups("getChainsGroups"),
+            getChainLowerLimits("getChainLowerLimits"),
+            getChainUpperLimits("getChainUpperLimits"),
 			// joint groups
             listGroups("listGroups"),
             getGroupIndex("getGroupIndex"),
@@ -120,6 +131,8 @@ class RobotModel : public RTT::ServiceRequester {
             getJointIndex("getJointIndex"),
             getJointGroup("getJointGroup"),
             getJointsGroups("getJointsGroups"),
+            getJointLowerLimit("getJointLowerLimit"),
+            getJointUpperLimit("getJointUpperLimit"),
 			// contacts 
 			listContacts("listContacts"),
 			getContactPoints("getContactPoints"),
@@ -140,6 +153,8 @@ class RobotModel : public RTT::ServiceRequester {
 			addOperationCaller(getChainProperty);
             addOperationCaller(getChainGroup);
             addOperationCaller(getChainsGroups);
+            addOperationCaller(getChainLowerLimits);
+            addOperationCaller(getChainUpperLimits);
 			// joint groups
             addOperationCaller(listGroups);
             addOperationCaller(getGroupIndex);
@@ -151,6 +166,8 @@ class RobotModel : public RTT::ServiceRequester {
             addOperationCaller(getJointIndex);
             addOperationCaller(getJointGroup);
             addOperationCaller(getJointsGroups);
+            addOperationCaller(getJointLowerLimit);
+            addOperationCaller(getJointUpperLimit);
 			// contacts
             addOperationCaller(listContacts);
             addOperationCaller(getContactPoints);
