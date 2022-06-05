@@ -1,4 +1,4 @@
-#include "solver_ik.hpp"
+#include "solver_ik_analytical.hpp"
 
 #include <sweetie_bot_logger/logger.hpp>
 
@@ -11,19 +11,23 @@ using namespace KDL;
 namespace sweetie_bot {
 namespace motion {
 
-class SolverIKHead : public SolverIK
+class SolverIKHead : public SolverIKAnalytical
 {
 public:
-	static std::unique_ptr<SolverIK> createSolver(const KDL::Chain& chain, sweetie_bot::logger::Logger& log);
-	bool solveIK(const KDL::Chain& chain, const KDL::Frame& b_T_e, const KDL::JntArray& lower, const KDL::JntArray& upper, KDL::JntArray& jnt, sweetie_bot::logger::Logger& log) const override;
+	SolverIKHead(const KDL::Chain& chain, const KDL::JntArray& lower, const KDL::JntArray& upper, const KDL::Twist& tolerance) : 
+		SolverIKAnalytical(chain, lower, upper, tolerance)
+	{}
+
+	static std::unique_ptr<SolverIKAnalytical> createSolver(const KDL::Chain& chain, const KDL::JntArray& lower, const KDL::JntArray& upper, const KDL::Twist& tolerance, sweetie_bot::logger::Logger& log);
+	bool solveIK_impl(const KDL::Frame& b_T_e, KDL::JntArray& jnt, sweetie_bot::logger::Logger& log) const override;
 
 private:
 	static bool is_registered;
 }; 
 
-bool SolverIKHead::is_registered = SolverIKFactory::Register(&SolverIKHead::createSolver);
+bool SolverIKHead::is_registered = SolverIKFactoryAnalytical::Register(&SolverIKHead::createSolver);
 
-std::unique_ptr<SolverIK> SolverIKHead::createSolver(const KDL::Chain& chain, sweetie_bot::logger::Logger& log) 
+std::unique_ptr<SolverIKAnalytical> SolverIKHead::createSolver(const KDL::Chain& chain, const KDL::JntArray& lower, const KDL::JntArray& upper, const KDL::Twist& tolerance, sweetie_bot::logger::Logger& log) 
 {
 	const double eps = 1e-6;
 	KDL::Frame f_tip;
@@ -33,7 +37,7 @@ std::unique_ptr<SolverIK> SolverIKHead::createSolver(const KDL::Chain& chain, sw
 	// check number of joints
 	if (chain.getNrOfJoints() != 4 || chain.getNrOfSegments() != 4) {
 		log(DEBUG) << "IK Head: Number of joints and segments must be equal to 4."  << std::endl;
-		return std::unique_ptr<SolverIK>();
+		return std::unique_ptr<SolverIKAnalytical>();
 	}
 
 	// check each segment
@@ -68,20 +72,20 @@ std::unique_ptr<SolverIK> SolverIKHead::createSolver(const KDL::Chain& chain, sw
 		if (!check_passed) {
 			log(DEBUG) << "IK Head: Kineamtic chain check: unsupported geometry  " << chain.getSegment(seg).getName() << " segment: origin " << joint->JointOrigin() << " axis " << joint->JointAxis() << " f_tip " << f_tip <<  std::endl;
 			log(DEBUG) << "expected origin " << origin << " axis " << axis << " f_tip " << Frame(Rotation::Identity(), origin) << endlog();
-			return std::unique_ptr<SolverIK>();
+			return std::unique_ptr<SolverIKAnalytical>();
 		}
 	}
 
 	// return solver
-	return std::unique_ptr<SolverIK>(new SolverIKHead());
+	return std::unique_ptr<SolverIKAnalytical>(new SolverIKHead(chain, lower, upper, tolerance));
 }
 
-bool SolverIKHead::solveIK(const KDL::Chain& chain, const KDL::Frame& b_T_e, const KDL::JntArray& lower, const KDL::JntArray& upper, KDL::JntArray& jnt, sweetie_bot::logger::Logger& log) const
+bool SolverIKHead::solveIK_impl(const KDL::Frame& b_T_e, KDL::JntArray& jnt, sweetie_bot::logger::Logger& log) const
 {
-	const Joint& joint0 = chain.getSegment(0).getJoint();
-	const Joint& joint1 = chain.getSegment(1).getJoint();
-	const Joint& joint2 = chain.getSegment(2).getJoint();
-	const Joint& joint3 = chain.getSegment(3).getJoint();
+	const Joint& joint0 = chain_.getSegment(0).getJoint();
+	const Joint& joint1 = chain_.getSegment(1).getJoint();
+	const Joint& joint2 = chain_.getSegment(2).getJoint();
+	const Joint& joint3 = chain_.getSegment(3).getJoint();
 
 	// move to first joint origin
 	KDL::Vector p = b_T_e.p - joint0.JointOrigin();
@@ -93,7 +97,6 @@ bool SolverIKHead::solveIK(const KDL::Chain& chain, const KDL::Frame& b_T_e, con
 	jnt(0) = atan2(p.x(), p.z());
 	jnt(0) *= joint0.JointAxis().y();
 	log(DEBUG) << "IK head: j0 = " << jnt(0) <<  std::endl;
-
 
 	// 
 	// calculate positions of JOINT1, JOINT2, JOINT3
@@ -113,16 +116,6 @@ bool SolverIKHead::solveIK(const KDL::Chain& chain, const KDL::Frame& b_T_e, con
 		log() << "IK head: b_R_1s = " << std::endl << b_T_1s.M.data[0] << b_T_1s.M.data[1] << b_T_1s.M.data[2] << std::endl << b_T_1s.M.data[3] << b_T_1s.M.data[4] << b_T_1s.M.data[5] << std::endl << b_T_1s.M.data[6] << b_T_1s.M.data[7] << b_T_1s.M.data[8] << std::endl;
 		log() << "IK head: R = " << std::endl << R.data[0] << R.data[1] << R.data[2] << std::endl << R.data[3] << R.data[4] << R.data[5] << std::endl << R.data[6] << R.data[7] << R.data[8] << std::endl;
 		log() << endlog();
-	}
-
-	//
-	// Limits check
-	//
-	if ( (jnt.data.array() > upper.data.array()).any()  || 
-		 (jnt.data.array() < lower.data.array()).any() ) 
-	{
-		log(DEBUG) << "IK failed: joint limits: solution  " << jnt.data.transpose() << ", lower " << lower.data.transpose() << ", upper = " << upper.data.transpose() << endlog();
-		return false;
 	}
 
 	return true;
