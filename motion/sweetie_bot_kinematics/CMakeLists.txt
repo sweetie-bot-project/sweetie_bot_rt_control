@@ -37,6 +37,7 @@ include_directories(${catkin_INCLUDE_DIRS})
 include_directories(${USE_OROCOS_INCLUDE_DIRS})
 
 ### Orocos Targets ###
+include_directories(include)
 
 # Include src/ directory.
 add_subdirectory( src )
