@@ -107,8 +107,6 @@ protected:
     PacketData packet;
 
 protected:
-    // Operations: required
-    RTT::OperationCaller<void(const sensor_msgs::Imu& pkt)> receivePacketDL;
     // PORTS
     RTT::OutputPort<sensor_msgs::Imu> imu_port;
 

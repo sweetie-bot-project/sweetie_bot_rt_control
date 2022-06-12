@@ -1,7 +1,7 @@
 # DEPLOY BASIC IMU_RVC SUBSYSTEM
 
 import("rtt_ros");
-import("rtt_roscomm")
+import("rtt_roscomm");
 
 ros.import("rtt_rospack");
 ros.import("rtt_sensor_msgs");
@@ -19,7 +19,7 @@ imu_rvc.frame_id = "map";
 imu_rvc.port_name = "/dev/ttyUSB0";
 imu_rvc.baudrate = 115200;
 
-stream("imu_rvc.out_imu", ros.comm.topic("/out_imu"))
+stream("imu_rvc.out_imu", ros.comm.topic("/out_imu"));
 
 imu_rvc.configure();
 # Driver must be active when IMU is configurated.

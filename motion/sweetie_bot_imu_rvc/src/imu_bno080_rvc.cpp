@@ -15,8 +15,7 @@ std::ostream& resetfmt(std::ostream& s) {
 IMURVCDriver::IMURVCDriver(std::string const& name) : 
     TaskContext(name, PreOperational),
     log(logger::categoryFromComponentName(name)),
-    port_fd(-1),
-    receivePacketDL("receivePacket")
+    port_fd(-1)
 {
     if (!log.ready()) {
         RTT::Logger::In in("IMURVCDriver");
@@ -27,8 +26,6 @@ IMURVCDriver::IMURVCDriver(std::string const& name) :
 
     // PORTS
     this->addPort("out_imu", imu_port).doc("Publish Imu data.");
-
-    this->requires()->addOperationCaller(receivePacketDL);
 
     this->addProperty("frame_id", frame_id_prop)
             .doc("Frame id.");
@@ -172,7 +169,7 @@ void IMURVCDriver::updateHook()
         buffer_size += ulong(retval);
 
         if (log(DEBUG)) {
-            log() << "READ on serial port (" << buffer_size << " bytes):" << std::dec << std::setw(2) << std::setfill('0');
+            log() << "READ on serial port (" << buffer_size << " bytes):" << std::hex << std::setw(2) << std::setfill('0');
             for (ulong i = 0; i < buffer_size; i++) log() << uint32_t( packet.raw.buffer[i] ) << " ";
             log() << resetfmt << endlog();
         }
@@ -249,9 +246,9 @@ void IMURVCDriver::updateHook()
                                    /*<< " X=" << format("{:#06x}", packet.fields.accelx.num)
                                                             << " Y=" << format("{:#06x}", packet.fields.accely.num)
                                                             << " Z=" << format("{:#06x}", packet.fields.accelz.num)*/
-                                << " X=" << (packet.fields.accelx.num / 100.0) * 9.8
-                                << " Y=" << (packet.fields.accely.num / 100.0) * 9.8
-                                << " Z=" << (packet.fields.accelz.num / 100.0) * 9.8
+                                << " X=" << (packet.fields.accelx.num / 1000.0) * 9.8
+                                << " Y=" << (packet.fields.accely.num / 1000.0) * 9.8
+                                << " Z=" << (packet.fields.accelz.num / 1000.0) * 9.8
                                 << " R=" << uint32_t(packet.fields.reserved1 + packet.fields.reserved2 + packet.fields.reserved3)
                                 << " C=" << uint16_t(packet.fields.crc)
                                 << " CRC=" << int(crc)
@@ -300,9 +297,9 @@ void IMURVCDriver::updateHook()
                     tf2::convert(quaternion, imu_data.orientation);
 
                     // convert
-                    imu_data.linear_acceleration.x = (packet.fields.accelx.num / 100.0) * 9.8;
-                    imu_data.linear_acceleration.y = (packet.fields.accely.num / 100.0) * 9.8;
-                    imu_data.linear_acceleration.z = (packet.fields.accelz.num / 100.0) * 9.8;
+                    imu_data.linear_acceleration.x = (packet.fields.accelx.num / 1000.0) * 9.8;
+                    imu_data.linear_acceleration.y = (packet.fields.accely.num / 1000.0) * 9.8;
+                    imu_data.linear_acceleration.z = (packet.fields.accelz.num / 1000.0) * 9.8;
 
                     imu_data.header.stamp = ros::Time::now();
                     imu_data.header.frame_id = frame_id_prop;
