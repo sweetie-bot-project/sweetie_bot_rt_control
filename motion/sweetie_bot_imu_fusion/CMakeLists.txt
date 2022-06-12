@@ -49,6 +49,10 @@ include_directories(${USE_OROCOS_INCLUDE_DIRS})
 # Rest of the configuration is in src/
 add_subdirectory( src )
 
+# Scripts installation
+install(DIRECTORY scripts launch
+	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+
 #
 # Generates and installs our package. Must be the last statement such
 # that it can pick up all above settings.

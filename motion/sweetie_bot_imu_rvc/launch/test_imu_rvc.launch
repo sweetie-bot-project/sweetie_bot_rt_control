@@ -1,4 +1,0 @@
-<launch>
-  <!--<node name="test_imu" pkg="rtt_ros" type="deployer-debug" args="-s $(find sweetie_bot_imu_rvc)/scripts/test_imu_rvc.ops -ldebug" output="screen" />-->
-  <node name="test_imu" pkg="rtt_ros" type="deployer" args="-s $(find sweetie_bot_imu_rvc)/scripts/test_imu_rvc.ops" output="screen" />
-</launch>
