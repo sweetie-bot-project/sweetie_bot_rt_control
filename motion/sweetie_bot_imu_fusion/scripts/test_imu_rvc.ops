@@ -1,0 +1,27 @@
+# DEPLOY BASIC IMU_RVC SUBSYSTEM
+
+import("rtt_ros");
+ros.import("rtt_roscomm");
+ros.import("rtt_rospack");
+ros.import("rtt_sensor_msgs");
+
+# LOAD LOGGER
+var string HERKULEX_SCRIPTS = ros.find("sweetie_bot_imu_fusion") + "/scripts/";
+ros.import("sweetie_bot_logger");
+require("log4cpp"); # add log4cpp service
+log4cpp.default_root_category = "sweetie_bot.motion";
+log4cpp.configure(HERKULEX_SCRIPTS + "imu_rvc.log4cpp"); # load configuration from file
+
+# LOAD IMU COMPONENT
+ros.import("sweetie_bot_imu_fusion");
+loadComponent("imu_rvc","sweetie_bot::motion::PoseFusionBNO080RVC");
+imu_rvc.odometry_frame = "odom_combined";
+imu_rvc.port_name = "/dev/ttyUSB0";
+imu_rvc.baudrate = 115200;
+imu_rvc.period = 0.056;
+
+stream("imu_rvc.out_imu", ros.comm.topic("/out_imu"));
+
+imu_rvc.configure();
+imu_rvc.start();
+
