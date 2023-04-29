@@ -40,6 +40,13 @@ bool isValidJointStateNamePos(const sensor_msgs::JointState& msg, int sz = -1);
  */
 bool isValidJointStateNamePosVel(const sensor_msgs::JointState& msg, int sz = -1);
 
+/**
+ * Checks if all fields of JointState have equal sizes. Fields @a name, @a position, @a velocity and @a effort must present. 
+ * If @a sz is provided additinally check if their size is equal to @a sz.
+ * @param sz expected number of joints
+ */
+bool isValidJointStateNamePosVelEffort(const sensor_msgs::JointState& msg, int sz = -1);
+
 } // namespace sweetie_bot
 
 #ifndef MESSAGE_CHECKS_INLINE

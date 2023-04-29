@@ -22,6 +22,16 @@ inline bool isValidJointStateNamePosVel(const sensor_msgs::JointState& msg, int 
 	return true;
 }
 
+inline bool isValidJointStateNamePosVelEffort(const sensor_msgs::JointState& msg, int sz)
+{
+	if (sz < 0) sz = msg.name.size();
+	else if (sz != msg.name.size()) return false;
+	if (sz != msg.position.size()) return false;
+	if (sz != msg.velocity.size()) return false;
+	if (sz != msg.effort.size()) return false;
+	return true;
+}
+
 inline bool isValidJointStatePos(const sensor_msgs::JointState& msg, int sz)
 {
 	if (sz < 0) sz = msg.position.size();
