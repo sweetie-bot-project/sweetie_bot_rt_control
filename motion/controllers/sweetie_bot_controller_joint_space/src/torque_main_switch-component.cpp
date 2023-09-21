@@ -1,3 +1,5 @@
+#include "sweetie_bot_orocos_misc/stream_operators.hpp"
+
 #include "torque_main_switch-component.hpp"
 
 #include <rtt/Component.hpp>
@@ -7,14 +9,6 @@
 
 using namespace RTT;
 using namespace std;
-
-static std::ostream& operator<<(std::ostream& s, const std::vector<std::string>& strings) 
-{
-	s << "[ ";
-	for(auto it = strings.begin(); it != strings.end(); it++) s << *it << ", ";
-	s << " ]";
-	return s;
-}
 
 namespace sweetie_bot {
 namespace motion {

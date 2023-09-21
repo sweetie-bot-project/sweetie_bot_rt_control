@@ -1,3 +1,5 @@
+#include <sweetie_bot_orocos_misc/stream_operators.hpp>
+
 #include "execute_step_sequence-component.hpp"
 
 #include <rtt/Component.hpp>
@@ -8,27 +10,6 @@
 #include <sweetie_bot_orocos_misc/math.hpp>
 
 using namespace RTT;
-
-
-inline std::ostream& operator<<(std::ostream& s, const KDL::Vector& v) 
-{
-	s << "[" << v.x() << " " << v.y() << " " << v.z() << " ]";
-	return s;
-}
-
-inline std::ostream& operator<<(std::ostream& s, const KDL::Twist& v) 
-{
-	s << "[ rot = " << v.rot << ", vel = " << v.vel << " ]";
-	return s;
-}
-inline std::ostream& operator<<(std::ostream& s, const KDL::Rotation& R) 
-{
-	s << std::endl;
-	s << R(0,0) << " " << R(0,1) << " " << R(0,2) << std::endl;
-	s << R(1,0) << " " << R(1,1) << " " << R(1,2) << std::endl;
-	s << R(2,0) << " " << R(2,1) << " " << R(2,2) << std::endl;
-	return s;
-}
 
 namespace sweetie_bot {
 namespace motion {
@@ -70,7 +51,7 @@ ExecuteStepSequence::ExecuteStepSequence(std::string const& name)  :
 	this->requires()->addServiceRequester(ServiceRequester::shared_ptr(robot_model));
 
 	// action server hook registration
-	action_server.setGoalHook(boost::bind(&ExecuteStepSequence::newGoalHook, this, _1));
+	action_server.setGoalHook(boost::bind(&ExecuteStepSequence::newGoalHook, this, boost::placeholders::_1));
 	action_server.setCancelHook(boost::bind(&ExecuteStepSequence::cancelGoalHook, this));
 
 	log(INFO) << "ExecuteStepSequence is constructed!" << endlog();

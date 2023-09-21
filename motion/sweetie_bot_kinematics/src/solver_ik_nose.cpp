@@ -1,8 +1,8 @@
+#include <sweetie_bot_orocos_misc/stream_operators.hpp>
+
 #include "solver_ik_analytical.hpp"
 
 #include <sweetie_bot_logger/logger.hpp>
-
-#include "kdl_ostream.hpp"
 
 using sweetie_bot::logger::Logger;
 using namespace RTT;

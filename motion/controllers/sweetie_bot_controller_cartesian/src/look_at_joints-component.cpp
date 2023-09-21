@@ -1,3 +1,5 @@
+#include <sweetie_bot_orocos_misc/stream_operators.hpp>
+
 #include "look_at_joints-component.hpp"
 
 #include <rtt/Component.hpp>
@@ -10,44 +12,6 @@
 #include <sweetie_bot_orocos_misc/math.hpp>
 
 using namespace RTT;
-
-
-static inline std::ostream& operator<<(std::ostream& s, const KDL::Vector& v) 
-{
-	s << "[" << v.x() << " " << v.y() << " " << v.z() << " ]";
-	return s;
-}
-
-static inline std::ostream& operator<<(std::ostream& s, const KDL::Twist& v) 
-{
-	s << "[ rot = " << v.rot << ", vel = " << v.vel << " ]";
-	return s;
-}
-static inline std::ostream& operator<<(std::ostream& s, const KDL::Rotation& R) 
-{
-	s << std::endl;
-	s << R(0,0) << " " << R(0,1) << " " << R(0,2) << std::endl;
-	s << R(1,0) << " " << R(1,1) << " " << R(1,2) << std::endl;
-	s << R(2,0) << " " << R(2,1) << " " << R(2,2) << std::endl;
-	return s;
-}
-
-static std::ostream& operator<<(std::ostream& s, const std::vector<std::string>& strings) 
-{
-	s << "[ ";
-	for(auto it = strings.begin(); it != strings.end(); it++) s << *it << ", ";
-	s << " ]";
-	return s;
-}
-
-static std::ostream& operator<<(std::ostream& s, const std::vector<int>& ints) 
-{
-	s << "[ ";
-	for(auto it = ints.begin(); it != ints.end(); it++) s << *it << ", ";
-	s << " ]";
-	return s;
-}
-
 
 namespace sweetie_bot {
 namespace motion {

@@ -1,3 +1,5 @@
+#include <sweetie_bot_orocos_misc/stream_operators.hpp>
+
 #include "pose_fusion_bno080_rvc-component.hpp"
 
 #include <cstdio>
@@ -21,12 +23,6 @@ extern "C" {
 #include <sweetie_bot_orocos_misc/message_checks.hpp>
 
 using namespace RTT;
-
-inline std::ostream& operator<<(std::ostream& s, const KDL::Vector& v) 
-{
-	s << "[" << v.x() << " " << v.y() << " " << v.z() << " ]";
-	return s;
-}
 
 namespace sweetie_bot {
 namespace motion {

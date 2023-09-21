@@ -1,4 +1,8 @@
+#include "sweetie_bot_orocos_misc/stream_operators.hpp"
+
 #include "sweetie_bot_resource_control/simple_controller_base.hpp"
+
+#include <iostream>
 
 #include <rtt/Component.hpp>
 
@@ -7,18 +11,9 @@
 using namespace RTT;
 using namespace std;
 
-inline std::ostream& operator<<(std::ostream& s, const std::vector<std::string>& strings) 
-{
-	s << "[ ";
-	for(auto it = strings.begin(); it != strings.end(); it++) s << *it << ", ";
-	s << " ]";
-	return s;
-}
-
 namespace sweetie_bot {
 namespace motion {
 namespace controller {
-
 
 SimpleControllerBase::SimpleControllerBase(std::string const& name)  : 
 	TaskContext(name, RTT::base::TaskCore::PreOperational),
@@ -47,7 +42,7 @@ SimpleControllerBase::SimpleControllerBase(std::string const& name)  :
 	//this->requires()->addServiceRequester(ServiceRequester::shared_ptr(robot_model));
 
 	// action server hook registration
-	action_server.setGoalHook(boost::bind(&SimpleControllerBase::newGoalHook, this, _1));
+	action_server.setGoalHook(boost::bind(&SimpleControllerBase::newGoalHook, this, boost::placeholders::_1));
 	action_server.setCancelHook(boost::bind(&SimpleControllerBase::cancelGoalHook, this));
 }
 
