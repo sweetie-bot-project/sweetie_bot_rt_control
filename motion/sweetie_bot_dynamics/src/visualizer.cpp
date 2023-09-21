@@ -342,13 +342,15 @@ class DynamicsVisualizer
 
 		void prepareBalanceBuffers() 
 		{
-			marker_balance.markers.resize(4);
+			marker_balance.markers.resize(6);
 
 			Marker marker;
 			Marker& marker_points = marker_balance.markers[0];
 			Marker& marker_lines = marker_balance.markers[1];
 			Marker& marker_zmp = marker_balance.markers[2];
-			Marker& marker_cog = marker_balance.markers[3];
+			Marker& marker_zmp_pt = marker_balance.markers[3];
+			Marker& marker_cog = marker_balance.markers[4];
+			Marker& marker_cog_pt = marker_balance.markers[5];
 
 			// common header
 			marker.header.frame_id = "odom_combined"; // we can calculate ZMP only on world frame
@@ -373,24 +375,34 @@ class DynamicsVisualizer
 			marker_lines.type = visualization_msgs::Marker::LINE_STRIP;
 			marker_lines.scale.x = point_size_param/2; marker_lines.scale.y = 0.0; marker_lines.scale.z = 0.0;
 			marker_lines.points.reserve(4);
-			// message with ZMP trajectory
+			// message with ZMP trajectory: lines
 			marker_zmp = marker;
 			marker_zmp.id = 2;
-			// marker_zmp.type = visualization_msgs::Marker::POINTS;
-			// marker_zmp.scale.x = point_size_param/2; marker_zmp.scale.y = point_size_param/2; marker_zmp.scale.z = point_size_param/2;
 			marker_zmp.type = visualization_msgs::Marker::LINE_STRIP;
 			marker_zmp.scale.x = point_size_param/2; marker_zmp.scale.y = 0.0; marker_zmp.scale.z = 0.0;
 			marker_zmp.points.reserve(balance_history_length);
 			marker_zmp.colors.reserve(balance_history_length);
-			// message with COM trajectory
+			// message with ZMP trajectory: points
+			marker_zmp_pt = marker;
+			marker_zmp_pt.id = 3;
+			marker_zmp_pt.type = visualization_msgs::Marker::POINTS;
+			marker_zmp_pt.scale.x = point_size_param/2; marker_zmp.scale.y = point_size_param/2; marker_zmp.scale.z = point_size_param/2;
+			marker_zmp_pt.points.reserve(balance_history_length);
+			marker_zmp_pt.colors.reserve(balance_history_length);
+			// message with COM trajectory: lines
 			marker_cog = marker;
-			marker_cog.id = 3;
-			// marker_cog.type = visualization_msgs::Marker::POINTS;
-			// marker_cog.scale.x = point_size_param/2; marker_cog.scale.y = point_size_param/2; marker_cog.scale.z = point_size_param/2;
+			marker_cog.id = 4;
 			marker_cog.type = visualization_msgs::Marker::LINE_STRIP;
 			marker_cog.scale.x = point_size_param/2; marker_cog.scale.y = 0.0; marker_cog.scale.z = 0.0;
 			marker_cog.points.reserve(balance_history_length);
 			marker_cog.colors.reserve(balance_history_length);
+			// message with COM trajectory: points
+			marker_cog_pt = marker;
+			marker_cog_pt.id = 5;
+			marker_cog_pt.type = visualization_msgs::Marker::POINTS;
+			marker_cog_pt.scale.x = point_size_param/2; marker_cog.scale.y = point_size_param/2; marker_cog.scale.z = point_size_param/2;
+			marker_cog_pt.points.reserve(balance_history_length);
+			marker_cog_pt.colors.reserve(balance_history_length);
 		}
 
 		void visualizeBalance() {
@@ -398,7 +410,9 @@ class DynamicsVisualizer
 			Marker& marker_points = marker_balance.markers[0];
 			Marker& marker_lines = marker_balance.markers[1];
 			Marker& marker_zmp = marker_balance.markers[2];
-			Marker& marker_cog = marker_balance.markers[3];
+			Marker& marker_zmp_pt = marker_balance.markers[3];
+			Marker& marker_cog = marker_balance.markers[4];
+			Marker& marker_cog_pt = marker_balance.markers[5];
 
 			ros::Time stamp = ros::Time::now();
 			
@@ -448,7 +462,7 @@ class DynamicsVisualizer
 			// add point to ZMP history
 			marker_zmp.header.stamp = stamp;
 			if (marker_zmp.points.size() < balance_history_length) {
-				// add point 
+				// add line point 
 				marker_zmp.points.emplace_back();
 				tf::pointKDLToMsg(balance.ZMP, marker_zmp.points.back());
 				marker_zmp.colors.push_back(zmp_color);
@@ -458,15 +472,20 @@ class DynamicsVisualizer
 				for(int k = 1; k < marker_zmp.points.size(); k++) {
 					marker_zmp.points[k-1] = marker_zmp.points[k];
 					marker_zmp.colors[k-1] = marker_zmp.colors[k];
+					marker_zmp_pt.points[k-1] = marker_zmp_pt.points[k];
+					marker_zmp_pt.colors[k-1] = marker_zmp_pt.colors[k];
 				}
 				tf::pointKDLToMsg(balance.ZMP, marker_zmp.points.back());
 				marker_zmp.colors.back() = zmp_color;
 			}
+			// copy points
+			marker_zmp_pt.points = marker_zmp.points;
+			marker_zmp_pt.colors = marker_zmp.colors;
 
 			// add point to CoM history
 			marker_cog.header.stamp = stamp;
 			if (marker_cog.points.size() < balance_history_length) {
-				// add point 
+				// add line point 
 				marker_cog.points.emplace_back();
 				tf::pointKDLToMsg(balance.CoM, marker_cog.points.back());
 				marker_cog.points.back().z = 0.0;
@@ -481,6 +500,9 @@ class DynamicsVisualizer
 				tf::pointKDLToMsg(balance.CoM, marker_cog.points.back());
 				marker_cog.points.back().z = 0.0;
 			}
+			// copy points
+			marker_cog_pt.points = marker_cog.points;
+			marker_cog_pt.colors = marker_cog.colors;
 
 			// publish resulting message
 			markers_pub.publish(marker_balance);
