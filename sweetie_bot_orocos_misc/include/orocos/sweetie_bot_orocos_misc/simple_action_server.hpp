@@ -2,7 +2,7 @@
 #define  OROCOS_SIMPLE_ACTION_SERVER_HPP
 
 #include <stdexcept>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/function.hpp>
 
 #include <actionlib/server/action_server.h>
@@ -45,8 +45,8 @@ template <class ActionSpec> class OrocosSimpleActionServer
 		{	
 			if (!owner_service) throw std::invalid_argument("OrocosSimpleActionServer: owner pointer must be valid.");
 			action_server.addPorts(owner_service);
-			action_server.registerGoalCallback(boost::bind(&OrocosSimpleActionServer<ActionSpec>::goalCallback, this, _1));
-			action_server.registerCancelCallback(boost::bind(&OrocosSimpleActionServer<ActionSpec>::cancelCallback, this, _1));
+			action_server.registerGoalCallback(boost::bind(&OrocosSimpleActionServer<ActionSpec>::goalCallback, this, boost::placeholders::_1));
+			action_server.registerCancelCallback(boost::bind(&OrocosSimpleActionServer<ActionSpec>::cancelCallback, this, boost::placeholders::_1));
 		}
 
 		/**

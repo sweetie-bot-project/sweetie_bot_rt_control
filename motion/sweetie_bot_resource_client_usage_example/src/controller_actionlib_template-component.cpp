@@ -29,7 +29,7 @@ ControllerActionlibTemplate::ControllerActionlibTemplate(std::string const& name
 	this->addOperation("resourceChangedHook", &ControllerActionlibTemplate::resourceChangedHook, this).
 		doc("Check if all necessary resources present and component ready to be set operational.");
 	// action server hook registration
-	action_server.setGoalHook(boost::bind(&ControllerActionlibTemplate::newGoalHook, this, _1));
+	action_server.setGoalHook(boost::bind(&ControllerActionlibTemplate::newGoalHook, this, boost::placeholders::_1));
 	action_server.setCancelHook(boost::bind(&ControllerActionlibTemplate::cancelGoalHook, this));
 
     log(INFO) << "ControllerActionlibTemplate is constructed!" << endlog();

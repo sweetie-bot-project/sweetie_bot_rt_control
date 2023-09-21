@@ -16,7 +16,7 @@ ExecuteJointTrajectory::ExecuteJointTrajectory(std::string const& name) :
 	action_server(this->provides())
 {
 	// action server hook registration
-	action_server.setGoalHook(boost::bind(&ExecuteJointTrajectory::newGoalHook, this, _1));
+	action_server.setGoalHook(boost::bind(&ExecuteJointTrajectory::newGoalHook, this, boost::placeholders::_1));
 	action_server.setCancelHook(boost::bind(&ExecuteJointTrajectory::cancelGoalHook, this));
 
     log(INFO) << "ExecuteJointTrajectory is constructed!" << endlog();
