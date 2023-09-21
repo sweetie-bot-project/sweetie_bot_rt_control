@@ -10,8 +10,6 @@ cmake_minimum_required(VERSION 2.8)
 #
 project(sweetie_bot_imu_fusion)
 
-### c++11 support ###
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 ### Logger ###
 set(LOGGER_DEFAULT "" CACHE STRING "Default logger for all packages (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")

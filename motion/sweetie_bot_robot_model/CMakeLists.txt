@@ -10,9 +10,6 @@ project(sweetie_bot_robot_model)
 #
 cmake_minimum_required(VERSION 2.6.3)
 
-### c++11 support ###
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
-
 # Logger selection
 set(LOGGER_DEFAULT "" CACHE STRING "Default logger for all packages (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
 set(LOGGER_ROBOT_MODEL "" CACHE STRING "Logger for current package (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")
