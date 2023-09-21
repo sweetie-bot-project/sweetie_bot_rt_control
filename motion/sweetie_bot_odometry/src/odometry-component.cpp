@@ -1,3 +1,5 @@
+#include <sweetie_bot_orocos_misc/stream_operators.hpp>
+
 #include "odometry-component.hpp"
 
 #include <cmath>
@@ -14,7 +16,10 @@
 
 using namespace RTT;
 using namespace KDL;
-using namespace Eigen;
+
+using Eigen::Vector3d;
+using Eigen::Matrix3d;
+using Eigen::Map;
 
 namespace sweetie_bot {
 namespace motion {
@@ -154,15 +159,15 @@ void Odometry::estimateRigidBodyPose(const std::vector<Vector>& contact_points_b
 	}
 	// Calculate transform
 	// calculate H matrix
-	Eigen::Matrix3d H = Matrix3d::Zero();
+	Matrix3d H = Matrix3d::Zero();
 	for (int k = 0; k < n_points; k++) {
 		// outer product
 		H += (Map<const Vector3d>(contact_points_body[k].data) - Map<Vector3d>(center_point_body.data)) * (Map<const Vector3d>(contact_points_anchor[k].data) - Map<Vector3d>(center_point_anchor.data)).transpose();
 	}
 	// SVD decomposition
-	JacobiSVD<Matrix3d> svd(H, ComputeFullU | ComputeFullV);
+	Eigen::JacobiSVD<Matrix3d> svd(H, Eigen::ComputeFullU | Eigen::ComputeFullV);
 	// rotation
-	Map< Matrix<double,3,3,Eigen::RowMajor> > R(T.M.data);
+	Map< Eigen::Matrix<double,3,3,Eigen::RowMajor> > R(T.M.data);
 	// check if V*U' belongs to SO(3)
 	if (svd.matrixV().determinant()*svd.matrixU().determinant() > 0.0) {
 		R = svd.matrixV() * svd.matrixU().transpose();
@@ -175,7 +180,7 @@ void Odometry::estimateRigidBodyPose(const std::vector<Vector>& contact_points_b
 	// translation
 	T.p = center_point_anchor - T.M*center_point_body;
 	if (log(DEBUG)) {
-		log() << "U = " << svd.matrixU() << std::endl << "V = " << svd.matrixV() << "S = " << svd.singularValues() <<  std::endl << "T.M = " << R << std::endl << " T.p = " << Map<Vector3d>(T.p.data) << endlog();
+		log() << "U = " << svd.matrixU() << std::endl << "V = " << svd.matrixV() << "S = " << svd.singularValues() <<  std::endl << "T.M = " << R << std::endl << " T.p = " << T.p << endlog();
 	}
 }
 
