@@ -8,7 +8,7 @@ project(sweetie_bot_robot_model)
 # The find_package macro for Orocos-RTT works best with
 # cmake >= 2.6.3
 #
-cmake_minimum_required(VERSION 2.6.3)
+cmake_minimum_required(VERSION 2.9)
 
 # Logger selection
 set(LOGGER_DEFAULT "" CACHE STRING "Default logger for all packages (LoggerOCL, LoggerLog4Cpp, LoggerRosout, LoggerRTT).")

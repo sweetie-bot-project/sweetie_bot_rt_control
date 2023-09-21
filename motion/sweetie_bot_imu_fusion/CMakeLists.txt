@@ -2,7 +2,7 @@
 # The find_package macro for Orocos-RTT requires
 # cmake >= 2.8
 #
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.9)
 
 #
 # This creates a standard cmake project. You may extend this file with
