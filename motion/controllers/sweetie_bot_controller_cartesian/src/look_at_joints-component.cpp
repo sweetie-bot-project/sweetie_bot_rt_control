@@ -262,10 +262,8 @@ void LookAtJoints::updateHook_impl()
 	//
 	KDL::Vector x_axis, y_axis, z_axis;
 	const KDL::Vector up(0.0, 0.0, 1.0);
-	// convert end effector pose to world frame
-	KDL::Frame ee_frame  = base.frame[0] * limbs.frame[chain_index];
-	// calculate direction to the target point and use it as x axis
-	x_axis = target_point - ee_frame.p;
+	// calculate direction head to the target point and use it as x axis
+	x_axis = target_point - base.frame[0] * limbs.frame[chain_index].p;
 	x_axis.Normalize();
 	// calculate y axis candidate
 	y_axis = x_axis * up;
@@ -316,7 +314,7 @@ void LookAtJoints::updateHook_impl()
 		joints_ref.name.push_back(pitch_yaw_joints[0]);
 		joints_ref.name.push_back(pitch_yaw_joints[1]);
 		// calculate pose
-		KDL::Vector tpos = limbs.frame[chain_index].Inverse(target_point); // target position in head frame (head kinematic chain end frame)
+		KDL::Vector tpos = limbs.frame[chain_index].Inverse(base.frame[0].Inverse(target_point)); // target position in head frame (head kinematic chain end frame)
 		tpos.z(tpos.z() - viewpoint_z_shift);
 		double rxy = std::sqrt(tpos.x()*tpos.x() + tpos.y()*tpos.y());
 		joints_ref.position.push_back( std::atan2(tpos.z(), rxy) ); // pitch
