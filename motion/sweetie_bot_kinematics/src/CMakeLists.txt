@@ -17,10 +17,13 @@ orocos_component(kinematics_fwd_force kinematics_fwd_force-component.cpp) # ...y
 
 orocos_component(kinematics_inv kinematics_inv-component.cpp) # ...you may add multiple source files
 
+orocos_component(kinematics_inv_control kinematics_inv_control-component.cpp) # ...you may add multiple source files
+
 # SERVICES
 
 orocos_service(solver_ik_trac_ik solver_ik_trac_ik-service.cpp) # ...you may add multiple source files
-target_link_libraries(solver_ik_trac_ik ${catkin_LIBRARIES})
+target_include_directories(solver_ik_trac_ik PRIVATE ${trac_ik_lib_INCLUDE_DIRS})
+target_link_libraries(solver_ik_trac_ik ${trac_ik_lib_LIBRARIES})
 
 orocos_service(solver_ik_analytical solver_ik_analytical-service.cpp solver_ik_analytical.cpp solver_ik_head.cpp solver_ik_nose.cpp solver_ik_leg.cpp) # ...you may add multiple source files
 

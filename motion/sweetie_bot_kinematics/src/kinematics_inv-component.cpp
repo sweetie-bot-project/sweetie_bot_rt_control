@@ -24,7 +24,7 @@ KinematicsInv::KinematicsInv(const std::string& name) :
 	log(logger::categoryFromComponentName(name))
 {
 	// ports
-	this->addEventPort("in_joints_seed_sorted", in_joints_seed_port_)
+	this->addEventPort("in_joints_sorted", in_joints_seed_port_)
 		.doc( "Initial robot pose for inverse kinematic calculation. Full sorted pose expexted. It is used as result if IK solution not found." );
 	this->addEventPort("in_limbs", in_limbs_port_ )
 		.doc( "Target pose for inverse kinematic calculation." );

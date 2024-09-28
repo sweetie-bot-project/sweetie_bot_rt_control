@@ -3,13 +3,11 @@
 
 #include <unordered_map>
 
-#include <kdl/chainfksolver.hpp>
-#include <kdl/chainfksolvervel_recursive.hpp>
-
 #include <rtt/RTT.hpp>
 #include <rtt/Logger.hpp>
+#include <kdl/chainfksolverpos_recursive.hpp>
+#include <kdl/chainjnttojacsolver.hpp>
 
-#include <trac_ik/trac_ik.hpp>
 #include <orocos/sensor_msgs/typekit/JointState.h>
 
 #include <sweetie_bot_robot_model/robot_model.hpp>

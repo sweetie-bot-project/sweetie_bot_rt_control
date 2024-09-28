@@ -4,6 +4,7 @@
 #include <ostream>
 #include <vector>
 #include <kdl/frames.hpp>
+#include <kdl/jntarray.hpp>
 
 template <typename T>
 std::ostream& operator<<(std::ostream& oss, const std::vector<T>& vec)
@@ -17,6 +18,12 @@ std::ostream& operator<<(std::ostream& oss, const std::vector<T>& vec)
 inline std::ostream& operator<<(std::ostream& s, const KDL::Vector& v)
 {
 	s << "[" << v.x() << " " << v.y() << " " << v.z() << " ]";
+	return s;
+}
+
+inline std::ostream& operator<<(std::ostream& s, const KDL::JntArray& q)
+{
+	s << q.data.transpose();
 	return s;
 }
 

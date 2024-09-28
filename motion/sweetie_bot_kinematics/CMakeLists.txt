@@ -23,10 +23,13 @@ else()
         add_definitions(-DSWEETIEBOT_LOGGER=LoggerRosout)
 endif()
 
+### General Dependencies ###
+find_package(Eigen3 REQUIRED)
+find_package(trac_ik_lib REQUIRED)
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
-find_package(catkin REQUIRED COMPONENTS rtt_ros trac_ik_lib)
+find_package(catkin REQUIRED COMPONENTS rtt_ros)
 include_directories(${catkin_INCLUDE_DIRS})
 
 ### Orocos Dependencies ###
