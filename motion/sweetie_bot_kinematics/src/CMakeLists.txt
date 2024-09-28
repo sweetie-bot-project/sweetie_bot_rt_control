@@ -17,8 +17,6 @@ orocos_component(kinematics_fwd_force kinematics_fwd_force-component.cpp) # ...y
 
 orocos_component(kinematics_inv kinematics_inv-component.cpp) # ...you may add multiple source files
 
-orocos_component(kinematics_inv_control kinematics_inv_control-component.cpp) # ...you may add multiple source files
-
 # SERVICES
 
 orocos_service(solver_ik_trac_ik solver_ik_trac_ik-service.cpp) # ...you may add multiple source files
