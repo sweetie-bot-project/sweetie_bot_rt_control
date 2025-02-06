@@ -386,7 +386,7 @@ class DynamicsVisualizer
 			marker_zmp_pt = marker;
 			marker_zmp_pt.id = 3;
 			marker_zmp_pt.type = visualization_msgs::Marker::POINTS;
-			marker_zmp_pt.scale.x = point_size_param/2; marker_zmp.scale.y = point_size_param/2; marker_zmp.scale.z = point_size_param/2;
+			marker_zmp_pt.scale.x = point_size_param/2; marker_zmp_pt.scale.y = point_size_param/2; marker_zmp_pt.scale.z = 0.0;
 			marker_zmp_pt.points.reserve(balance_history_length);
 			marker_zmp_pt.colors.reserve(balance_history_length);
 			// message with COM trajectory: lines
@@ -400,7 +400,7 @@ class DynamicsVisualizer
 			marker_cog_pt = marker;
 			marker_cog_pt.id = 5;
 			marker_cog_pt.type = visualization_msgs::Marker::POINTS;
-			marker_cog_pt.scale.x = point_size_param/2; marker_cog.scale.y = point_size_param/2; marker_cog.scale.z = point_size_param/2;
+			marker_cog_pt.scale.x = point_size_param/2; marker_cog_pt.scale.y = point_size_param/2; marker_cog_pt.scale.z = 0.0;
 			marker_cog_pt.points.reserve(balance_history_length);
 			marker_cog_pt.colors.reserve(balance_history_length);
 		}
