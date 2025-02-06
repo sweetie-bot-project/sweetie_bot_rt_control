@@ -26,6 +26,7 @@ endif()
 ### General Dependencies ###
 find_package(Eigen3 REQUIRED)
 find_package(trac_ik_lib REQUIRED)
+find_package(NLopt REQUIRED)
 
 ### ROS Dependencies ###
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
