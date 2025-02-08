@@ -33,9 +33,9 @@ SolverIKInterface::ReturnStatus SolverIKKDL_sqp::solveIK(const KDL::Frame& b_T_e
 {
 	int ret = solver_.CartToJnt(jnt, b_T_e, result);
 	if (ret < 0) {
-		int nlpot_result = solver_.getNLOptResult();
 		if (log(DEBUG)) {
-			log() << "KDL IK SQP solver failed: error code " << ret << " (" << solver_.strError(ret) << "), nlpopt_result " << nlpopt_result << " (" << solver_.strNLOptResult(nlpot_result) << ") "  << RTT::endlog();
+			int nlopt_result = solver_.getNLOptResult();
+			log() << "KDL IK SQP solver failed: error code " << ret << " (" << solver_.strError(ret) << "), nlpopt_result " << nlopt_result << " (" << solver_.strNLOptResult(nlopt_result) << ") "  << RTT::endlog();
 		}
 		return NO_SOLUTION;
 	}

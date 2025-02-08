@@ -18,8 +18,8 @@ class SolverIKInterface {
 	public:
 		enum ReturnStatus {
 			PRECISE_SOLUTION = 0, /**< IK solution complies with tolerance and joint limits. */
-			APPROXIMATE_SOLUTION, /**< IK solution does not comply with tolerance. */
-			NO_SOLUTION, /**< No solution is found or joint limits are violated. */
+			APPROXIMATE_SOLUTION = 1, /**< IK solution does not comply with tolerance. */
+			NO_SOLUTION = -1, /**< No solution is found or joint limits are violated. */
 		};
 
 	public:
