@@ -228,8 +228,8 @@ double ChainIkSolverPos_sqp::cartSumSquaredError(const double * q_data, double *
 	// calculate error
   	KDL::Twist tdiff = KDL::diff(b_T_ee, b_Tref_ee_); // w.r.t. b with ref point at ee
 	double fval = KDL::dot(tdiff.vel, tdiff.vel) + 
-				   weight_rot_square * KDL::dot(tdiff.rot, tdiff.rot);
-	               weight_q_square * (q_jnt_.data - q_opt_.data).squaredNorm();
+	              weight_rot_square * KDL::dot(tdiff.rot, tdiff.rot) +
+	              weight_q_square * (q_jnt_.data - q_opt_.data).squaredNorm();
 	// calulate gradient
 	if (grad_data != nullptr) {
 		Eigen::Map<Eigen::VectorXd> grad(grad_data, chain_.getNrOfJoints());
