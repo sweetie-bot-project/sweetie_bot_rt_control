@@ -3,6 +3,7 @@
 
 #include <kdl/chain.hpp>
 #include <kdl/chainiksolvervel_pinv.hpp>
+#include <kdl/chainfksolverpos_recursive.hpp>
 
 #include <rtt/RTT.hpp>
 #include <rtt/Logger.hpp>
@@ -21,6 +22,8 @@ namespace motion {
 class KinematicsInv : public RTT::TaskContext
 {
 	protected:
+		enum { NO_SOLUTION = -1, TOLERANCE_VIOLATION_FLAG = 1, LOCALITY_VIOLATION_FLAG = 2 };
+
 		struct KinematicChainData {
 			std::string name; /**< Kinematic chain name */
 			std::vector<std::string> joint_names; /**< Names of joint. */
@@ -28,6 +31,7 @@ class KinematicsInv : public RTT::TaskContext
 			int size; /**< Kinematic chain length. */
 			int size_real; /**< Kinematic chain length without fictive joints */
 			std::unique_ptr<KDL::Chain> chain; /**< Kinematic chain. KDL 1.4 FKSolvers store reference to KDL::Chain so Chain object must not change memory location. */ //TODO: remove size field?
+			std::unique_ptr<KDL::ChainFkSolverPos_recursive> fk_solver; /**< FK  pose solver */
 			std::unique_ptr<SolverIKInterface> ik_solver; /**< IK position solver */
 			std::unique_ptr<KDL::ChainIkSolverVel_pinv> ik_vel_solver; /**< IK  velocity solver */
 			KDL::JntArray jnt_array_pose; /**< buffer */
@@ -68,12 +72,12 @@ class KinematicsInv : public RTT::TaskContext
 		sweetie_bot::logger::LoggerRTT log;
 #endif
 	protected:
-		bool poseToJointState_impl(const sweetie_bot_kinematics_msgs::RigidBodyState& in, sensor_msgs::JointState& out);
+		int poseToJointState_impl(const sweetie_bot_kinematics_msgs::RigidBodyState& in, sensor_msgs::JointState& out);
 		std::unique_ptr<SolverIKInterface> getIKSolver(const std::string& name, const KDL::Chain& chain, const std::vector<SolverIKFactoryInterface *>& solver_ik_factories);
 
 		// operations
-		bool poseToJointState(const sweetie_bot_kinematics_msgs::RigidBodyState& in, sensor_msgs::JointState& out);
-		bool poseToJointStatePublish(const sweetie_bot_kinematics_msgs::RigidBodyState& in);
+		int poseToJointState(const sweetie_bot_kinematics_msgs::RigidBodyState& in, sensor_msgs::JointState& out);
+		bool poseToJointStatePublish(const sweetie_bot_kinematics_msgs::RigidBodyState& in, int approx_mode);
 
 	public:
 

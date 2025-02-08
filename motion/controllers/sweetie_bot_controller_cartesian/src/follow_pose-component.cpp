@@ -205,7 +205,7 @@ void FollowPose::updateHook_impl()
 	// pass result to kinematics
 	if (poseToJointStatePublish.ready()) {
 		// syncronous interface
-		ik_success = poseToJointStatePublish(limb_next);
+		ik_success = poseToJointStatePublish(limb_next, 1); // allow approximate solutions
 	} 
 	else {
 		// async interface

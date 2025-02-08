@@ -1,3 +1,5 @@
+#include <sweetie_bot_orocos_misc/stream_operators.hpp>
+
 #include "kinematics_inv-component.hpp"
 
 #include <cmath>
@@ -48,16 +50,17 @@ KinematicsInv::KinematicsInv(const std::string& name) :
 	this->addProperty("period", period_)
 		.doc("Discretization period (s).");
 	this->addProperty( "max_joint_velocity", max_joint_velocity_ )
-		.doc( "Maximal allowed joint speed (rad/s). Max joint shift from seed pose is equal to max_joint_velocity*period. Set to zero skip max joint shift test.")
+		.doc( "Maximal allowed joint speed (rad/s). Tis value is used to set LOCALITY_VIOLATION_FLAG. Max joint shift from current pose is equal to max_joint_velocity*period. Set to zero skip max joint shift test.")
 		.set(0);
 	// operations
 	this->addOperation("poseToJointState", &KinematicsInv::poseToJointState, this, OwnThread)
-		.doc("Process IK request syncronously. Unknown chains are ignored. Return true if request succesed. Otherwise result message is incorrect and should be ignored.")
+		.doc("Process IK request syncronously. Unknown chains are ignored. Return result code: NO_SOLUTION=-1, TOLERANCE_VIOLATION_FLAG=1, LOCALITY_VIOLATION_FLAG=2 ")
 		.arg("in", "Desired pose and speed of kinematic chains relative to its bases.")
 		.arg("out", "IK result for known kinematic chains");
 	this->addOperation("poseToJointStatePublish", &KinematicsInv::poseToJointStatePublish, this, OwnThread)
 		.doc("Process IK request syncronously and publish result on out_joints_port. Unknown chains are ignored. Return false if solver fails. In this case seed pose is publised.")
-		.arg("in", "Desired pose and speed of kinematic chains relative to its bases.");
+		.arg("in", "Desired pose and speed of kinematic chains relative to its bases.")
+		.arg("allow_mode", "Allow solution with specific proerties: TOLERANCE_VIOLATION_FLAG=1, LOCALITY_VIOLATION_FLAG=2");
 	// Service: requires
 	robot_model_ = new sweetie_bot::motion::RobotModel(this);
 	this->requires()->addServiceRequester(ServiceRequester::shared_ptr(robot_model_));
@@ -107,7 +110,7 @@ bool KinematicsInv::configureHook()
 		data.jnt_array_seed_pose.resize(data.size);
 		// solvers
 		// FK solver
-		// data.fk_solver.reset( new KDL::ChainFkSolverPos_recursive(*data.chain) );
+		data.fk_solver.reset( new KDL::ChainFkSolverPos_recursive(*data.chain) );
 		// instantaneous IK initialization
 		data.ik_vel_solver.reset( new KDL::ChainIkSolverVel_pinv(*data.chain, eps_vel_, max_iterations_) );
 		// IK initialization 
@@ -224,7 +227,7 @@ bool KinematicsInv::startHook()
 }
 
 
-bool KinematicsInv::poseToJointState_impl(const sweetie_bot_kinematics_msgs::RigidBodyState& limbs_, sensor_msgs::JointState& joints_) 
+int KinematicsInv::poseToJointState_impl(const sweetie_bot_kinematics_msgs::RigidBodyState& limbs_, sensor_msgs::JointState& joints_) 
 {
 	// WARNING! Correct limbs_ message is assumed!
 	
@@ -235,8 +238,10 @@ bool KinematicsInv::poseToJointState_impl(const sweetie_bot_kinematics_msgs::Rig
 
 	// process message
 	// if IK fails om any point it discards all results
+	int result = 0;
 	for (int k = 0; k < limbs_.name.size(); k++) {
 		const std::string& name = limbs_.name[k];
+		int limb_result = 0;
 		// check if chain is known
 		auto chain_it = std::find_if(chain_data_.begin(), chain_data_.end(), [name](const KinematicChainData& data) { return data.name == name; });
 		if (chain_it == chain_data_.end()) {
@@ -248,9 +253,14 @@ bool KinematicsInv::poseToJointState_impl(const sweetie_bot_kinematics_msgs::Rig
 
 		// inverse kinematics
 		int ret =  chain_it->ik_solver->solveIK(limbs_.frame[k], chain_it->jnt_array_seed_pose, chain_it->jnt_array_pose, log);
-		if (ret == SolverIKInterface::NO_SOLUTION) {
-			this->log(DEBUG) << "IK failed: no solution found." << endlog();
-			return false;
+		switch (ret) {
+			case SolverIKInterface::NO_SOLUTION:
+				this->log(DEBUG) << "IK failed: no solution found." << endlog();
+				return NO_SOLUTION;
+
+			case SolverIKInterface::APPROXIMATE_SOLUTION:
+				limb_result |= TOLERANCE_VIOLATION_FLAG;
+				break;
 		}
 
 		// check joints pose change: calculate joints shift
@@ -260,11 +270,11 @@ bool KinematicsInv::poseToJointState_impl(const sweetie_bot_kinematics_msgs::Rig
 			for(int k = 0; k < chain_it->size_real; k++) {
 				if ( std::abs(chain_it->jnt_array_seed_pose(k) - chain_it->jnt_array_pose(k)) > max_joint_shift ) {
 					// joint shift is too large 
+					limb_result |= LOCALITY_VIOLATION_FLAG;
 					if (this->log(DEBUG)) {
 						log() << "IK failed " << name << ": non local solution found, joint " << k << " shift is greater max_joint_shift: |";
 						log() << chain_it->jnt_array_pose(k) << " - " << chain_it->jnt_array_seed_pose(k) << "| > " << max_joint_shift << endlog();
 					}
-					return false;
 				}
 			}
 		}
@@ -284,14 +294,14 @@ bool KinematicsInv::poseToJointState_impl(const sweetie_bot_kinematics_msgs::Rig
 			if (ret < 0) {
 				this->log(DEBUG) << "Instantaneous IK failed with error code: " << ret << endlog();
 				// fill speed with zeros
-				return false;
+				return NO_SOLUTION;
 			}
 
 			// compare two solutions for local IK
-			if (log(DEBUG)) {
+			/* if (log(DEBUG)) {
 				log() << "Velocity shift: " << (chain_it->jnt_array_vel.data * period_).transpose() << std::endl;
 				log() << "Joint shift:   " << (chain_it->jnt_array_pose.data - chain_it->jnt_array_seed_pose.data).transpose() << endlog();
-			}
+			} */
 
 			// check singular values 
 			if (zero_vel_at_singularity_ && chain_it->ik_vel_solver->getNrZeroSigmas() > (chain_it->size - 6)) {
@@ -302,17 +312,27 @@ bool KinematicsInv::poseToJointState_impl(const sweetie_bot_kinematics_msgs::Rig
 				// pack result into JointState message
 				joints_.velocity.insert(joints_.velocity.end(), chain_it->jnt_array_vel.data.data(), chain_it->jnt_array_vel.data.data() + chain_it->size);
 			}
+
+			// check direction violation
+			{
+				// solve FK
+			}
 		} 
 		else {
 			// fill with zeros
-			// TODO more effective
 			joints_.velocity.insert(joints_.velocity.end(), chain_it->size, 0.0);
 		}
+
+		// result overall
+		if (log(DEBUG)) {
+			log() << "IK for chain: " << chain_it->name  << " result " << limb_result  << endlog();
+		} 
+		result |= limb_result;
 	}
-	return true;
+	return result;
 }
 
-bool KinematicsInv::poseToJointState(const sweetie_bot_kinematics_msgs::RigidBodyState& limbs_, sensor_msgs::JointState& joints_) {
+int KinematicsInv::poseToJointState(const sweetie_bot_kinematics_msgs::RigidBodyState& limbs_, sensor_msgs::JointState& joints_) {
 	if (!this->isRunning()) {
 		log(ERROR) << "poseToJointState: KinematicsInv must be running!" << endlog();
 		return false;
@@ -327,7 +347,7 @@ bool KinematicsInv::poseToJointState(const sweetie_bot_kinematics_msgs::RigidBod
 }
 
 
-bool KinematicsInv::poseToJointStatePublish(const sweetie_bot_kinematics_msgs::RigidBodyState& limbs_) 
+bool KinematicsInv::poseToJointStatePublish(const sweetie_bot_kinematics_msgs::RigidBodyState& limbs_, int allow_mode) 
 {
 	if (!this->isRunning()) {
 		log(ERROR) << "poseToJointStatePublish: KinematicsInv must be running!" << endlog();
@@ -340,7 +360,8 @@ bool KinematicsInv::poseToJointStatePublish(const sweetie_bot_kinematics_msgs::R
 	}
 
 	// invoke IK solvers, use joints_ as buffer
-	bool success = poseToJointState_impl(limbs_, joints_);
+	int result = poseToJointState_impl(limbs_, joints_);
+	bool success = (result & ~allow_mode) == 0;
 
 	if (!success) {
 		// IK failed, construct and publish failsafe message
@@ -392,7 +413,7 @@ void KinematicsInv::updateHook()
 	int l = 0;
 	while ( in_limbs_port_.read(limbs_) == NewData ) {
 		// process received message
-		poseToJointStatePublish(limbs_);
+		poseToJointStatePublish(limbs_, 0); // failsafe mode
 		l++;
 	}
 	log(DEBUG) << "Update hook executed: " << j << " joints and " << l << " limbs processed." <<endlog();

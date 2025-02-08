@@ -265,7 +265,7 @@ void LookAt::updateHook_impl()
 	// pass result to kinematics
 	if (poseToJointStatePublish.ready()) {
 		// syncronous interface
-		ik_success = poseToJointStatePublish(limb_next);
+		ik_success = poseToJointStatePublish(limb_next, 1); // allow tolerance violation and 
 	} 
 	else {
 		// async interface

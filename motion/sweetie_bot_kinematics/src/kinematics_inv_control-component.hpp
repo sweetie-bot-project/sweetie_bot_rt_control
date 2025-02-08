@@ -25,6 +25,7 @@ namespace motion {
 class KinematicsInvControl : public RTT::TaskContext
 {
 	protected:
+		enum { NO_SOLUTION = -1, TOLERANCE_VIOLATION_FLAG = 1, LOCALITY_VIOLATION_FLAG = 2 };
 
 		// represent one step of IK control loop
 		class IKControlSolver 
@@ -114,8 +115,8 @@ class KinematicsInvControl : public RTT::TaskContext
 		bool poseToJointState_impl(const sweetie_bot_kinematics_msgs::RigidBodyState& in, sensor_msgs::JointState& out);
 
 		// operations
-		bool poseToJointState(const sweetie_bot_kinematics_msgs::RigidBodyState& in, sensor_msgs::JointState& out);
-		bool poseToJointStatePublish(const sweetie_bot_kinematics_msgs::RigidBodyState& in);
+		int poseToJointState(const sweetie_bot_kinematics_msgs::RigidBodyState& in, sensor_msgs::JointState& out);
+		bool poseToJointStatePublish(const sweetie_bot_kinematics_msgs::RigidBodyState& in, int approx_mode);
 
 	public:
 

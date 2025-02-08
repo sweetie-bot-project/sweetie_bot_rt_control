@@ -42,7 +42,7 @@ class FollowPose : public SimpleControllerBase
 	protected:
 		// OPERATIONS: provides
 		// OPERATIONS: requires
-		RTT::OperationCaller<bool(const sweetie_bot_kinematics_msgs::RigidBodyState&)> poseToJointStatePublish;
+		RTT::OperationCaller<bool(const sweetie_bot_kinematics_msgs::RigidBodyState&, int)> poseToJointStatePublish;
 		// SERVICES: provides
 		// SERVICES: required
 		sweetie_bot::motion::RobotModel * robot_model;

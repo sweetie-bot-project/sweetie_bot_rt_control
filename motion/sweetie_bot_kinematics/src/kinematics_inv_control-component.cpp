@@ -212,13 +212,14 @@ KinematicsInvControl::KinematicsInvControl(const std::string& name) :
 		.doc("Ignore provided reference velocity.")
 		.set(false);
 	// operations
-	this->addOperation("poseToJointState", &KinematicsInvControl::poseToJointState, this, OwnThread)
-		.doc("Process IK request syncronously. Unknown chains are ignored. Return true if request succesed. Otherwise result message is incorrect and should be ignored.")
+	this->addOperation("poseToJointState", &KinematicsInv::poseToJointState, this, OwnThread)
+		.doc("Process IK request syncronously. Unknown chains are ignored. Return result code: NO_SOLUTION=-1, TOLERANCE_VIOLATION_FLAG=1, LOCALITY_VIOLATION_FLAG=2 ")
 		.arg("in", "Desired pose and speed of kinematic chains relative to its bases.")
 		.arg("out", "IK result for known kinematic chains");
-	this->addOperation("poseToJointStatePublish", &KinematicsInvControl::poseToJointStatePublish, this, OwnThread)
+	this->addOperation("poseToJointStatePublish", &KinematicsInv::poseToJointStatePublish, this, OwnThread)
 		.doc("Process IK request syncronously and publish result on out_joints_port. Unknown chains are ignored. Return false if solver fails. In this case seed pose is publised.")
-		.arg("in", "Desired pose and speed of kinematic chains relative to its bases.");
+		.arg("in", "Desired pose and speed of kinematic chains relative to its bases.")
+		.arg("allow_mode", "Allow solution with specific proerties: TOLERANCE_VIOLATION_FLAG=1, LOCALITY_VIOLATION_FLAG=2");
 	// Service: requires
 	robot_model_ = new sweetie_bot::motion::RobotModel(this);
 	this->requires()->addServiceRequester(ServiceRequester::shared_ptr(robot_model_));
@@ -333,7 +334,7 @@ bool KinematicsInvControl::startHook()
 }
 
 
-bool KinematicsInvControl::poseToJointState_impl(const sweetie_bot_kinematics_msgs::RigidBodyState& limbs_, sensor_msgs::JointState& joints_) 
+int KinematicsInvControl::poseToJointState_impl(const sweetie_bot_kinematics_msgs::RigidBodyState& limbs_, sensor_msgs::JointState& joints_) 
 {
 	// WARNING! Correct limbs_ message is assumed!
 	
@@ -350,8 +351,9 @@ bool KinematicsInvControl::poseToJointState_impl(const sweetie_bot_kinematics_ms
 
 	// process request
 	// if IK fails om any point it discards all results
-	bool success = true;
+	int result = 0;
 	for (int k = 0; k < limbs_.name.size(); k++) {
+		int limb_result = 0;
 		const std::string& name = limbs_.name[k];
 		// check if chain is known
 		auto chain_it = std::find_if(chain_data_.begin(), chain_data_.end(), [name](const KinematicChainData& data) { return data.name == name; });
@@ -374,6 +376,7 @@ bool KinematicsInvControl::poseToJointState_impl(const sweetie_bot_kinematics_ms
 		chain_it->state_filt = chain_it->state;
 		for(int step = 0; step < n_steps_; step++) {
 			bool result;
+			// solver step
 			if (limbs_.twist.size() > 0 && !ignore_ref_twist_) {
 				result = chain_it->solver->step(chain_it->state, limbs_.frame[k], limbs_.twist[k], T, kp_rot_, kp_pos_, kp_null_, q_reduction_factor_, max_rot_vel_, max_pos_vel_, log);
 			}
@@ -382,15 +385,11 @@ bool KinematicsInvControl::poseToJointState_impl(const sweetie_bot_kinematics_ms
 			}
 			if (!result) {
 				this->log(DEBUG) << "IK solver step failed." << endlog();
-				return false;
+				return NO_SOLUTION;
 			}
 			// filtering
 			chain_it->state_filt.q.data += alpha_ * (chain_it->state.q.data - chain_it->state_filt.q.data);
 			chain_it->state_filt.qdot.data += alpha_ * (chain_it->state.qdot.data - chain_it->state_filt.qdot.data);
-		}
-		if (log(DEBUG)) {
-			log() << "IK result: q: " << chain_it->state.q << ", qdot: " << chain_it->state.qdot << std::endl;
-			log() << "IK result: qf: " << chain_it->state_filt.q << ", qdot: " << chain_it->state_filt.qdot << endlog();
 		}
 
 		// check tolerance
@@ -405,19 +404,26 @@ bool KinematicsInvControl::poseToJointState_impl(const sweetie_bot_kinematics_ms
 			diff_twist_vec.head<3>() = Eigen::Map<Eigen::Vector3d>(diff_twist.vel.data);
 			diff_twist_vec.tail<3>() = Eigen::Map<Eigen::Vector3d>(diff_twist.rot.data);
 			if ( (diff_twist_vec.array().abs() > chain_it->tolerance.array()).any() ) {
-				success = false;
+				limb_result |= TOLERANCE_VIOLATION_FLAG;
 			}
+		}
+
+		if (log(DEBUG)) {
+			log() << "IK result: chain " << chain_it->name << ", result: " << limb_result << std::endl;
+			log() << "IK result: q: " << chain_it->state.q << ", qdot: " << chain_it->state.qdot << std::endl;
+			log() << "IK result: qf: " << chain_it->state_filt.q << ", qdot: " << chain_it->state_filt.qdot << endlog();
 		}
 
 		// pack result into JointState message
 		joints_.position.insert(joints_.position.end(), chain_it->state_filt.q.data.data(), chain_it->state_filt.q.data.data() + chain_it->size);
 		joints_.velocity.insert(joints_.velocity.end(), chain_it->state_filt.qdot.data.data(), chain_it->state_filt.qdot.data.data() + chain_it->size);
+		// merge result
+		result |= limb_result;
 	}
-
-	return success;
+	return result;
 }
 
-bool KinematicsInvControl::poseToJointState(const sweetie_bot_kinematics_msgs::RigidBodyState& limbs_, sensor_msgs::JointState& joints_) {
+int KinematicsInvControl::poseToJointState(const sweetie_bot_kinematics_msgs::RigidBodyState& limbs_, sensor_msgs::JointState& joints_) {
 	if (!this->isRunning()) {
 		log(ERROR) << "poseToJointState: KinematicsInvControl must be running!" << endlog();
 		return false;
@@ -432,7 +438,7 @@ bool KinematicsInvControl::poseToJointState(const sweetie_bot_kinematics_msgs::R
 }
 
 
-bool KinematicsInvControl::poseToJointStatePublish(const sweetie_bot_kinematics_msgs::RigidBodyState& limbs_) 
+bool KinematicsInvControl::poseToJointStatePublish(const sweetie_bot_kinematics_msgs::RigidBodyState& limbs_, int approx_mode) 
 {
 	if (!this->isRunning()) {
 		log(ERROR) << "poseToJointStatePublish: KinematicsInvControl must be running!" << endlog();
@@ -445,10 +451,11 @@ bool KinematicsInvControl::poseToJointStatePublish(const sweetie_bot_kinematics_
 	}
 
 	// invoke IK solvers, use joints_ as buffer
-	bool success = poseToJointState_impl(limbs_, joints_);
+	int result = poseToJointState_impl(limbs_, joints_);
+	bool success = (result & ~approx_mode) == 0;
 
 	if (log(DEBUG)) {
-		log() << "IK impl ret: " << success << ", q: " << joints_.position << ", qdot: " << joints_.velocity << endlog();
+		log() << "IK impl ret: " << result << ", q: " << joints_.position << ", qdot: " << joints_.velocity << endlog();
 	}
 
 	if (!success) {

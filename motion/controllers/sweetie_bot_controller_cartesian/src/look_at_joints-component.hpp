@@ -48,7 +48,7 @@ class LookAtJoints : public SimpleControllerBase
 	protected:
 		// OPERATIONS: provides
 		// OPERATIONS: requires
-		RTT::OperationCaller<bool(const sweetie_bot_kinematics_msgs::RigidBodyState&, sensor_msgs::JointState&)> poseToJointState;
+		RTT::OperationCaller<int(const sweetie_bot_kinematics_msgs::RigidBodyState&, sensor_msgs::JointState&)> poseToJointState;
 		// SERVICES: provides
 		// SERVICES: required
 		sweetie_bot::motion::RobotModel * robot_model;

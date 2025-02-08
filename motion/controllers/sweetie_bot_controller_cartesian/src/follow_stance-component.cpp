@@ -415,7 +415,7 @@ void FollowStance::updateHook_impl()
 	// pass result to kinematics
 	if (poseToJointStatePublish.ready()) {
 		// syncronous interface
-		ik_success = poseToJointStatePublish(limbs);
+		ik_success = poseToJointStatePublish(limbs, 0); // allow only precise solution
 		if (ik_success) out_base_ref_port.write(base_next);
 		else  {
 			// do not move base if IK failed

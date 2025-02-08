@@ -295,7 +295,7 @@ void ExecuteStepSequence::updateHook()
 		// pass result to kinematics
 		if (poseToJointStatePublish.ready()) {
 			// syncronous interface
-			bool ik_success = poseToJointStatePublish(limbs);
+			bool ik_success = poseToJointStatePublish(limbs, 0); // allow only local precise solution
 			if (!ik_success) {
 				abortActive("updateHook:", "IK failed at t = " + std::to_string(trajectory->getTime()), Result::INTERNAL_ERROR);
 				resource_client->stopOperational();

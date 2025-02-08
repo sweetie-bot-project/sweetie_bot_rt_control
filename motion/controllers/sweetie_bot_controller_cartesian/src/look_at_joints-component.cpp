@@ -286,13 +286,13 @@ void LookAtJoints::updateHook_impl()
 	// invoke inverse kinematics
 	//
 
-	bool ik_success = true;
 	// pass result to kinematics
-	ik_success = poseToJointState(limb_ref, joints_ref);
+	int ik_result = poseToJointState(limb_ref, joints_ref);
 	if (log(DEBUG)) {
-		log() << "ik_success = " << ik_success << " sync_mode = " << poseToJointState.ready() << " chain_index = "  << chain_index << endlog();
+		log() << "ik_result = " << ik_result << " sync_mode = " << poseToJointState.ready() << " chain_index = "  << chain_index << endlog();
 	}
-	if (!ik_success) {
+	if (ik_result < 0) { 
+		// IK failure
 		// use next value instead of IK result
 		joints_ref.position.clear();
 		joints_ref.position.insert(joints_ref.position.end(), joints_next.position.begin(), joints_next.position.end() - pitch_yaw_joints.size());
