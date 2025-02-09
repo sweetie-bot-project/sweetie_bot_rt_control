@@ -184,14 +184,40 @@ int ChainIkSolverPos_sqp::CartToJnt(const KDL::JntArray& q_init, const KDL::Fram
 
 const char* ChainIkSolverPos_sqp::strError(const int error) const 
 {
-    if ( (error > (E_NLOPT_FAILED + NLOPT_NUM_FAILURES)) || (error < (E_NLOPT_FAILED + NLOPT_NUM_RESULTS)) ) return "NLOpt solver error.";
+	if ( (error >= (E_NLOPT_FAILED + NLOPT_FORCED_STOP)) || (error <= (E_NLOPT_FAILED + NLOPT_MAXTIME_REACHED)) ) return "NLOpt solver error.";
 	if (error == E_INVALID_LIMITS) return "Bad joint limits (q_min > q_max).";
-    else return SolverI::strError(error);
+	else return SolverI::strError(error);
 }
 
 const char* ChainIkSolverPos_sqp::strNLOptResult(const int result) const 
 {
-	return nlopt_result_to_string(static_cast<nlopt_result>(result));
+	// return nlopt_result_to_string(static_cast<nlopt_result>(result));
+	switch (result) {
+		case NLOPT_FAILURE:
+			return "FAILURE";
+    	case NLOPT_INVALID_ARGS:
+			return "INVALID_ARGS";
+    	case NLOPT_OUT_OF_MEMORY:
+    		return "OUT_OF_MEMORY";
+    	case NLOPT_ROUNDOFF_LIMITED:
+    		return "ROUNDOFF_LIMITED";
+    	case NLOPT_FORCED_STOP:
+    		return "FORCED_STOP";
+    	case NLOPT_SUCCESS:
+    		return "SUCCESS";
+    	case NLOPT_STOPVAL_REACHED:
+    		return "STOPVAL_REACHED";
+    	case NLOPT_FTOL_REACHED:
+    		return "FTOL_REACHED";
+    	case NLOPT_XTOL_REACHED:
+    		return "XTOL_REACHED";
+    	case NLOPT_MAXEVAL_REACHED:
+    		return "MAXVAL_REACHED";
+    	case NLOPT_MAXTIME_REACHED:
+    		return "MAXTIMEL_REACHED";
+		default:
+    		return "UNKNOWN";
+	}
 }
 
 int ChainIkSolverPos_sqp::setJointLimits(const KDL::JntArray& q_min, const KDL::JntArray& q_max)
