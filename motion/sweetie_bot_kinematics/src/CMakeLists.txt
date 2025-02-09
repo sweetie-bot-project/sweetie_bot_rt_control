@@ -26,7 +26,7 @@ target_link_libraries(solver_ik_trac_ik ${trac_ik_lib_LIBRARIES})
 orocos_service(solver_ik_analytical solver_ik_analytical-service.cpp solver_ik_analytical.cpp solver_ik_head.cpp solver_ik_nose.cpp solver_ik_leg.cpp) # ...you may add multiple source files
 
 orocos_service(solver_ik_kdl_sqp solver_ik_kdl-service.cpp chainiksolverpos_sqp.cpp)
-target_link_libraries(solver_ik_kdl_sqp "NLopt::nlopt")
+target_link_libraries(solver_ik_kdl_sqp NLopt::nlopt)
 
 #
 # Additional headers:
